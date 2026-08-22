@@ -25,7 +25,7 @@ Ansible and Argo CD follow the native family they wrap.
 | A prerequisite adapter is unverified on one platform | Keeps that platform visible as blocked, refuses mutation and continues testing the remaining matrix | Adapter has double-run and functional verification evidence |
 | A chart matching the pinned oCIS release is unavailable | Keeps Kubernetes/Argo CD in scope as Community Preview/blocked and continues schema/render-equivalence work | Compatible chart pin plus chart-owner approval |
 | Production support approval is missing | Emits evaluation or Community Preview output only | Named owner approves the support statement and runtime gate |
-| Brand approval is missing | Serves the explicit development placeholder | Final supplied logo passes brand review |
+| Brand approval is missing | Serves the source-locked official logo with a visible development-preview banner and noindex | Explicit ownCloud/Kiteworks brand-use approval is recorded |
 | EULA wording or hash changes | Allows inspection but blocks runnable output | Joint legal review and new acknowledgement version |
 | Sizing evidence is incomplete | Shows the formula as provisional and requires conservative defaults plus load testing | Evidence is versioned and reviewed |
 | A wrapper drifts from its native renderer | Blocks the wrapper, not the underlying family | CI render-equivalence is restored |

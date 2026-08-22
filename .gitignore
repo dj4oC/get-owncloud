@@ -1,0 +1,14 @@
+node_modules/
+_site/
+dist/
+playwright-report/
+test-results/
+.upstream/
+.env
+data/
+bundles/
+backups/
+*.age
+*.tar.gz
+*.sha256.tmp
+

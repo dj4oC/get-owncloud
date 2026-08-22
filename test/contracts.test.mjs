@@ -15,17 +15,20 @@ test("browser journey catalogue covers every deployment target and critical boun
 
 test("Ansible is a thin module wrapper around the locked bundle with secret redaction", async () => {
   const playbook = await read("ansible/playbook.yml");
-  assert.match(playbook, /community\.docker\.docker_compose_v2/);
-  assert.match(playbook, /project_src: "\{\{ owncloud_bundle_dir \}\}"/);
-  assert.match(playbook, /no_log:/);
+  const role = await read("ansible/roles/get_owncloud/tasks/main.yml");
+  assert.match(playbook, /role: get_owncloud/);
+  assert.match(role, /community\.docker\.docker_compose_v2/);
+  assert.match(role, /project_src: "\{\{ owncloud_bundle_dir \}\}"/);
+  assert.match(role, /no_log:/);
 });
 
 test("health check validates an actual oCIS endpoint rather than container state", async () => {
   const health = await read("scripts/healthcheck.sh");
   assert.match(health, /healthz/);
-  assert.match(health, /--retry 5/);
-  assert.match(health, /body=\$\(curl/);
-  assert.match(health, /empty body/);
+  assert.match(health, /--retry 10/);
+  assert.match(health, /--resolve/);
+  assert.match(health, /http_code/);
+  assert.match(health, /"\$status" = 200/);
 });
 
 test("Argo CD uses one Application and a namespace-scoped project", async () => {
@@ -34,6 +37,8 @@ test("Argo CD uses one Application and a namespace-scoped project", async () => 
   assert.equal((application.match(/kind: Application\n/g) ?? []).length, 1);
   assert.match(project, /clusterResourceWhitelist: \[\]/);
   assert.match(project, /namespace: owncloud/);
+  assert.doesNotMatch(project, /group: "\*"|kind: "\*"/);
+  assert.doesNotMatch(application, /CreateNamespace=true/);
 });
 
 test("security update defaults are narrow and breaking updates are never automatic", async () => {
@@ -42,6 +47,14 @@ test("security update defaults are narrow and breaking updates are never automat
   assert.equal(policy.observationDelayHours, 24);
   assert.equal(policy.breakingAutomatic, false);
   for (const marker of ["migration", "storage-schema", "idm-schema", "unknown"]) assert.ok(policy.manualOnly.includes(marker));
+});
+
+test("Docker security updates have explicit systemd and cron scheduler contracts", async () => {
+  const bootstrap = await read("scripts/install.sh");
+  assert.match(bootstrap, /systemctl enable --now "\$timer"/);
+  assert.match(bootstrap, /\/etc\/cron\.d\/get-owncloud-update-/);
+  assert.match(bootstrap, /operator-controlled backup recipient/);
+  assert.match(bootstrap, /Scheduled updates require a bundle path without spaces or shell metacharacters/);
 });
 
 test("sizing formula version is recorded in the changelog", async () => {

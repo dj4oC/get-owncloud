@@ -28,10 +28,21 @@ test("dry-run is deterministic, reports missing tools and performs no local audi
 
 test("non-interactive execution fails closed without EULA acceptance", async () => {
   const directory = await mkdtemp(join(tmpdir(), "get-owncloud-eula-"));
+  const bundle = join(directory, "bundle");
+  const render = spawnSync(process.execPath, [
+    new URL("../src/cli.mjs", import.meta.url).pathname,
+    "render",
+    new URL("../examples/evaluation-docker-collabora.json", import.meta.url).pathname,
+    bundle,
+    "--accept-eula",
+    "--secrets-file",
+    new URL("fixtures/e2e-secrets.json", import.meta.url).pathname
+  ], { encoding: "utf8", env: { ...process.env, SOURCE_DATE_EPOCH: "0" } });
+  assert.equal(render.status, 0, render.stderr);
   const fakeDocker = join(directory, "docker");
   await writeFile(fakeDocker, "#!/bin/sh\nexit 0\n");
   await chmod(fakeDocker, 0o755);
-  const result = spawnSync("sh", [script.pathname, "--non-interactive", "--target", "single-host", "--engine", "docker", "--no-start"], {
+  const result = spawnSync("sh", [join(bundle, "install.sh"), "--bundle-dir", bundle, "--non-interactive", "--target", "single-host", "--engine", "docker", "--no-start"], {
     cwd: directory,
     encoding: "utf8",
     env: { ...process.env, PATH: `${directory}:${process.env.PATH}` }

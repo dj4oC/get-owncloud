@@ -16,15 +16,45 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "22.18.0"
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts
       - name: Verify contracts and tests
         run: npm run verify
+      - name: ShellCheck every operator script
+        run: shellcheck scripts/*.sh
       - name: Enforce inspectable bootstrap
         run: test "$(wc -l < scripts/install.sh)" -le 500
+      - name: Verify deterministic single-host rendering
+        run: |
+          first=$(mktemp -d)
+          second=$(mktemp -d)
+          SOURCE_DATE_EPOCH=0 node src/cli.mjs render examples/evaluation-docker-collabora.json "$first" --accept-eula --secrets-file test/fixtures/e2e-secrets.json
+          SOURCE_DATE_EPOCH=0 node src/cli.mjs render examples/evaluation-docker-collabora.json "$second" --accept-eula --secrets-file test/fixtures/e2e-secrets.json
+          diff -ru "$first" "$second"
+          (cd "$first" && sha256sum -c manifest.sha256)
+      - name: Verify production SEO and answer-system discovery artifact
+        run: |
+          SITE_MODE=production npm run build
+          grep -q 'content="index,follow,max-image-preview:large,max-snippet:-1"' _site/index.html
+          grep -q 'rel="canonical" href="https://get.owncloud.com/"' _site/index.html
+          grep -A1 'User-agent: OAI-SearchBot' _site/robots.txt | grep -q 'Allow: /'
+          grep -A1 'User-agent: GPTBot' _site/robots.txt | grep -q 'Allow: /'
+          grep -q 'https://get.owncloud.com/' _site/sitemap.xml
+          test -s _site/llms.txt
 
   catalogue-platform-contract:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "22.18.0"
       - name: Verify all retained platform tiers are represented
         run: node --test test/platforms.test.mjs

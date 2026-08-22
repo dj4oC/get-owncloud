@@ -14,8 +14,8 @@ Authority is target-specific and version-pinned; no single source is allowed to 
 | Blogs/tutorials | Never authoritative | Discovery signal only | Create an unmapped item; never change output |
 
 The precedence and exact source hashes are versioned with every catalogue update. The current chart
-`0.7.0` declares appVersion `7.1.4`, so it is not a valid oCIS 8.2 production baseline. Kubernetes stays
-blocked/Community Preview until a compatible chart is pinned and tested.
+`0.7.0` declares appVersion `7.1.4`, so the runnable Kubernetes output stays a 7.1.4 Community Preview and
+is not a valid oCIS 8.2 production baseline. Issue #6 remains the explicit promotion gate.
 
 ## Change flow
 

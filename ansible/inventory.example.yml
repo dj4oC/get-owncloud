@@ -1,0 +1,12 @@
+---
+all:
+  children:
+    owncloud:
+      hosts:
+        cloud.example.net:
+          ansible_user: deploy
+      vars:
+        owncloud_bundle_dir: /opt/get-owncloud/bundle
+        owncloud_accept_eula: false
+        owncloud_install_missing_runtime: true
+        owncloud_allow_sudo: true

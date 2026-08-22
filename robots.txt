@@ -1,4 +1,9 @@
 User-agent: *
 Disallow: /
 
-# Development preview stays non-indexable until production launch gates pass.
+# Development preview stays non-indexable for search and answer-system crawlers until launch gates pass.
+User-agent: OAI-SearchBot
+Disallow: /
+
+User-agent: GPTBot
+Disallow: /

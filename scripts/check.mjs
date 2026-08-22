@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { readFile, readdir } from "node:fs/promises";
 
 const root = new URL("../", import.meta.url);
@@ -23,7 +24,7 @@ for (const flag of ["--non-interactive", "--install-missing", "--allow-sudo", "-
 if (!install.includes("/dev/tty")) fail("install.sh must explicitly support /dev/tty approval");
 
 const releaseWorkflow = await text(".github/workflows/release.yml");
-for (const required of ["generate-sbom.mjs", "attest-build-provenance@", "subject-path: \"dist/*\""]) {
+for (const required of ["generate-sbom.mjs", "attest-build-provenance@", "subject-path: \"dist/*\"", "runtime-e2e.sh", "test:e2e"]) {
   if (!releaseWorkflow.includes(required)) fail(`Release workflow is missing: ${required}`);
 }
 
@@ -33,12 +34,24 @@ for (const required of [
   "No warranties",
   "Limitation of liability",
   "noindex,nofollow",
-  "aria-live=\"polite\""
+  "aria-live=\"polite\"",
+  '"@type": "HowTo"',
+  '"@type": "FAQPage"',
+  "site/assets/owncloud-logo.svg"
 ]) if (!html.includes(required)) fail(`index.html is missing: ${required}`);
 if (/ONLYOFFICE/i.test(html)) fail("The public site must not expose ONLYOFFICE");
+const jsonLd = html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)?.[1];
+if (!jsonLd) fail("index.html is missing structured JSON-LD");
+else {
+  const cspHash = createHash("sha256").update(jsonLd).digest("base64");
+  if (!html.includes(`'sha256-${cspHash}'`)) fail("Content Security Policy does not authorize the exact JSON-LD block");
+}
 
 const robots = await text("robots.txt");
 if (!robots.includes("Disallow: /")) fail("Development robots.txt must block indexing");
+for (const crawler of ["OAI-SearchBot", "GPTBot"]) {
+  if (!robots.includes(`User-agent: ${crawler}`)) fail(`Development robots.txt must state the ${crawler} policy explicitly`);
+}
 const sitemap = await text("sitemap.xml");
 if (sitemap.includes("<url>")) fail("Development sitemap must remain empty");
 
@@ -53,15 +66,49 @@ if (breakdown !== sizing.defaults.headroomPercent) fail("Sizing headroom breakdo
 if (!sizing.productionLoadTestRequired) fail("Production load testing must be mandatory");
 
 const compatibility = await json("catalog/compatibility.json");
-if (compatibility.helm.targetOcisVersion === compatibility.helm.declaredAppVersion) {
-  fail("Compatibility fixture should expose the current Helm/oCIS mismatch");
+if (compatibility.helm.targetOcisVersion !== "7.1.4" || compatibility.helm.declaredAppVersion !== "7.1.4") {
+  fail("Helm target and declared app version must remain at 7.1.4 while issue #6 is open");
 }
-if (compatibility.helm.runnable !== false) fail("Incompatible Helm output must be blocked");
+if (compatibility.helm.runnable !== true || compatibility.helm.production !== false || compatibility.helm.openIssue !== 6) {
+  fail("Helm must be runnable Community Preview, non-production, with issue #6 open");
+}
 
 const policies = await json("catalog/policies.json");
 if (policies.identity.embeddedMaximumUsers !== 20) fail("Embedded identity limit must be 20");
 if (policies.storage.requiredNfsVersion !== "4.2") fail("NFS policy must require v4.2");
 if (!policies.denyExperimental) fail("Experimental features must be denied");
+
+const logo = await readFile(new URL("site/assets/owncloud-logo.svg", root));
+const sources = await json("catalog/sources.lock.json");
+const logoHash = createHash("sha256").update(logo).digest("hex");
+if (logoHash !== sources.sources.brandLogo.vendoredSha256) fail("Vendored ownCloud logo hash does not match the source lock");
+
+const composeTemplates = await readdir(new URL("deploy/compose/template/", root));
+for (const name of composeTemplates) {
+  if (/onlyoffice|posixfs|xattr|gpfs/i.test(name)) fail(`Forbidden deployment template is present: ${name}`);
+}
+
+for (const workflowName of ["ci.yml", "browser-e2e.yml", "deployment-e2e.yml", "pages.yml", "release.yml"]) {
+  const workflow = await text(`.github/workflows/${workflowName}`);
+  for (const match of workflow.matchAll(/uses:\s+([^\s]+)/g)) {
+    if (!/@[0-9a-f]{40}$/.test(match[1])) fail(`${workflowName} has an unpinned action: ${match[1]}`);
+  }
+}
+const deploymentWorkflow = await text(".github/workflows/deployment-e2e.yml");
+for (const evidence of ["runtime-e2e.sh", "Collabora lifecycle", "validate-helm.mjs", "Ansible double-apply"]) {
+  if (!deploymentWorkflow.includes(evidence)) fail(`Full deployment E2E is missing: ${evidence}`);
+}
+const runtimeE2e = await text("scripts/runtime-e2e.sh");
+for (const evidence of ["backup.sh", "restore.sh", "WebDAV", "hosting/discovery", "get_owncloud_compose restart"]) {
+  if (!runtimeE2e.includes(evidence)) fail(`Runtime E2E is missing: ${evidence}`);
+}
+for (const evidence of ["podman-rootless-runtime", "part1-platform-contract", "ubuntu-22.04", "ubuntu-24.04"]) {
+  if (!deploymentWorkflow.includes(evidence)) fail(`Deployment workflow is missing matrix evidence: ${evidence}`);
+}
+
+const updateFeed = await text("releases/stable-8.2.env");
+const updateChecksum = (await text("releases/stable-8.2.env.sha256")).trim().split(/\s+/)[0];
+if (createHash("sha256").update(updateFeed).digest("hex") !== updateChecksum) fail("Stable 8.2 update feed checksum is stale");
 
 const codeowners = await text(".github/CODEOWNERS");
 if (/@(?:docker|k8s|ansible|web|docs)-maintainer/.test(codeowners)) fail("CODEOWNERS must not use invented accounts");

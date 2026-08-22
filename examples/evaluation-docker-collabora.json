@@ -1,0 +1,24 @@
+{
+  "apiVersion": "get.owncloud.com/v1alpha1",
+  "purpose": "evaluation",
+  "target": { "runtime": "docker", "manager": "direct" },
+  "workload": { "registeredUsers": 20, "storedDataGiB": 10 },
+  "identity": { "mode": "embedded" },
+  "storage": {
+    "mode": "ocis",
+    "filesystem": "ext4",
+    "dataPath": "./data/data",
+    "configPath": "./data/config"
+  },
+  "office": { "mode": "collabora", "deployment": "bundled" },
+  "networking": {
+    "domain": "ocis.owncloud.test",
+    "collaboraDomain": "collabora.owncloud.test",
+    "httpPort": 8080,
+    "httpsPort": 8443,
+    "tls": { "mode": "evaluation-self-signed" }
+  },
+  "features": { "search": false, "clamav": false, "notifications": true, "monitoring": false },
+  "security": { "basicAuth": true, "demoUsers": false },
+  "updates": { "automaticSecurityPatches": false, "observationDelayHours": 24 }
+}

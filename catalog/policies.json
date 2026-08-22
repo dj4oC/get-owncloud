@@ -9,7 +9,7 @@
     "allowed": ["none", "collabora"]
   },
   "storage": {
-    "allowedModes": ["ocis", "s3ng", "nfs"],
+    "allowedModes": ["ocis", "s3ng"],
     "allowedPosixFilesystems": ["ext4", "xfs", "btrfs", "zfs", "nfs"],
     "requiredNfsVersion": "4.2",
     "effectiveMountRequired": true,

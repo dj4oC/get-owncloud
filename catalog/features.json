@@ -6,8 +6,9 @@
     "production": { "visible": true, "runnable": true, "production": true }
   },
   "features": [
-    { "id": "collabora", "label": "Collabora", "maturity": "production", "targets": ["docker", "podman", "kubernetes"], "resourceRule": "collabora-v1" },
-    { "id": "clamav", "label": "ClamAV", "maturity": "production", "targets": ["docker", "podman", "kubernetes"], "resourceRule": "clamav-v1" },
+    { "id": "collabora-bundled", "label": "Bundled Collabora", "maturity": "production", "targets": ["docker", "podman"], "resourceRule": "collabora-v1" },
+    { "id": "collabora-external", "label": "External Collabora", "maturity": "production", "targets": ["docker", "podman", "kubernetes"], "resourceRule": "external-capacity" },
+    { "id": "clamav", "label": "ClamAV", "maturity": "production", "targets": ["docker", "podman"], "resourceRule": "clamav-v1" },
     { "id": "kubernetes", "label": "Kubernetes / Helm", "maturity": "community-preview", "targets": ["kubernetes"], "compatibilityGate": "helm-ocis" }
   ],
   "denied": [

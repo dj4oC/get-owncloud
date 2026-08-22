@@ -3,135 +3,380 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Deploy ownCloud by Kiteworks | Infinite Scale deployment generator</title>
-    <meta name="description" content="Prepare, size and generate a policy-checked ownCloud Infinite Scale deployment for Docker, Podman, Kubernetes, Ansible or Argo CD.">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-IQZAzsaFYMMie9R369mqIVVyx9QQURrNhDcAQi0HMPI='; style-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+    <title>Deploy ownCloud by Kiteworks | Infinite Scale installer</title>
+    <meta name="description" content="Size, configure, validate and download ownCloud Infinite Scale deployments for Docker, Podman, Kubernetes, Ansible and Argo CD from one policy-checked profile.">
     <meta name="robots" content="noindex,nofollow">
     <link rel="canonical" href="https://get.owncloud.com/">
-    <link rel="alternate" type="text/markdown" href="site/docs.md">
+    <link rel="alternate" type="text/markdown" href="site/docs.md" title="Deploy ownCloud documentation">
+    <link rel="icon" href="site/assets/owncloud-logo.svg" type="image/svg+xml">
+    <meta name="theme-color" content="#041e42">
     <meta property="og:title" content="Deploy ownCloud by Kiteworks">
-    <meta property="og:description" content="One profile for single-host and Kubernetes ownCloud Infinite Scale deployments.">
+    <meta property="og:description" content="One policy-checked profile for ownCloud Infinite Scale deployment and system sizing.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://get.owncloud.com/">
+    <meta property="og:image" content="https://get.owncloud.com/site/assets/owncloud-logo.svg">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Deploy ownCloud by Kiteworks">
+    <meta name="twitter:description" content="Configure and download an ownCloud Infinite Scale deployment bundle.">
     <link rel="stylesheet" href="site/styles.css">
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
-        "@type": "SoftwareApplication",
-        "name": "Deploy ownCloud by Kiteworks",
-        "applicationCategory": "DeveloperApplication",
-        "operatingSystem": "Linux",
-        "url": "https://get.owncloud.com/"
+        "@graph": [
+          {
+            "@type": "SoftwareApplication",
+            "name": "Deploy ownCloud by Kiteworks",
+            "applicationCategory": "DeveloperApplication",
+            "operatingSystem": "Linux",
+            "softwareVersion": "8.2.0",
+            "license": "https://raw.githubusercontent.com/owncloud/ocis/stable-8.2/assets/End-User-License-Agreement-for-ownCloud-Infinite-Scale.pdf",
+            "url": "https://get.owncloud.com/",
+            "description": "A local-first ownCloud Infinite Scale deployment configurator and installer."
+          },
+          {
+            "@type": "HowTo",
+            "name": "Deploy ownCloud Infinite Scale",
+            "step": [
+              { "@type": "HowToStep", "name": "Prepare the system", "text": "Detect and install the selected deployment tools with explicit approval." },
+              { "@type": "HowToStep", "name": "Configure and size", "text": "Describe users, storage, identity, Collabora, networking and host resources." },
+              { "@type": "HowToStep", "name": "Validate and deploy", "text": "Review policy output, acknowledge the EULA and run the locked bundle." }
+            ]
+          },
+          {
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "Can embedded ownCloud identity management be used above 20 users?",
+                "acceptedAnswer": { "@type": "Answer", "text": "No. The generator requires external OIDC and a trusted external LDAP directory above 20 registered users." }
+              },
+              {
+                "@type": "Question",
+                "name": "Which office integration is available?",
+                "acceptedAnswer": { "@type": "Answer", "text": "Collabora is the only office integration. It can be bundled for Docker or connected as an external service." }
+              },
+              {
+                "@type": "Question",
+                "name": "Which NFS version is allowed?",
+                "acceptedAnswer": { "@type": "Answer", "text": "Only an effectively mounted NFSv4.2 filesystem is accepted." }
+              }
+            ]
+          }
+        ]
       }
     </script>
     <script type="module" src="site/app.js"></script>
   </head>
   <body>
-    <a class="skip-link" href="#main">Skip to content</a>
-    <header>
-      <p class="brand-placeholder" aria-label="ownCloud brand placeholder pending approval">ownCloud</p>
-      <p class="preview">Development preview · brand asset pending approval · not indexed</p>
+    <a class="skip-link" href="#main">Skip to configuration</a>
+    <header class="site-header">
+      <a class="brand" href="#top" aria-label="Deploy ownCloud home">
+        <img src="site/assets/owncloud-logo.svg" width="180" height="48" alt="ownCloud">
+        <span>Deploy ownCloud <small>by Kiteworks</small></span>
+      </a>
+      <p class="preview" data-preview-banner>Development preview · not indexed</p>
     </header>
+
     <main id="main">
-      <section class="hero" aria-labelledby="page-title">
-        <p class="eyebrow">From laptop trial to GitOps</p>
-        <h1 id="page-title">Deploy ownCloud by Kiteworks</h1>
-        <p>Prepare the machine, configure one profile and generate a deployment with explicit support and safety boundaries.</p>
-        <nav aria-label="Deployment methods">
-          <a href="#single-host">Docker</a>
-          <a href="#single-host">Podman</a>
-          <a href="#kubernetes">Kubernetes</a>
-          <a href="#ansible">Ansible</a>
-          <a href="#argocd">Argo CD</a>
-        </nav>
+      <section class="hero" id="top" aria-labelledby="page-title">
+        <div>
+          <p class="eyebrow">Infinite Scale · one deployment profile</p>
+          <h1 id="page-title">Deploy ownCloud by Kiteworks</h1>
+          <p class="lede">Prepare the machine, calculate transparent system recommendations, and download an inspectable ownCloud Infinite Scale bundle—without sending configuration or secrets to a server.</p>
+          <nav aria-label="Deployment methods">
+            <a href="#configure">Docker</a>
+            <a href="#configure">Podman</a>
+            <a href="#configure">Kubernetes</a>
+            <a href="#configure">Ansible</a>
+            <a href="#configure">Argo CD</a>
+          </nav>
+        </div>
+        <aside class="boundary" aria-label="Production boundaries">
+          <strong>Safe defaults</strong>
+          <ul>
+            <li>oCIS 8.2.0 for the production Docker path</li>
+            <li>Collabora is the only office integration</li>
+            <li>Standard <code>ocis</code> or <code>s3ng</code> storage only</li>
+            <li>NFS must be effectively mounted as v4.2</li>
+          </ul>
+        </aside>
       </section>
 
       <section id="part-1" aria-labelledby="part-1-title">
         <p class="step">Part 1</p>
         <h2 id="part-1-title">Prepare your system</h2>
-        <p>The local command detects the selected stack. Missing tooling is shown as an installation plan before anything changes.</p>
-        <pre><code>sh scripts/install.sh --dry-run --target single-host --engine docker</code></pre>
-        <ul>
-          <li>Docker, Podman, kubectl, Helm, Ansible and Argo CD CLI are checked only when selected.</li>
-          <li>Mutations require approval. There is no silent sudo, firewall, DNS or Kubernetes-context change.</li>
-          <li>K3s is an evaluation-only smoke-test profile. Production requires an approved existing cluster.</li>
-        </ul>
+        <p>The bootstrap detects only the tools selected for your deployment. Missing Docker, Podman, kubectl, Helm, Ansible or Argo CD CLI is presented as a pinned installation plan. Package installation, sudo, EULA acceptance and deployment are separate explicit approvals.</p>
+        <div class="command-picker" role="group" aria-label="Bootstrap examples">
+          <label for="command-target">Deployment method</label>
+          <select id="command-target">
+            <option value="docker">Docker</option>
+            <option value="podman">Podman</option>
+            <option value="kubernetes">Kubernetes and Helm</option>
+            <option value="ansible">Ansible and Docker</option>
+            <option value="argocd">Argo CD, Kubernetes and Helm</option>
+          </select>
+          <pre><code id="bootstrap-command">sh scripts/install.sh --dry-run --target single-host --engine docker</code></pre>
+          <button type="button" class="secondary" id="copy-command">Copy command</button>
+        </div>
+        <p class="notice"><strong>Inspectable first:</strong> download or clone this repository and read <code>scripts/install.sh</code>. It never silently changes firewall rules, DNS, Kubernetes context, or cluster-wide permissions.</p>
       </section>
 
-      <section id="single-host" aria-labelledby="single-host-title">
-        <p class="step">Deployment family 1</p>
-        <h2 id="single-host-title">Docker or Podman</h2>
-        <p>Uses the pinned official <code>ocis_full</code> model. Ansible is a management wrapper around the same locked bundle.</p>
-      </section>
-
-      <section id="kubernetes" aria-labelledby="kubernetes-title">
-        <p class="step">Deployment family 2</p>
-        <h2 id="kubernetes-title">Kubernetes and Helm</h2>
-        <p><strong>Community Preview — currently compatibility-blocked for oCIS 8.2.</strong> The official chart currently declares a different oCIS app version. Argo CD wraps the same Helm values and cannot bypass this gate.</p>
+      <section id="support" aria-labelledby="support-title">
+        <p class="step">Support boundary</p>
+        <h2 id="support-title">Two deployment families, one profile</h2>
+        <div class="cards">
+          <article>
+            <h3>Single host</h3>
+            <p>Docker is the production-gated runtime. Podman remains Community Preview. Ansible applies the same locked Compose bundle twice to verify idempotence.</p>
+          </article>
+          <article>
+            <h3>Kubernetes</h3>
+            <p>Helm and Argo CD are deliberately held at chart 0.7.0 / oCIS 7.1.4 under open issue #6. They are runnable Community Preview outputs, not an oCIS 8.2 production claim.</p>
+          </article>
+        </div>
       </section>
 
       <section id="configure" aria-labelledby="configure-title">
         <p class="step">Part 2</p>
         <h2 id="configure-title">Configure and size ownCloud</h2>
-        <p>Collabora is the only office integration; it may be bundled or connected as an external service.</p>
-        <form id="sizing-form">
-          <div class="field">
-            <label for="users">Registered users</label>
-            <input id="users" name="users" type="number" min="1" value="20" required>
-            <small>Usually known. Embedded IDP/IDM has a maximum 20 users and is rejected above that boundary.</small>
-          </div>
-          <div class="field">
-            <label for="storage">Current storage (GiB)</label>
-            <input id="storage" name="storage" type="number" min="0" value="100" required>
-            <small>Use a current measured or rounded value.</small>
-          </div>
-          <div class="field checkbox">
-            <input id="collabora" name="collabora" type="checkbox">
-            <label for="collabora">Bundle Collabora</label>
-          </div>
-          <details>
-            <summary>Advanced workload assumptions</summary>
-            <div class="field">
-              <label for="concurrency">Concurrent Collabora users</label>
-              <input id="concurrency" name="concurrency" type="number" min="0">
-              <small>Default: 5% of registered users when Collabora is selected.</small>
-            </div>
-          </details>
-          <button type="submit">Calculate recommendation</button>
-        </form>
-        <output id="sizing-output" aria-live="polite"></output>
-      </section>
+        <p>Fields marked required are needed to generate a runnable bundle. Advanced values start from conservative assumptions and remain visible in the sizing report.</p>
 
-      <section id="storage-policy" aria-labelledby="storage-title">
-        <h2 id="storage-title">Storage policy</h2>
-        <table>
-          <thead><tr><th>Allowed</th><th>Rejected</th></tr></thead>
-          <tbody>
-            <tr><td>Standard <code>ocis</code> driver on POSIX storage</td><td>PosixFS, legacy xattr and GPFS-specific modes</td></tr>
-            <tr><td><code>s3ng</code> blobs with POSIX metadata</td><td>Experimental, unsupported or unknown drivers</td></tr>
-            <tr><td>Effectively verified NFSv4.2</td><td>NFSv3, v4.0, v4.1 or unverifiable mounts</td></tr>
-          </tbody>
-        </table>
+        <form id="deployment-form" novalidate>
+          <fieldset>
+            <legend>Deployment</legend>
+            <div class="form-grid">
+              <label>Purpose
+                <select name="purpose" id="purpose" required>
+                  <option value="evaluation">Evaluation</option>
+                  <option value="production">Production</option>
+                </select>
+              </label>
+              <label>Runtime
+                <select name="runtime" id="runtime" required>
+                  <option value="docker">Docker</option>
+                  <option value="podman">Podman — Community Preview</option>
+                  <option value="kubernetes">Kubernetes — 7.1.4 Community Preview</option>
+                </select>
+              </label>
+              <label>Manager
+                <select name="manager" id="manager" required>
+                  <option value="direct">Direct</option>
+                  <option value="ansible">Ansible</option>
+                </select>
+              </label>
+            </div>
+            <p class="field-help" id="maturity-note">Docker evaluation uses the production-capable renderer without making a production capacity claim.</p>
+          </fieldset>
+
+          <fieldset>
+            <legend>Workload and host</legend>
+            <div class="form-grid">
+              <label>Registered users
+                <input name="registeredUsers" id="registered-users" type="number" min="1" value="20" required>
+                <small>Embedded IDP/IDM is rejected above 20.</small>
+              </label>
+              <label>Stored data (GiB)
+                <input name="storedDataGiB" type="number" min="0" step="1" value="100" required>
+              </label>
+              <label>Annual data growth (%)
+                <input name="annualGrowthPercent" type="number" min="0" step="1" value="20" required>
+              </label>
+              <label>Host CPU threads (optional)
+                <input name="systemCpu" type="number" min="1">
+              </label>
+              <label>Host RAM (GiB, optional)
+                <input name="systemRamGiB" type="number" min="1" step="0.25">
+              </label>
+              <label>Available disk (GiB, optional)
+                <input name="systemDiskGiB" type="number" min="0" step="1">
+              </label>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend>Identity</legend>
+            <label>Account and login system
+              <select name="identityMode" id="identity-mode" required>
+                <option value="embedded">Embedded IDP/IDM — maximum 20 users</option>
+                <option value="external-oidc">External OIDC and LDAP directory</option>
+              </select>
+            </label>
+            <div id="external-identity" class="conditional" hidden>
+              <div class="form-grid">
+                <label>OIDC issuer URL<input name="oidcIssuer" type="url" placeholder="https://id.example.net/realms/owncloud"></label>
+                <label>OIDC client ID<input name="oidcClientId" value="web"></label>
+                <label>Trusted LDAP URI<input name="ldapUri" placeholder="ldaps://directory.example.net:636"></label>
+                <label>LDAP bind DN<input name="ldapBindDn" placeholder="uid=ocis,ou=system,dc=example,dc=net"></label>
+                <label>LDAP user base DN<input name="ldapUserBaseDn" placeholder="ou=users,dc=example,dc=net"></label>
+                <label>LDAP group base DN<input name="ldapGroupBaseDn" placeholder="ou=groups,dc=example,dc=net"></label>
+                <label data-single-host>LDAP bind password<input name="ldapBindPassword" type="password" autocomplete="new-password"><small>Written only to the local bundle’s mode-0600 environment file.</small></label>
+                <label data-kubernetes hidden>Kubernetes LDAP Secret name<input name="ldapSecretRef" value="owncloud-external-ldap"><small>Must contain <code>reva-ldap-bind-password</code>.</small></label>
+              </div>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend>Storage</legend>
+            <div class="form-grid">
+              <label>Storage driver
+                <select name="storageMode" id="storage-mode">
+                  <option value="ocis">Standard ocis driver</option>
+                  <option value="s3ng">s3ng blobs with POSIX metadata</option>
+                </select>
+              </label>
+              <label>Metadata filesystem
+                <select name="filesystem" id="filesystem">
+                  <option value="ext4">ext4</option>
+                  <option value="xfs">XFS</option>
+                  <option value="btrfs">Btrfs</option>
+                  <option value="zfs">ZFS</option>
+                  <option value="nfs">NFSv4.2</option>
+                </select>
+              </label>
+              <label data-single-host>Data path<input name="dataPath" value="./data/data" required></label>
+              <label data-single-host>Configuration path<input name="configPath" value="./data/config" required></label>
+              <label id="storage-class-field" hidden>Kubernetes StorageClass<input name="storageClassName" placeholder="nfs-4-2"></label>
+            </div>
+            <p class="field-help">Direct filesystem access beyond the standard drivers, extended-attribute modes, GPFS-specific modes, and experimental features are not emitted at any layer. NFS selection is blocked unless the effective mount reports version 4.2.</p>
+            <div id="s3-fields" class="conditional" hidden>
+              <div class="form-grid">
+                <label>S3 endpoint<input name="s3Endpoint" type="url" placeholder="https://s3.example.net"></label>
+                <label>S3 region<input name="s3Region" value="default"></label>
+                <label>S3 bucket<input name="s3Bucket" placeholder="owncloud-data"></label>
+                <label>Kubernetes/secret reference<input name="s3SecretRef" value="owncloud-s3"></label>
+                <label data-single-host>S3 access key<input name="s3AccessKey" type="password" autocomplete="new-password"></label>
+                <label data-single-host>S3 secret key<input name="s3SecretKey" type="password" autocomplete="new-password"></label>
+              </div>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend>Collabora</legend>
+            <div class="form-grid">
+              <label>Office integration
+                <select name="officeMode" id="office-mode">
+                  <option value="none">None</option>
+                  <option value="collabora">Collabora</option>
+                </select>
+              </label>
+              <label id="office-deployment-field" hidden>Collabora deployment
+                <select name="officeDeployment" id="office-deployment">
+                  <option value="bundled">Bundled</option>
+                  <option value="external">External service</option>
+                </select>
+              </label>
+              <label id="collabora-concurrency-field" hidden>Concurrent editors
+                <input name="collaboraConcurrentUsers" type="number" min="1">
+                <small>Default is 5% of registered users.</small>
+              </label>
+              <label id="collabora-domain-field" hidden>Collabora domain<input name="collaboraDomain" placeholder="office.example.net"></label>
+              <label id="collabora-url-field" hidden>External Collabora URL<input name="collaboraUrl" type="url" placeholder="https://office.example.net"></label>
+              <label id="collabora-password-field" hidden>Collabora admin password<input name="collaboraAdminPassword" type="password" autocomplete="new-password"></label>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend>Networking and TLS</legend>
+            <div class="form-grid">
+              <label>ownCloud domain<input name="domain" id="domain" value="ocis.owncloud.test" required></label>
+              <label data-single-host>HTTP port<input name="httpPort" type="number" min="1" max="65535" value="8080"></label>
+              <label data-single-host>HTTPS port<input name="httpsPort" type="number" min="1" max="65535" value="8443"></label>
+              <label>TLS mode
+                <select name="tlsMode" id="tls-mode">
+                  <option value="evaluation-self-signed">Evaluation self-signed</option>
+                  <option value="acme">Trusted ACME</option>
+                </select>
+              </label>
+              <label id="acme-email-field" hidden>ACME contact email<input name="acmeEmail" type="email" placeholder="hostmaster@example.net"></label>
+              <label data-kubernetes hidden>Ingress class<input name="ingressClassName" value="nginx"></label>
+              <label data-kubernetes hidden>Pre-created TLS Secret<input name="tlsSecretName" value="owncloud-tls"></label>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend>Services and updates</legend>
+            <div class="checks">
+              <label><input name="search" type="checkbox" checked> Search and content extraction</label>
+              <label><input name="clamav" id="clamav" type="checkbox"> ClamAV malware scanning</label>
+              <label><input name="notifications" id="notifications" type="checkbox"> Email notifications</label>
+              <label><input name="autoUpdates" id="auto-updates" type="checkbox"> Automatic eligible same-minor security patches</label>
+            </div>
+            <label id="backup-recipient-field">Backup encryption recipient
+              <input name="backupRecipient" placeholder="age1… or ssh-ed25519 …">
+              <small>Public recipient only. The matching private identity remains with the operator and is never uploaded.</small>
+            </label>
+            <div id="mail-fields" class="conditional" hidden>
+              <div class="form-grid">
+                <label>SMTP host<input name="smtpHost"></label>
+                <label>SMTP port<input name="smtpPort" type="number" min="1" max="65535" value="587"></label>
+                <label>Sender<input name="smtpSender" placeholder="ownCloud &lt;noreply@example.net&gt;"></label>
+                <label>SMTP username<input name="smtpUsername"></label>
+                <label>SMTP password<input name="smtpPassword" type="password" autocomplete="new-password"></label>
+              </div>
+            </div>
+            <label>Observation delay (hours)<input name="updateDelay" type="number" min="24" value="24"></label>
+          </fieldset>
+
+          <fieldset>
+            <legend>Generated administrator secret</legend>
+            <label>Admin password (optional)<input name="adminPassword" type="password" autocomplete="new-password"><small>Leave empty for a locally generated 256-bit secret. Secrets never leave this browser.</small></label>
+          </fieldset>
+
+          <div class="actions">
+            <button type="submit">Validate and calculate</button>
+            <button type="button" class="secondary" id="download-profile">Download profile JSON</button>
+          </div>
+        </form>
+
+        <section class="result" aria-labelledby="sizing-title">
+          <h3 id="sizing-title">System recommendation</h3>
+          <output id="sizing-output" aria-live="polite">Complete the form to calculate minimum and recommended resources.</output>
+          <div id="sizing-breakdown"></div>
+        </section>
       </section>
 
       <section id="validate" aria-labelledby="validate-title">
         <p class="step">Part 3</p>
-        <h2 id="validate-title">Validate and generate</h2>
-        <p>Runnable output stays disabled until policy, readiness, sizing and the current EULA gate pass.</p>
-        <div class="legal">
-          <input id="eula" type="checkbox">
-          <label for="eula">I have read and accept the ownCloud Infinite Scale EULA, including Section 6 (No warranties) and Section 7 (Limitation of liability).</label>
+        <h2 id="validate-title">Acknowledge, download and deploy</h2>
+        <div class="legal-box">
+          <p>Review the current <a href="https://raw.githubusercontent.com/owncloud/ocis/stable-8.2/assets/End-User-License-Agreement-for-ownCloud-Infinite-Scale.pdf" target="_blank" rel="noreferrer">ownCloud Infinite Scale EULA PDF</a>. In particular, acknowledge <strong>No warranties</strong> and <strong>Limitation of liability</strong>. This summary does not replace the EULA.</p>
+          <label class="legal"><input id="eula" type="checkbox"> I have read and accept the pinned EULA, including No warranties and Limitation of liability.</label>
+          <p>The browser records this only inside the downloaded bundle. The installer requires a second explicit <code>--accept-eula</code> acknowledgement and writes a local audit record; nothing is transmitted.</p>
         </div>
-        <p><a href="https://raw.githubusercontent.com/owncloud/ocis/stable-8.2/assets/End-User-License-Agreement-for-ownCloud-Infinite-Scale.pdf" target="_blank" rel="noreferrer">Read the pinned EULA PDF</a></p>
-        <button id="generate" type="button" disabled>Generate runnable bundle</button>
-        <p id="generate-status" role="status">Accept the current EULA to enable generation.</p>
+        <div id="validation-errors" class="errors" role="alert" hidden></div>
+        <button id="generate" type="button" disabled>Download runnable ZIP bundle</button>
+        <p id="generate-status" role="status">Validate the profile and accept the current EULA to enable generation.</p>
       </section>
 
-      <section id="ansible"><h2>Ansible</h2><p>A thin wrapper applies the same locked Compose bundle with secrets protected from logs.</p></section>
-      <section id="argocd"><h2>Argo CD</h2><p>V1 installs the CLI only and requires an existing compatible controller. One Application wraps the same Helm values.</p></section>
+      <section id="policies" aria-labelledby="policies-title">
+        <h2 id="policies-title">Enforced deployment policy</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Area</th><th>Allowed</th><th>Rejected or gated</th></tr></thead>
+            <tbody>
+              <tr><th>Identity</th><td>Embedded through 20 users; external OIDC plus trusted LDAP beyond 20</td><td>Embedded IDP/IDM above 20 users</td></tr>
+              <tr><th>Office</th><td>Bundled or external Collabora on a tested target</td><td>Other office suites or unknown integrations</td></tr>
+              <tr><th>Storage</th><td>Standard <code>ocis</code>; <code>s3ng</code> with POSIX metadata</td><td>Direct/experimental filesystem drivers, extended-attribute and GPFS-specific modes</td></tr>
+              <tr><th>NFS</th><td>Declared and effectively verified NFSv4.2</td><td>NFSv3, v4.0, v4.1 or unverifiable mounts</td></tr>
+              <tr><th>Production</th><td>Real FQDN, trusted TLS, persistence, backups and representative load tests</td><td>Demo users, basic authentication, self-signed TLS or capacity guarantees</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="faq" aria-labelledby="faq-title">
+        <h2 id="faq-title">Frequently asked questions</h2>
+        <details><summary>Does the browser upload my configuration or secrets?</summary><p>No. Validation, sizing, secret generation, checksums and ZIP creation run locally in this browser. The site has no analytics or configuration API.</p></details>
+        <details><summary>Is the recommendation a capacity guarantee?</summary><p>No. The report separates minimum resources from a recommendation with at least 30% planning headroom. Production still requires representative load and recovery testing.</p></details>
+        <details><summary>Why does Kubernetes remain on oCIS 7.1.4?</summary><p>The official chart 0.7.0 declares app version 7.1.4. The generator preserves that version boundary under open issue #6 instead of silently presenting it as an 8.2 deployment.</p></details>
+      </section>
     </main>
+
     <footer>
-      <p>Development concept for ownCloud Infinite Scale. Production capacity always requires representative load testing.</p>
-      <a href="site/docs.md">Markdown version</a>
+      <p><strong>Deploy ownCloud by Kiteworks</strong> · source-locked deployment tooling for ownCloud Infinite Scale.</p>
+      <p><a href="site/docs.md">Markdown documentation</a> · <a href="llms.txt">LLM index</a> · <a href="docs/LAUNCH_GATES.md">Production launch gates</a> · <a href="SECURITY.md">Security policy</a> · <a href="THIRD_PARTY_NOTICES.md">Third-party notices</a></p>
     </footer>
   </body>
 </html>

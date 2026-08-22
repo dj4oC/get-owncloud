@@ -1,0 +1,264 @@
+name: Full deployment E2E
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 2 * * *"
+
+concurrency:
+  group: deployment-e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  compose-runtime:
+    name: oCIS 8.2.0 + Collabora lifecycle (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, ubuntu-24.04]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "22.18.0"
+          cache: npm
+      - name: Install locked development dependencies
+        run: npm ci --ignore-scripts
+      - name: Run full service lifecycle
+        run: sh scripts/runtime-e2e.sh "$GITHUB_WORKSPACE"
+      - name: Show container state on failure
+        if: failure()
+        run: docker ps -a --format 'table {{.Names}}\t{{.Status}}\t{{.Image}}'
+
+  podman-rootless-runtime:
+    name: Rootless Podman WebDAV persistence lifecycle
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "22.18.0"
+          cache: npm
+      - name: Install locked development dependencies
+        run: npm ci --ignore-scripts
+      - name: Install rootless Podman Compose prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y podman podman-compose uidmap slirp4netns fuse-overlayfs
+          sudo mkdir -p "/run/user/$(id -u)"
+          sudo chown "$(id -u):$(id -g)" "/run/user/$(id -u)"
+          echo "XDG_RUNTIME_DIR=/run/user/$(id -u)" >> "$GITHUB_ENV"
+      - name: Verify rootless engine
+        run: |
+          test "$(podman info --format '{{.Host.Security.Rootless}}')" = true
+          podman compose version
+      - name: Run upload, restart, backup and restore lifecycle
+        run: sh scripts/runtime-e2e.sh "$GITHUB_WORKSPACE" podman
+      - name: Install pinned Ansible environment
+        run: |
+          python3 -m venv "$RUNNER_TEMP/ansible-podman"
+          "$RUNNER_TEMP/ansible-podman/bin/pip" install ansible-core==2.18.8
+          "$RUNNER_TEMP/ansible-podman/bin/ansible-galaxy" collection install community.docker:4.4.0
+          echo "$RUNNER_TEMP/ansible-podman/bin" >> "$GITHUB_PATH"
+      - name: Require Podman Ansible second-apply idempotence
+        env:
+          ANSIBLE_ROLES_PATH: ansible/roles
+        run: |
+          bundle="$RUNNER_TEMP/ansible-podman-bundle"
+          SOURCE_DATE_EPOCH=0 node src/cli.mjs render examples/evaluation-podman.json "$bundle" --accept-eula --secrets-file test/fixtures/e2e-secrets.json
+          echo "GET_OWNCLOUD_PODMAN_ANSIBLE_BUNDLE=$bundle" >> "$GITHUB_ENV"
+          args=(-i 'localhost,' -c local ansible/playbook.yml -e "owncloud_bundle_dir=$bundle" -e owncloud_accept_eula=true)
+          ansible-playbook "${args[@]}"
+          ansible-playbook "${args[@]}" | tee "$RUNNER_TEMP/podman-second-apply.log"
+          grep -Eq 'changed=0 +unreachable=0 +failed=0' "$RUNNER_TEMP/podman-second-apply.log"
+      - name: Show Podman state on failure
+        if: failure()
+        run: podman ps -a || true
+      - name: Stop Podman Ansible services
+        if: always()
+        run: |
+          if test -n "${GET_OWNCLOUD_PODMAN_ANSIBLE_BUNDLE:-}"; then
+            cd "$GET_OWNCLOUD_PODMAN_ANSIBLE_BUNDLE"
+            socket_uri=$(podman info --format '{{.Host.RemoteSocket.Path}}')
+            export DOCKER_SOCKET_PATH=${socket_uri#unix://}
+            podman compose down -v --remove-orphans || true
+          fi
+
+  part1-platform-contract:
+    name: Part 1 ${{ matrix.platform }} deterministic adapter
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: ubuntu-22.04
+            image: ubuntu:22.04
+          - platform: ubuntu-24.04
+            image: ubuntu:24.04
+          - platform: debian-12
+            image: debian:12
+          - platform: rhel-9-contract
+            image: registry.access.redhat.com/ubi9:latest
+          - platform: centos-stream-9
+            image: quay.io/centos/centos:stream9
+          - platform: rocky-9
+            image: rockylinux:9
+          - platform: alma-9
+            image: almalinux:9
+          - platform: fedora-current
+            image: fedora:latest
+          - platform: opensuse-tumbleweed
+            image: opensuse/tumbleweed:latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Run Part 1 twice without mutation
+        env:
+          PLATFORM_IMAGE: ${{ matrix.image }}
+        run: |
+          work_dir=$(mktemp -d)
+          for pass in 1 2; do
+            docker run --rm -v "$GITHUB_WORKSPACE:/repo:ro" "$PLATFORM_IMAGE" \
+              sh /repo/scripts/install.sh --dry-run --target single-host --engine docker \
+              --auto-security-updates=false > "$work_dir/$pass.log"
+          done
+          diff -u "$work_dir/1.log" "$work_dir/2.log"
+          grep -q 'DRY RUN' "$work_dir/1.log"
+
+  helm-contract:
+    name: Helm 0.7.0 / oCIS 7.1.4 held boundary
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout generator
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "22.18.0"
+          cache: npm
+      - name: Install locked development dependencies
+        run: npm ci --ignore-scripts
+      - name: Checkout pinned official chart source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: owncloud/ocis-charts
+          ref: 161472690d7577b6b4342dbf2b87fa04e3dd6181
+          path: .upstream/ocis-charts
+      - name: Set up Helm
+        uses: azure/setup-helm@b9e51907a09c216f16ebe8536097933489208112
+        with:
+          version: v3.18.6
+      - name: Validate schema and Helm/Argo equivalence
+        run: |
+          node scripts/validate-helm.mjs .upstream/ocis-charts/charts/ocis
+          work_dir=$(mktemp -d)
+          SOURCE_DATE_EPOCH=0 node src/cli.mjs render examples/kubernetes-7.1.4-preview.json "$work_dir" --accept-eula --secrets-file test/fixtures/e2e-secrets.json
+          helm lint .upstream/ocis-charts/charts/ocis -f "$work_dir/values.yaml"
+          helm template owncloud .upstream/ocis-charts/charts/ocis --namespace owncloud -f "$work_dir/values.yaml" > "$work_dir/rendered.yaml"
+          test -s "$work_dir/rendered.yaml"
+          ! grep -Eiq 'posixfs|xattr|gpfs' "$work_dir/values.yaml"
+
+  ansible-idempotence:
+    name: Ansible double-apply against live oCIS
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "22.18.0"
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts
+      - name: Install pinned Ansible environment
+        run: |
+          python3 -m venv "$RUNNER_TEMP/ansible"
+          "$RUNNER_TEMP/ansible/bin/pip" install ansible-core==2.18.8
+          "$RUNNER_TEMP/ansible/bin/ansible-galaxy" collection install community.docker:4.4.0
+          echo "$RUNNER_TEMP/ansible/bin" >> "$GITHUB_PATH"
+      - name: Render test bundle
+        run: |
+          bundle="$RUNNER_TEMP/ansible-bundle"
+          SOURCE_DATE_EPOCH=0 node src/cli.mjs render examples/evaluation-docker-collabora.json "$bundle" --accept-eula --secrets-file test/fixtures/e2e-secrets.json
+          echo "GET_OWNCLOUD_ANSIBLE_BUNDLE=$bundle" >> "$GITHUB_ENV"
+      - name: Apply role twice and require second-run idempotence
+        env:
+          ANSIBLE_ROLES_PATH: ansible/roles
+        run: |
+          args=(-i 'localhost,' -c local ansible/playbook.yml -e "owncloud_bundle_dir=$GET_OWNCLOUD_ANSIBLE_BUNDLE" -e owncloud_accept_eula=true)
+          ansible-playbook "${args[@]}"
+          ansible-playbook "${args[@]}" | tee "$RUNNER_TEMP/second-apply.log"
+          grep -Eq 'changed=0 +unreachable=0 +failed=0' "$RUNNER_TEMP/second-apply.log"
+      - name: Stop test services
+        if: always()
+        run: |
+          if test -n "${GET_OWNCLOUD_ANSIBLE_BUNDLE:-}" && test -f "$GET_OWNCLOUD_ANSIBLE_BUNDLE/.env"; then
+            cd "$GET_OWNCLOUD_ANSIBLE_BUNDLE"
+            docker compose down -v --remove-orphans || true
+          fi
+
+  browser-configurator:
+    name: Browser generation and WCAG 2.1 AA journeys
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "22.18.0"
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Build and run every browser journey
+        run: |
+          SITE_MODE=development npm run build
+          npm run test:e2e
+      - name: Upload browser failure evidence
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: full-e2e-browser-evidence
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  full-e2e-gate:
+    name: Full E2E code gate
+    runs-on: ubuntu-24.04
+    if: always()
+    needs:
+      - compose-runtime
+      - podman-rootless-runtime
+      - part1-platform-contract
+      - helm-contract
+      - ansible-idempotence
+      - browser-configurator
+    steps:
+      - name: Require every deployment family, wrapper and browser journey
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        run: |
+          test "$(jq -r '[.[].result] | all(. == "success")' <<< "$NEEDS_JSON")" = true

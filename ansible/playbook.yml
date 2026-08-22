@@ -1,19 +1,6 @@
 ---
 - name: Apply locked ownCloud Compose bundle
   hosts: owncloud
-  become: false
-  collections:
-    - community.docker
-  tasks:
-    - name: Validate required variables
-      ansible.builtin.assert:
-        that:
-          - owncloud_bundle_dir is defined
-          - owncloud_bundle_dir | length > 0
-
-    - name: Apply the generated locked bundle
-      community.docker.docker_compose_v2:
-        project_src: "{{ owncloud_bundle_dir }}"
-        state: present
-        pull: policy
-      no_log: "{{ owncloud_contains_generated_secrets | default(true) }}"
+  become: "{{ owncloud_become | default(false) }}"
+  roles:
+    - role: get_owncloud

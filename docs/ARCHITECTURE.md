@@ -22,7 +22,8 @@ render-equivalence tests.
 2. **Configure ownCloud.** Build one target-neutral profile under the hard policy catalogue.
 3. **Validate and generate.** Produce readiness, sizing, legal and deployment artifacts.
 
-The browser cannot inspect host executables. It generates a signed Part 1 command; the local bootstrap
+The browser cannot inspect host executables. It generates a source-locked Part 1 command; attested release
+artifacts are a separate launch gate. The local bootstrap
 returns a redacted readiness report.
 
 ## Maturity model

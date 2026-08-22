@@ -9,7 +9,7 @@ Part 1 reports requirements; it never edits firewall or DNS configuration.
 | Outbound TCP 443 | ACME endpoint | Certificate issuance | ACME selected |
 | Outbound TCP 443 | SMTP/OIDC/S3/Collabora endpoints | Selected external integrations | Corresponding feature selected |
 | Host/ingress TCP 443 | Deployment endpoint | User access | Production |
-| Host TCP 9200 | Local evaluation endpoint | Default unprivileged evaluation | Evaluation default |
+| Host TCP 8080/8443 | Local evaluation HTTP/HTTPS endpoints | Default unprivileged evaluation | Evaluation default |
 
 HTTP(S) proxy variables are detected, redacted in reports and forwarded only to approved download tools.
 Custom CA bundles must be explicitly supplied. TLS verification cannot be disabled for production.

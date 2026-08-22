@@ -4,7 +4,7 @@
 
 ## Deployment constraints
 
-- Embedded IDP/IDM is allowed for no more than 20 users.
+- Embedded IDP/IDM is allowed for no more than 20 users. Above 20, external OIDC plus a trusted LDAPS directory is required.
 - Collabora is the only office integration.
 - Storage is standard `ocis` on POSIX, or `s3ng` with POSIX metadata.
 - NFS must be effectively verified as NFSv4.2.
@@ -19,7 +19,7 @@ Runnable output requires explicit acknowledgement of the pinned ownCloud Infinit
 - Experimental: metadata only; never selectable or runnable.
 - Community Preview: visible with a persistent warning and no production support claim.
 - Production: only after the named owner and runtime launch gates approve the statement.
-- Kubernetes/Helm and Argo CD are currently Community Preview and blocked for oCIS 8.2 until a compatible chart is pinned.
+- Kubernetes/Helm and Argo CD are runnable Community Preview outputs held at chart 0.7.0 / oCIS 7.1.4 under open issue #6. They are not presented as oCIS 8.2 or production.
 
 ## Documentation
 

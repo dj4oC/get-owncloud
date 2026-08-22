@@ -11,7 +11,12 @@ synced child releases have a demonstrated need.
 
 - The generator never creates cluster-admin credentials.
 - The project/namespace and allowed repositories/destinations are explicit.
-- The controller service account receives only verbs/resources required by rendered output.
+- The AppProject denies cluster-scoped resources and enumerates the namespace-scoped kinds emitted by
+  the pinned chart; it contains no wildcard resource grant.
+- The `owncloud` namespace must be pre-created. The Application cannot create namespaces or silently
+  expand the existing controller service account.
+- The existing controller service account receives only the verbs/resources required by the rendered
+  output through operator-owned Argo CD RBAC; missing permission blocks sync with a diagnostic.
 - Existing cluster policy remains authoritative; missing permission blocks sync with a diagnostic.
 
 ## Updates

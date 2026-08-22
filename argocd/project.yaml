@@ -2,6 +2,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: AppProject
 metadata:
   name: owncloud
+  namespace: argocd
 spec:
   description: Namespace-scoped ownCloud synchronization boundary
   sourceRepos:
@@ -11,10 +12,23 @@ spec:
       server: https://kubernetes.default.svc
   clusterResourceWhitelist: []
   namespaceResourceWhitelist:
-    - group: "*"
-      kind: "*"
-  roles:
-    - name: reviewer
-      description: Read-only generated-application review
-      policies:
-        - p, proj:owncloud:reviewer, applications, get, owncloud/*, allow
+    - group: ""
+      kind: ConfigMap
+    - group: ""
+      kind: PersistentVolumeClaim
+    - group: ""
+      kind: Secret
+    - group: ""
+      kind: Service
+    - group: apps
+      kind: Deployment
+    - group: autoscaling
+      kind: HorizontalPodAutoscaler
+    - group: batch
+      kind: CronJob
+    - group: networking.k8s.io
+      kind: Ingress
+    - group: policy
+      kind: PodDisruptionBudget
+    - group: monitoring.coreos.com
+      kind: ServiceMonitor
