@@ -1,0 +1,8 @@
+{
+  "version": "2026.08.22",
+  "automaticSecurityUpdates": true,
+  "observationDelayHours": 24,
+  "eligible": ["same-minor-patch", "security-classified", "no-migration", "backup-ready", "health-check-ready", "rollback-safe"],
+  "manualOnly": ["minor", "major", "breaking", "migration", "storage-schema", "idm-schema", "unknown"],
+  "breakingAutomatic": false
+}

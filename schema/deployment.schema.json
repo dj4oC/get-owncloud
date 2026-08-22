@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://get.owncloud.com/schema/deployment.schema.json",
+  "title": "ownCloud Infinite Scale deployment profile",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["apiVersion", "purpose", "target", "workload", "identity", "storage", "office"],
+  "properties": {
+    "apiVersion": { "const": "get.owncloud.com/v1alpha1" },
+    "purpose": { "enum": ["evaluation", "production"] },
+    "maturity": { "enum": ["experimental", "community-preview", "production"] },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["runtime", "manager"],
+      "properties": {
+        "runtime": { "enum": ["docker", "podman", "kubernetes"] },
+        "manager": { "enum": ["direct", "ansible", "argocd"] }
+      }
+    },
+    "workload": {
+      "$ref": "sizing-input.schema.json"
+    },
+    "identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode"],
+      "properties": {
+        "mode": { "enum": ["embedded", "external-oidc", "external-ldap", "test-keycloak"] },
+        "issuer": { "type": "string", "format": "uri" }
+      }
+    },
+    "storage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode"],
+      "properties": {
+        "mode": { "enum": ["ocis", "s3ng", "nfs"] },
+        "filesystem": { "enum": ["ext4", "xfs", "btrfs", "zfs", "nfs"] },
+        "nfsVersion": { "const": "4.2" }
+      }
+    },
+    "office": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode"],
+      "properties": {
+        "mode": { "enum": ["none", "collabora"] },
+        "deployment": { "enum": ["bundled", "external"] }
+      }
+    },
+    "features": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "clamav": { "type": "boolean" },
+        "search": { "type": "boolean" },
+        "notifications": { "type": "boolean" },
+        "monitoring": { "type": "boolean" }
+      }
+    }
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "version": "2026.08.22",
+  "ocis": { "version": "8.2", "source": "https://github.com/owncloud/ocis/tree/stable-8.2" },
+  "compose": { "source": "ocis_full", "maturity": "evaluation", "status": "catalogue-foundation" },
+  "helm": {
+    "chartVersion": "0.7.0",
+    "declaredAppVersion": "7.1.4",
+    "targetOcisVersion": "8.2",
+    "maturity": "community-preview",
+    "status": "blocked-incompatible-version",
+    "runnable": false,
+    "source": "https://github.com/owncloud/ocis-charts/blob/main/charts/ocis/Chart.yaml"
+  },
+  "argocd": { "inherits": "helm", "maturity": "community-preview", "runnable": false },
+  "ansible": { "inherits": "compose", "maturity": "community-preview", "runnable": "after-compose-gate" }
+}

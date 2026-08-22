@@ -1,0 +1,29 @@
+# Deploy ownCloud by Kiteworks
+
+> Supplemental, non-standard discovery file generated from the same policy sources as the HTML and Markdown documentation. It is not an API or a substitute for the official documentation.
+
+## Deployment constraints
+
+- Embedded IDP/IDM is allowed for no more than 20 users.
+- Collabora is the only office integration.
+- Storage is standard `ocis` on POSIX, or `s3ng` with POSIX metadata.
+- NFS must be effectively verified as NFSv4.2.
+- PosixFS, xattr, GPFS-specific modes and experimental/unsupported features are denied.
+
+## EULA
+
+Runnable output requires explicit acknowledgement of the pinned ownCloud Infinite Scale EULA, including Section 6 (No warranties) and Section 7 (Limitation of liability). Browser acceptance is local. CLI acceptance is recorded in a local audit file and is not transmitted.
+
+## Support and maturity
+
+- Experimental: metadata only; never selectable or runnable.
+- Community Preview: visible with a persistent warning and no production support claim.
+- Production: only after the named owner and runtime launch gates approve the statement.
+- Kubernetes/Helm and Argo CD are currently Community Preview and blocked for oCIS 8.2 until a compatible chart is pinned.
+
+## Documentation
+
+- [Human-readable Markdown](site/docs.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [Platform support](docs/PLATFORM_SUPPORT.md)
+- [Launch gates](docs/LAUNCH_GATES.md)

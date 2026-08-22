@@ -1,0 +1,9 @@
+# Non-runnable contract example. catalog/compatibility.json currently blocks oCIS 8.2 Helm output.
+global:
+  domain: cloud.example.org
+  tls:
+    enabled: true
+ocis:
+  externalUserManagement:
+    enabled: true
+# Collabora may be enabled only after the pinned chart compatibility gate passes.

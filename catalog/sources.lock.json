@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "generatedAt": "2026-08-22T00:00:00Z",
+  "sources": {
+    "ocisDocumentation": "https://doc.owncloud.com/ocis/8.2/admin/",
+    "ocisCompose": "https://github.com/owncloud/ocis/tree/stable-8.2/deployments/examples/ocis_full",
+    "ocisChartsChartYaml": "https://github.com/owncloud/ocis-charts/blob/main/charts/ocis/Chart.yaml",
+    "ocisChartsChartYamlBlob": "0a3cd2b242194a656ac3675b2b5973db54a52b7c",
+    "collaboraRequirements": "https://github.com/CollaboraOnline/richdocumentscode#system-requirements"
+  },
+  "authority": "docs/CATALOGUE_MAINTENANCE.md"
+}

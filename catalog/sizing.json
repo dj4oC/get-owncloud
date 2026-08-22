@@ -1,0 +1,30 @@
+{
+  "version": "ocis-8.2-sizing-v1",
+  "vocabulary": {
+    "minimum": "Will start, but may degrade under real load.",
+    "recommended": "Includes documented component floors and headroom; still requires load testing.",
+    "forbidden": ["guaranteed", "certified capacity"]
+  },
+  "defaults": {
+    "peakConcurrentPercent": 10,
+    "collaboraConcurrentPercent": 5,
+    "spacesPerUser": 1.5,
+    "headroomPercent": 30
+  },
+  "headroomBreakdown": {
+    "backgroundTasksPercent": 15,
+    "requestSpikesPercent": 10,
+    "observabilityPercent": 5
+  },
+  "base": { "cpu": 2, "ramMiB": 4096 },
+  "collabora": {
+    "minimumCpu": 2,
+    "baseRamMiB": 1024,
+    "ramMiBPerConcurrentUser": 100,
+    "networkKbitPerConcurrentUser": 100,
+    "usersPerCpuThreadCrossCheck": 10
+  },
+  "clamav": { "cpu": 1, "minimumRamMiB": 3072, "recommendedRamMiB": 4096 },
+  "productionLoadTestRequired": true,
+  "sourceVersion": "oCIS 8.2"
+}

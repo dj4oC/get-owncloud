@@ -1,0 +1,4 @@
+User-agent: *
+Disallow: /
+
+# Development preview stays non-indexable until production launch gates pass.

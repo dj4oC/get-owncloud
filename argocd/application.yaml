@@ -1,0 +1,18 @@
+# Community Preview contract example; not runnable while the Helm compatibility gate is blocked.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: owncloud
+spec:
+  project: owncloud
+  source:
+    repoURL: https://owncloud.github.io/ocis-charts/
+    chart: ocis
+    targetRevision: "0.7.0"
+    helm:
+      valueFiles:
+        - values.yaml
+  destination:
+    namespace: owncloud
+    server: https://kubernetes.default.svc
+  syncPolicy: {}

@@ -1,0 +1,16 @@
+# Interim accountable owner. Replace or add verified users/teams before public launch.
+* @amamus
+
+# Path-based review routing. @amamus is the only verified repository owner today.
+/deploy/compose/ @amamus
+/scripts/ @amamus
+/src/ @amamus
+/catalog/ @amamus
+/schema/ @amamus
+/deploy/helm/ @amamus
+/argocd/ @amamus
+/ansible/ @amamus
+/site/ @amamus
+/assets/ @amamus
+/docs/ @amamus
+/.github/ @amamus

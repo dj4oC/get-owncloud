@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Deploy ownCloud by Kiteworks | Infinite Scale deployment generator</title>
+    <meta name="description" content="Prepare, size and generate a policy-checked ownCloud Infinite Scale deployment for Docker, Podman, Kubernetes, Ansible or Argo CD.">
+    <meta name="robots" content="noindex,nofollow">
+    <link rel="canonical" href="https://get.owncloud.com/">
+    <link rel="alternate" type="text/markdown" href="site/docs.md">
+    <meta property="og:title" content="Deploy ownCloud by Kiteworks">
+    <meta property="og:description" content="One profile for single-host and Kubernetes ownCloud Infinite Scale deployments.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://get.owncloud.com/">
+    <link rel="stylesheet" href="site/styles.css">
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "Deploy ownCloud by Kiteworks",
+        "applicationCategory": "DeveloperApplication",
+        "operatingSystem": "Linux",
+        "url": "https://get.owncloud.com/"
+      }
+    </script>
+    <script type="module" src="site/app.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header>
+      <p class="brand-placeholder" aria-label="ownCloud brand placeholder pending approval">ownCloud</p>
+      <p class="preview">Development preview · brand asset pending approval · not indexed</p>
+    </header>
+    <main id="main">
+      <section class="hero" aria-labelledby="page-title">
+        <p class="eyebrow">From laptop trial to GitOps</p>
+        <h1 id="page-title">Deploy ownCloud by Kiteworks</h1>
+        <p>Prepare the machine, configure one profile and generate a deployment with explicit support and safety boundaries.</p>
+        <nav aria-label="Deployment methods">
+          <a href="#single-host">Docker</a>
+          <a href="#single-host">Podman</a>
+          <a href="#kubernetes">Kubernetes</a>
+          <a href="#ansible">Ansible</a>
+          <a href="#argocd">Argo CD</a>
+        </nav>
+      </section>
+
+      <section id="part-1" aria-labelledby="part-1-title">
+        <p class="step">Part 1</p>
+        <h2 id="part-1-title">Prepare your system</h2>
+        <p>The local command detects the selected stack. Missing tooling is shown as an installation plan before anything changes.</p>
+        <pre><code>sh scripts/install.sh --dry-run --target single-host --engine docker</code></pre>
+        <ul>
+          <li>Docker, Podman, kubectl, Helm, Ansible and Argo CD CLI are checked only when selected.</li>
+          <li>Mutations require approval. There is no silent sudo, firewall, DNS or Kubernetes-context change.</li>
+          <li>K3s is an evaluation-only smoke-test profile. Production requires an approved existing cluster.</li>
+        </ul>
+      </section>
+
+      <section id="single-host" aria-labelledby="single-host-title">
+        <p class="step">Deployment family 1</p>
+        <h2 id="single-host-title">Docker or Podman</h2>
+        <p>Uses the pinned official <code>ocis_full</code> model. Ansible is a management wrapper around the same locked bundle.</p>
+      </section>
+
+      <section id="kubernetes" aria-labelledby="kubernetes-title">
+        <p class="step">Deployment family 2</p>
+        <h2 id="kubernetes-title">Kubernetes and Helm</h2>
+        <p><strong>Community Preview — currently compatibility-blocked for oCIS 8.2.</strong> The official chart currently declares a different oCIS app version. Argo CD wraps the same Helm values and cannot bypass this gate.</p>
+      </section>
+
+      <section id="configure" aria-labelledby="configure-title">
+        <p class="step">Part 2</p>
+        <h2 id="configure-title">Configure and size ownCloud</h2>
+        <p>Collabora is the only office integration; it may be bundled or connected as an external service.</p>
+        <form id="sizing-form">
+          <div class="field">
+            <label for="users">Registered users</label>
+            <input id="users" name="users" type="number" min="1" value="20" required>
+            <small>Usually known. Embedded IDP/IDM has a maximum 20 users and is rejected above that boundary.</small>
+          </div>
+          <div class="field">
+            <label for="storage">Current storage (GiB)</label>
+            <input id="storage" name="storage" type="number" min="0" value="100" required>
+            <small>Use a current measured or rounded value.</small>
+          </div>
+          <div class="field checkbox">
+            <input id="collabora" name="collabora" type="checkbox">
+            <label for="collabora">Bundle Collabora</label>
+          </div>
+          <details>
+            <summary>Advanced workload assumptions</summary>
+            <div class="field">
+              <label for="concurrency">Concurrent Collabora users</label>
+              <input id="concurrency" name="concurrency" type="number" min="0">
+              <small>Default: 5% of registered users when Collabora is selected.</small>
+            </div>
+          </details>
+          <button type="submit">Calculate recommendation</button>
+        </form>
+        <output id="sizing-output" aria-live="polite"></output>
+      </section>
+
+      <section id="storage-policy" aria-labelledby="storage-title">
+        <h2 id="storage-title">Storage policy</h2>
+        <table>
+          <thead><tr><th>Allowed</th><th>Rejected</th></tr></thead>
+          <tbody>
+            <tr><td>Standard <code>ocis</code> driver on POSIX storage</td><td>PosixFS, legacy xattr and GPFS-specific modes</td></tr>
+            <tr><td><code>s3ng</code> blobs with POSIX metadata</td><td>Experimental, unsupported or unknown drivers</td></tr>
+            <tr><td>Effectively verified NFSv4.2</td><td>NFSv3, v4.0, v4.1 or unverifiable mounts</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="validate" aria-labelledby="validate-title">
+        <p class="step">Part 3</p>
+        <h2 id="validate-title">Validate and generate</h2>
+        <p>Runnable output stays disabled until policy, readiness, sizing and the current EULA gate pass.</p>
+        <div class="legal">
+          <input id="eula" type="checkbox">
+          <label for="eula">I have read and accept the ownCloud Infinite Scale EULA, including Section 6 (No warranties) and Section 7 (Limitation of liability).</label>
+        </div>
+        <p><a href="https://raw.githubusercontent.com/owncloud/ocis/stable-8.2/assets/End-User-License-Agreement-for-ownCloud-Infinite-Scale.pdf" target="_blank" rel="noreferrer">Read the pinned EULA PDF</a></p>
+        <button id="generate" type="button" disabled>Generate runnable bundle</button>
+        <p id="generate-status" role="status">Accept the current EULA to enable generation.</p>
+      </section>
+
+      <section id="ansible"><h2>Ansible</h2><p>A thin wrapper applies the same locked Compose bundle with secrets protected from logs.</p></section>
+      <section id="argocd"><h2>Argo CD</h2><p>V1 installs the CLI only and requires an existing compatible controller. One Application wraps the same Helm values.</p></section>
+    </main>
+    <footer>
+      <p>Development concept for ownCloud Infinite Scale. Production capacity always requires representative load testing.</p>
+      <a href="site/docs.md">Markdown version</a>
+    </footer>
+  </body>
+</html>

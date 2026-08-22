@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: owncloud
+spec:
+  description: Namespace-scoped ownCloud synchronization boundary
+  sourceRepos:
+    - https://owncloud.github.io/ocis-charts/
+  destinations:
+    - namespace: owncloud
+      server: https://kubernetes.default.svc
+  clusterResourceWhitelist: []
+  namespaceResourceWhitelist:
+    - group: "*"
+      kind: "*"
+  roles:
+    - name: reviewer
+      description: Read-only generated-application review
+      policies:
+        - p, proj:owncloud:reviewer, applications, get, owncloud/*, allow

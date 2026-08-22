@@ -1,0 +1,16 @@
+{
+  "name": "get-owncloud",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "One profile and one page for safe ownCloud Infinite Scale deployment generation.",
+  "scripts": {
+    "check": "node scripts/check.mjs",
+    "test": "node --test",
+    "verify": "npm run check && npm test"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "Apache-2.0"
+}

@@ -1,0 +1,18 @@
+{
+  "version": "2026.08.22",
+  "journeys": [
+    { "id": "docker-evaluation", "target": "docker", "expected": "allowed" },
+    { "id": "podman-rootless-evaluation", "target": "podman", "expected": "community-preview" },
+    { "id": "kubernetes-incompatible-chart", "target": "kubernetes", "expected": "blocked" },
+    { "id": "argocd-inherits-helm-block", "target": "argocd", "expected": "blocked" },
+    { "id": "ansible-locked-compose", "target": "ansible", "expected": "community-preview" },
+    { "id": "identity-20", "boundary": 20, "expected": "allowed" },
+    { "id": "identity-21", "boundary": 21, "expected": "blocked" },
+    { "id": "collabora-bundled", "feature": "collabora", "expected": "allowed-and-sized" },
+    { "id": "unsupported-office", "feature": "other-office", "expected": "blocked" },
+    { "id": "nfs-4.2", "storage": "nfs", "version": "4.2", "expected": "effective-check" },
+    { "id": "posixfs-import", "storage": "posixfs", "expected": "blocked-at-all-layers" },
+    { "id": "eula-unchecked", "legal": "unchecked", "expected": "runnable-disabled" },
+    { "id": "no-javascript-facts", "discoverability": "html", "expected": "complete" }
+  ]
+}

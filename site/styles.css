@@ -1,0 +1,37 @@
+:root {
+  color-scheme: light;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  color: #18243a;
+  background: #f4f7fb;
+  line-height: 1.55;
+}
+* { box-sizing: border-box; }
+body { margin: 0; }
+header, main, footer { width: min(72rem, calc(100% - 2rem)); margin-inline: auto; }
+header { display: flex; justify-content: space-between; align-items: center; padding-block: 1rem; }
+.brand-placeholder { font-size: 1.4rem; font-weight: 800; letter-spacing: -.03em; margin: 0; }
+.preview { color: #5c6474; font-size: .85rem; }
+.hero, section { background: white; border: 1px solid #dce3ee; border-radius: 1rem; padding: clamp(1.25rem, 4vw, 2.5rem); margin-block: 1rem; }
+.hero { background: linear-gradient(135deg, #edf3ff, #fff); }
+h1 { font-size: clamp(2.25rem, 7vw, 4.75rem); line-height: 1; letter-spacing: -.055em; max-width: 14ch; }
+h2 { font-size: clamp(1.4rem, 3vw, 2rem); }
+.eyebrow, .step { color: #3156a3; font-weight: 750; text-transform: uppercase; letter-spacing: .08em; font-size: .8rem; }
+nav { display: flex; flex-wrap: wrap; gap: .55rem; }
+nav a, button { border-radius: .65rem; padding: .65rem .9rem; }
+nav a { background: #e8eefb; color: #183a76; text-decoration: none; }
+button { border: 0; background: #1e4a93; color: white; font: inherit; font-weight: 700; cursor: pointer; }
+button:disabled { background: #8b95a7; cursor: not-allowed; }
+pre { overflow-x: auto; background: #111a2b; color: #f7f9ff; padding: 1rem; border-radius: .7rem; }
+form { display: grid; gap: 1rem; max-width: 42rem; }
+.field { display: grid; gap: .3rem; }
+.field.checkbox, .legal { display: flex; gap: .65rem; align-items: flex-start; }
+input[type="number"] { padding: .65rem; border: 1px solid #98a6ba; border-radius: .5rem; font: inherit; }
+small { color: #5c6474; }
+output { display: block; margin-top: 1rem; padding: 1rem; background: #edf7ef; border-left: .3rem solid #287a3d; }
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; vertical-align: top; border-bottom: 1px solid #dce3ee; padding: .75rem; }
+.skip-link { position: absolute; left: -9999px; }
+.skip-link:focus { left: 1rem; top: 1rem; background: white; padding: .7rem; z-index: 10; }
+footer { padding-block: 2rem 4rem; }
+@media (max-width: 42rem) { header { display: block; } table { font-size: .9rem; } }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
