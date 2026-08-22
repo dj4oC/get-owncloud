@@ -22,6 +22,11 @@ for (const flag of ["--non-interactive", "--install-missing", "--allow-sudo", "-
 }
 if (!install.includes("/dev/tty")) fail("install.sh must explicitly support /dev/tty approval");
 
+const releaseWorkflow = await text(".github/workflows/release.yml");
+for (const required of ["generate-sbom.mjs", "attest-build-provenance@", "subject-path: \"dist/*\""]) {
+  if (!releaseWorkflow.includes(required)) fail(`Release workflow is missing: ${required}`);
+}
+
 const html = await text("index.html");
 for (const required of [
   "<h1 id=\"page-title\">Deploy ownCloud by Kiteworks</h1>",

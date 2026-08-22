@@ -48,3 +48,10 @@ test("sizing formula version is recorded in the changelog", async () => {
   const sizing = await json("catalog/sizing.json");
   assert.match(await read("CHANGELOG.md"), new RegExp(sizing.version.replaceAll(".", "\\.")));
 });
+
+test("release provenance generates an SPDX SBOM before attestation", async () => {
+  assert.match(await read("scripts/generate-sbom.mjs"), /SPDX-2\.3/);
+  const workflow = await read(".github/workflows/release.yml");
+  assert.match(workflow, /generate-sbom\.mjs/);
+  assert.match(workflow, /attest-build-provenance@/);
+});

@@ -17,7 +17,9 @@ jobs:
       - name: Verify
         run: npm run verify
       - name: Build checksums and source manifest
-        run: node scripts/release-manifest.mjs
+        run: |
+          node scripts/release-manifest.mjs
+          node scripts/generate-sbom.mjs
       - name: Attest release evidence
         uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be
         with:
