@@ -39,6 +39,17 @@ test("Collabora is the only office integration", async () => {
   assert.match(other.errors.join(" "), /Collabora|Denied value/);
 });
 
+test("notifications require a valid sender in evaluation and production", async () => {
+  const invalid = await validateProfile(profile({ features: { notifications: true } }));
+  assert.equal(invalid.valid, false);
+  assert.match(invalid.errors.join(" "), /SMTP sender is required/);
+  const valid = await validateProfile(profile({
+    features: { notifications: true },
+    mail: { sender: "ownCloud <noreply@cloud.test>" }
+  }));
+  assert.equal(valid.valid, true, valid.errors.join(" "));
+});
+
 test("forbidden storage and experimental maturity fail closed", async () => {
   for (const mode of ["posixfs", "xattr", "gpfs", "cifs"]) {
     const result = await validateProfile(profile({ storage: { mode } }));

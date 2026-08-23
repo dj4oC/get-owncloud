@@ -104,7 +104,7 @@ export function normalizeProfileWithRules(input, sizing) {
   profile.features = {
     clamav: false,
     search: true,
-    notifications: true,
+    notifications: false,
     monitoring: false,
     ...profile.features
   };
@@ -244,7 +244,9 @@ export function validateNormalizedProfile(profile, policies, compatibility) {
     }
     if (profile.security.basicAuth) errors.push("Basic authentication is evaluation-only");
     if (profile.security.demoUsers) errors.push("Demo users are forbidden in production");
-    if (profile.features.notifications && !profile.mail?.sender) errors.push("SMTP sender is required when production notifications are enabled");
+  }
+  if (profile.features.notifications && !profile.mail?.sender) {
+    errors.push("SMTP sender is required when notifications are enabled");
   }
   if (profile.updates?.automaticSecurityPatches) {
     const recipient = profile.updates.backupRecipient;

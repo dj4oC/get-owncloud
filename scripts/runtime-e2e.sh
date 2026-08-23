@@ -61,8 +61,9 @@ if [ "$COLLABORA_ENABLED" = true ]; then
   service_curl -fsS --insecure --resolve "$COLLABORA_DOMAIN:$PORT:127.0.0.1" \
     "https://$COLLABORA_DOMAIN:$PORT/hosting/discovery" | grep -q 'urlsrc=' || die "Collabora discovery did not expose WOPI actions"
 fi
-service_curl -fsS --insecure --resolve "$DOMAIN:$PORT:127.0.0.1" "https://$DOMAIN:$PORT/" | grep -qi 'owncloud' ||
-  die "ownCloud web response is unavailable"
+service_curl -fsS --insecure --resolve "$DOMAIN:$PORT:127.0.0.1" \
+  "https://$DOMAIN:$PORT/" -o "$WORK_DIR/web-response.html"
+grep -qi 'owncloud' "$WORK_DIR/web-response.html" || die "ownCloud web response is unavailable"
 
 ADMIN_PASSWORD=$(node -e "const f=require(process.argv[1]); process.stdout.write(f.adminPassword)" "$ROOT_DIR/test/fixtures/e2e-secrets.json")
 printf '%s\n' "get-owncloud persistence and restore e2e" >"$WORK_DIR/payload.txt"

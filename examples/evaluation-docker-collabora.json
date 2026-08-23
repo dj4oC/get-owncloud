@@ -18,7 +18,7 @@
     "httpsPort": 8443,
     "tls": { "mode": "evaluation-self-signed" }
   },
-  "features": { "search": false, "clamav": false, "notifications": true, "monitoring": false },
+  "features": { "search": false, "clamav": false, "notifications": false, "monitoring": false },
   "security": { "basicAuth": true, "demoUsers": false },
   "updates": { "automaticSecurityPatches": false, "observationDelayHours": 24 }
 }

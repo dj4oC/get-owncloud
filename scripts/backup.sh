@@ -52,6 +52,7 @@ has tar || die "tar is required"
 has sha256sum || die "sha256sum is required"
 ENGINE=$(env_get GET_OWNCLOUD_RUNTIME)
 [ -n "$ENGINE" ] || ENGINE=docker
+[ "$ENGINE" != podman ] || has podman || die "podman is required for a rootless Podman backup"
 [ -f "$BUNDLE_DIR/scripts/runtime-common.sh" ] || die "Bundle is missing scripts/runtime-common.sh"
 # shellcheck source=/dev/null
 . "$BUNDLE_DIR/scripts/runtime-common.sh"
@@ -62,8 +63,15 @@ timestamp=$(date -u '+%Y%m%dT%H%M%SZ')
 case "$OUTPUT" in *.age) RAW_OUTPUT=${OUTPUT%.age} ;; *) RAW_OUTPUT=$OUTPUT ;; esac
 STAGE=$(mktemp -d)
 WAS_RUNNING=false
+remove_stage() {
+  if [ "$ENGINE" = podman ] && [ "$(id -u)" -ne 0 ]; then
+    podman unshare rm -rf "$STAGE"
+  else
+    rm -rf "$STAGE"
+  fi
+}
 cleanup() {
-  rm -rf "$STAGE"
+  remove_stage
   if [ "$WAS_RUNNING" = true ] && [ "$RESTART" = true ]; then
     (cd "$BUNDLE_DIR" && get_owncloud_compose up -d) >/dev/null 2>&1 || true
   fi
@@ -83,8 +91,15 @@ for item in "$BUNDLE_DIR"/*.yml; do
   [ -f "$item" ] || continue
   cp -a "$item" "$STAGE/bundle/"
 done
-cp -a "$CONFIG_DIR/." "$STAGE/persistent/config/"
-cp -a "$DATA_DIR/." "$STAGE/persistent/data/"
+if [ "$ENGINE" = podman ] && [ "$(id -u)" -ne 0 ]; then
+  # Runtime files can be owned by subordinate IDs. Enter the same rootless
+  # user namespace so the backup is complete without broad host permissions.
+  podman unshare cp -a "$CONFIG_DIR/." "$STAGE/persistent/config/"
+  podman unshare cp -a "$DATA_DIR/." "$STAGE/persistent/data/"
+else
+  cp -a "$CONFIG_DIR/." "$STAGE/persistent/config/"
+  cp -a "$DATA_DIR/." "$STAGE/persistent/data/"
+fi
 {
   printf 'format=1\n'
   printf 'created_at=%s\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
@@ -93,7 +108,11 @@ cp -a "$DATA_DIR/." "$STAGE/persistent/data/"
   printf 'data_source=%s\n' "$DATA_DIR"
 } >"$STAGE/backup.properties"
 
-tar -C "$STAGE" -czf "$RAW_OUTPUT" backup.properties bundle persistent
+if [ "$ENGINE" = podman ] && [ "$(id -u)" -ne 0 ]; then
+  podman unshare tar -C "$STAGE" -czf "$RAW_OUTPUT" backup.properties bundle persistent
+else
+  tar -C "$STAGE" -czf "$RAW_OUTPUT" backup.properties bundle persistent
+fi
 chmod 600 "$RAW_OUTPUT"
 if [ -n "$RECIPIENT" ]; then
   ENCRYPTED=$RAW_OUTPUT.age
@@ -112,5 +131,5 @@ if [ "$WAS_RUNNING" = true ] && [ "$RESTART" = true ]; then
   WAS_RUNNING=false
 fi
 trap - EXIT HUP INT TERM
-rm -rf "$STAGE"
+remove_stage
 printf 'Verified backup created: %s\n' "$FINAL"

@@ -42,6 +42,18 @@ test("evaluation ports preserve service routing, reserve Traefik health, and mak
   assert.doesNotMatch(runtime, /chown -R/);
 });
 
+test("runtime E2E does not retry a successful response after a consumer closes its pipe", async () => {
+  const runtime = await read("scripts/runtime-e2e.sh");
+  assert.match(runtime, /web-response\.html/);
+  assert.doesNotMatch(runtime, /service_curl[^\n]+\|\s*grep/);
+});
+
+test("rootless Podman backups read subordinate-ID files inside the user namespace", async () => {
+  const backup = await read("scripts/backup.sh");
+  assert.match(backup, /podman unshare cp -a/);
+  assert.match(backup, /podman unshare tar/);
+});
+
 test("Collabora retains only its required MKNOD exception", async () => {
   const compose = await read("deploy/compose/template/collabora.yml");
   const service = compose.slice(compose.indexOf("\n  collabora:\n") + 1);
