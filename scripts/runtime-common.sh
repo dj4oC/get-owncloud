@@ -9,6 +9,19 @@ get_owncloud_compose() {
   esac
 }
 
+get_owncloud_compose_validate() {
+  if [ "$GET_OWNCLOUD_COMPOSE_ENGINE" = podman ]; then podman compose config >/dev/null
+  else docker compose config --quiet
+  fi
+}
+
+get_owncloud_compose_debug() {
+  get_owncloud_compose ps
+  if [ "$GET_OWNCLOUD_COMPOSE_ENGINE" = podman ]; then get_owncloud_compose logs
+  else get_owncloud_compose logs --no-color --tail=200
+  fi
+}
+
 get_owncloud_runtime_setup() {
   runtime_engine=$1
   runtime_bundle=$2

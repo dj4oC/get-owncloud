@@ -73,6 +73,7 @@ test("rootless Podman E2E prepares image ownership explicitly and retains the wr
   const bootstrap = await read("scripts/install.sh");
   assert.match(runtime, /podman unshare chown -R 1000:1000/);
   assert.match(await read("scripts/runtime-common.sh"), /PODMAN_COMPOSE_PROVIDER.*podman-compose/);
+  assert.match(await read("scripts/runtime-common.sh"), /get_owncloud_compose_validate/);
   assert.match(await read("src/bundle.mjs"), /runtime === "podman" \? "k8s-file" : "local"/);
   assert.match(bootstrap, /Rootless Podman cannot write bind mount/);
   assert.doesNotMatch(bootstrap, /podman unshare chown/);

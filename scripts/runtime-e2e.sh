@@ -23,7 +23,7 @@ die() { printf 'E2E ERROR: %s\n' "$*" >&2; exit 1; }
 cleanup() {
   status=$?
   if [ "$status" -ne 0 ] && [ -f "$BUNDLE_DIR/.env" ] && [ -n "${GET_OWNCLOUD_COMPOSE_ENGINE:-}" ]; then
-    (cd "$BUNDLE_DIR" && get_owncloud_compose ps && get_owncloud_compose logs --no-color --tail=200) >&2 || true
+    (cd "$BUNDLE_DIR" && get_owncloud_compose_debug) >&2 || true
   fi
   if [ -f "$BUNDLE_DIR/.env" ] && [ -n "${GET_OWNCLOUD_COMPOSE_ENGINE:-}" ]; then (cd "$BUNDLE_DIR" && get_owncloud_compose down -v --remove-orphans) >/dev/null 2>&1 || true; fi
   if [ -z "${GET_OWNCLOUD_E2E_KEEP:-}" ]; then
@@ -44,7 +44,7 @@ fi
 . "$BUNDLE_DIR/scripts/runtime-common.sh"
 get_owncloud_runtime_setup "$ENGINE" "$BUNDLE_DIR"
 (cd "$BUNDLE_DIR" && sha256sum -c manifest.sha256)
-(cd "$BUNDLE_DIR" && get_owncloud_compose config --quiet)
+(cd "$BUNDLE_DIR" && get_owncloud_compose_validate)
 
 sh "$BUNDLE_DIR/install.sh" --bundle-dir "$BUNDLE_DIR" --engine "$ENGINE" --non-interactive --accept-eula
 sh "$BUNDLE_DIR/scripts/healthcheck.sh" --url "https://$DOMAIN:$PORT/healthz" --domain "$DOMAIN" --port "$PORT" --evaluation-insecure --timeout 180
