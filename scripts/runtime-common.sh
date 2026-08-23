@@ -19,6 +19,8 @@ get_owncloud_runtime_setup() {
       ;;
     podman)
       command -v podman >/dev/null 2>&1 || die "podman is required"
+      PODMAN_COMPOSE_PROVIDER=${PODMAN_COMPOSE_PROVIDER:-podman-compose}
+      export PODMAN_COMPOSE_PROVIDER
       socket_uri=$(podman info --format '{{.Host.RemoteSocket.Path}}' 2>/dev/null || true)
       socket_path=${socket_uri#unix://}
       if [ -z "$socket_path" ]; then
