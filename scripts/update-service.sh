@@ -33,7 +33,9 @@ curl -fsS --proto '=https' --tlsv1.2 "$CANDIDATE_URL" -o "$CANDIDATE"
 curl -fsS --proto '=https' --tlsv1.2 "$CANDIDATE_URL.sha256" -o "$TEMP/candidate.env.sha256"
 expected=$(awk 'match($1, /^[0-9a-f]{64}$/) { print $1; exit }' "$TEMP/candidate.env.sha256")
 actual=$(sha256sum "$CANDIDATE" | awk '{print $1}')
-[ -n "$expected" ] && [ "$actual" = "$expected" ] || die "Candidate feed checksum mismatch"
+if [ -z "$expected" ] || [ "$actual" != "$expected" ]; then
+  die "Candidate feed checksum mismatch"
+fi
 
 CURRENT=$(env_get GET_OWNCLOUD_OCIS_VERSION)
 VERSION=$(candidate_get VERSION)

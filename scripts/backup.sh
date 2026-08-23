@@ -41,8 +41,9 @@ case "$DATA_DIR" in /*) ;; *) DATA_DIR=$BUNDLE_DIR/$DATA_DIR ;; esac
 [ -d "$DATA_DIR" ] || die "Data directory does not exist: $DATA_DIR"
 
 if [ -z "$RECIPIENT" ]; then
-  [ "$PURPOSE" = evaluation ] && [ "$ALLOW_UNENCRYPTED" = true ] ||
+  if [ "$PURPOSE" != evaluation ] || [ "$ALLOW_UNENCRYPTED" != true ]; then
     die "Production backups require an age recipient controlled by the operator"
+  fi
 else
   has age || die "age is required for encrypted backup"
 fi
