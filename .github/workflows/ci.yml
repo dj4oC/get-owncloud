@@ -6,6 +6,7 @@ on:
 
 permissions:
   contents: read
+  statuses: write
 
 jobs:
   verify:
@@ -58,3 +59,32 @@ jobs:
           node-version: "22.18.0"
       - name: Verify all retained platform tiers are represented
         run: node --test test/platforms.test.mjs
+
+  ci-gate:
+    name: CI code gate
+    runs-on: ubuntu-24.04
+    if: always()
+    needs: [verify, catalogue-platform-contract]
+    steps:
+      - name: Publish the aggregate source-verification status
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          GH_TOKEN: ${{ github.token }}
+          NEEDS_JSON: ${{ toJSON(needs) }}
+          REPOSITORY: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          SHA: ${{ github.sha }}
+        run: |
+          passed=$(jq -r '[.[].result] | all(. == "success")' <<< "$NEEDS_JSON")
+          state=failure
+          description="Unit, policy, shell, render or SEO verification failed"
+          if test "$passed" = true; then
+            state=success
+            description="Unit, policy, shell, render and production SEO checks passed"
+          fi
+          if test "$EVENT_NAME" = push; then
+            gh api --method POST "repos/$REPOSITORY/statuses/$SHA" \
+              -f state="$state" -f context="get-owncloud/ci" -f description="$description" \
+              -f target_url="$RUN_URL" >/dev/null
+          fi
+          test "$passed" = true

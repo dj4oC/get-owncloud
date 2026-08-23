@@ -14,6 +14,7 @@ concurrency:
 
 permissions:
   contents: read
+  statuses: write
 
 jobs:
   compose-runtime:
@@ -259,6 +260,23 @@ jobs:
     steps:
       - name: Require every deployment family, wrapper and browser journey
         env:
+          EVENT_NAME: ${{ github.event_name }}
+          GH_TOKEN: ${{ github.token }}
           NEEDS_JSON: ${{ toJSON(needs) }}
+          REPOSITORY: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          SHA: ${{ github.sha }}
         run: |
-          test "$(jq -r '[.[].result] | all(. == "success")' <<< "$NEEDS_JSON")" = true
+          passed=$(jq -r '[.[].result] | all(. == "success")' <<< "$NEEDS_JSON")
+          state=failure
+          description="One or more deployment E2E jobs failed"
+          if test "$passed" = true; then
+            state=success
+            description="All deployment families, wrappers and browser journeys passed"
+          fi
+          if test "$EVENT_NAME" = push; then
+            gh api --method POST "repos/$REPOSITORY/statuses/$SHA" \
+              -f state="$state" -f context="get-owncloud/full-e2e" -f description="$description" \
+              -f target_url="$RUN_URL" >/dev/null
+          fi
+          test "$passed" = true

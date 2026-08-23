@@ -27,6 +27,12 @@ const releaseWorkflow = await text(".github/workflows/release.yml");
 for (const required of ["generate-sbom.mjs", "attest-build-provenance@", "subject-path: \"dist/*\"", "runtime-e2e.sh", "test:e2e"]) {
   if (!releaseWorkflow.includes(required)) fail(`Release workflow is missing: ${required}`);
 }
+for (const [workflow, context] of [["ci.yml", "get-owncloud/ci"], ["deployment-e2e.yml", "get-owncloud/full-e2e"]]) {
+  const source = await text(`.github/workflows/${workflow}`);
+  if (!source.includes("statuses: write") || !source.includes(`context=\"${context}\"`)) {
+    fail(`${workflow} must publish its aggregate commit status`);
+  }
+}
 
 const html = await text("index.html");
 for (const required of [
@@ -90,7 +96,7 @@ for (const name of composeTemplates) {
 
 for (const workflowName of ["ci.yml", "browser-e2e.yml", "deployment-e2e.yml", "pages.yml", "release.yml"]) {
   const workflow = await text(`.github/workflows/${workflowName}`);
-  for (const match of workflow.matchAll(/uses:\s+([^\s]+)/g)) {
+  for (const match of workflow.matchAll(/^\s*uses:\s+([^\s]+)/gm)) {
     if (!/@[0-9a-f]{40}$/.test(match[1])) fail(`${workflowName} has an unpinned action: ${match[1]}`);
   }
 }
