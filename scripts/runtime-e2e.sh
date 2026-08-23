@@ -34,8 +34,7 @@ cleanup() {
   trap - EXIT HUP INT TERM
   if [ "$status" -ne 0 ] && [ -f "$BUNDLE_DIR/.env" ] && [ -n "${GET_OWNCLOUD_COMPOSE_ENGINE:-}" ]; then
     printf '%s\n' "E2E failure diagnostics ($ENGINE):" >&2
-    (cd "$BUNDLE_DIR" && get_owncloud_compose ps -a) >&2 || true
-    (cd "$BUNDLE_DIR" && get_owncloud_compose logs --no-color --tail 200) >&2 || true
+    (cd "$BUNDLE_DIR" && get_owncloud_compose_debug) >&2 || true
   fi
   if [ -f "$BUNDLE_DIR/.env" ] && [ -n "${GET_OWNCLOUD_COMPOSE_ENGINE:-}" ]; then (cd "$BUNDLE_DIR" && get_owncloud_compose down -v --remove-orphans) >/dev/null 2>&1 || true; fi
   if [ "$MANAGED_WORK_DIR" = true ] && [ "$ENGINE" = docker ]; then sudo chown -R "$(id -u):$(id -g)" "$WORK_DIR" || true; fi
@@ -51,7 +50,7 @@ node "$ROOT_DIR/src/cli.mjs" render "$PROFILE" "$BUNDLE_DIR" \
 . "$BUNDLE_DIR/scripts/runtime-common.sh"
 get_owncloud_runtime_setup "$ENGINE" "$BUNDLE_DIR"
 (cd "$BUNDLE_DIR" && sha256sum -c manifest.sha256)
-(cd "$BUNDLE_DIR" && get_owncloud_compose config --quiet)
+(cd "$BUNDLE_DIR" && get_owncloud_compose_validate)
 
 # shellcheck disable=SC2086
 sh "$BUNDLE_DIR/install.sh" --bundle-dir "$BUNDLE_DIR" --engine "$ENGINE" --non-interactive --accept-eula $PRIVILEGE_ARGS

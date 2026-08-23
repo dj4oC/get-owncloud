@@ -2,53 +2,28 @@ name: Attested release evidence
 
 on:
   workflow_dispatch:
+  push:
+    tags:
+      - "v*"
 
 permissions:
   contents: read
   id-token: write
   attestations: write
   statuses: read
+  actions: read
 
 jobs:
-  production-runtime-e2e:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 40
-    steps:
-      - name: Checkout
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-      - name: Set up Node
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
-        with:
-          node-version: "22.18.0"
-          cache: npm
-      - name: Install locked dependencies
-        run: npm ci --ignore-scripts
-      - name: Run full service lifecycle
-        run: sh scripts/runtime-e2e.sh "$GITHUB_WORKSPACE"
-
-  production-browser-e2e:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 20
-    steps:
-      - name: Checkout
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-      - name: Set up Node
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
-        with:
-          node-version: "22.18.0"
-          cache: npm
-      - name: Install locked dependencies
-        run: npm ci --ignore-scripts
-      - name: Install Chromium
-        run: npx playwright install --with-deps chromium
-      - name: Build and test the browser generator
-        run: |
-          SITE_MODE=development npm run build
-          npm run test:e2e
+  full-e2e:
+    permissions:
+      contents: read
+      statuses: write
+    uses: ./.github/workflows/deployment-e2e.yml
 
   release-evidence:
     runs-on: ubuntu-24.04
-    needs: [production-runtime-e2e, production-browser-e2e]
+    needs: [full-e2e]
+    environment: production-release
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683

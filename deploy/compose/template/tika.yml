@@ -3,7 +3,7 @@ services:
   tika:
     image: docker.io/apache/tika@sha256:21d8052de04e491ccf66e8680ade4da6f3d453a56d59f740b4167e54167219b7
     networks:
-      ocis-net:
+      ocis-net: {}
     security_opt:
       - no-new-privileges:true
     logging:

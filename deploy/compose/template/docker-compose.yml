@@ -48,4 +48,4 @@ volumes:
   certs:
 
 networks:
-  ocis-net:
+  ocis-net: {}

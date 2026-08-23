@@ -32,6 +32,11 @@ Release tag → protected workflow → commit → `sources.lock`/compatibility c
 GitHub OIDC/Sigstore attestation → generated artifact. The bootstrap script itself is a specifically
 blocking attested artifact because the production domain implies ownCloud endorsement.
 
+Every `v*` tag invokes the same reusable aggregate E2E gate used for pushes and pull requests. Release
+evidence and attestation cannot start unless Docker/Collabora, rootless Podman, platform contracts,
+Helm, Ansible and browser journeys all succeed. The `production-release` environment remains the
+operator-controlled approval boundary for an actual release.
+
 ## Current code evidence versus external approval
 
 - Implemented: official source-locked logo, local EULA interaction, policy/schema checks, SBOM/attestation

@@ -61,6 +61,8 @@ features:
           disableProof: false
           secureViewEnabled: true
           disableChat: false
+          ingress:
+            enabled: false
 secretRefs:
   ldapSecretRef: "owncloud-external-ldap"
 services:

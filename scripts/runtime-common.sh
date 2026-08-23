@@ -9,6 +9,23 @@ get_owncloud_compose() {
   esac
 }
 
+get_owncloud_compose_validate() {
+  if [ "$GET_OWNCLOUD_COMPOSE_ENGINE" = podman ]; then
+    podman compose config >/dev/null
+  else
+    docker compose config --quiet
+  fi
+}
+
+get_owncloud_compose_debug() {
+  get_owncloud_compose ps -a
+  if [ "$GET_OWNCLOUD_COMPOSE_ENGINE" = podman ]; then
+    get_owncloud_compose logs
+  else
+    get_owncloud_compose logs --no-color --tail 200
+  fi
+}
+
 get_owncloud_assert_storage_paths() {
   storage_config=$1
   storage_data=$2
@@ -62,6 +79,9 @@ get_owncloud_repair_restored_storage() {
 get_owncloud_runtime_setup() {
   runtime_engine=$1
   runtime_bundle=$2
+  COMPOSE_PROJECT_NAME=$(sed -n 's/^COMPOSE_PROJECT_NAME="\([^"]*\)"/\1/p' "$runtime_bundle/.env" | tail -n 1)
+  COMPOSE_FILE=$(sed -n 's/^COMPOSE_FILE="\([^"]*\)"/\1/p' "$runtime_bundle/.env" | tail -n 1)
+  export COMPOSE_PROJECT_NAME COMPOSE_FILE
   GET_OWNCLOUD_COMPOSE_ENGINE=$runtime_engine
   case "$runtime_engine" in
     docker)
@@ -69,6 +89,8 @@ get_owncloud_runtime_setup() {
       ;;
     podman)
       command -v podman >/dev/null 2>&1 || die "podman is required"
+      PODMAN_COMPOSE_PROVIDER=${PODMAN_COMPOSE_PROVIDER:-podman-compose}
+      export PODMAN_COMPOSE_PROVIDER
       socket_uri=$(podman info --format '{{.Host.RemoteSocket.Path}}' 2>/dev/null || true)
       socket_path=${socket_uri#unix://}
       if [ -z "$socket_path" ]; then

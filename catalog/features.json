@@ -1,15 +1,36 @@
 {
-  "version": "2026.08.22",
+  "version": "2026.08.23",
   "maturityLevels": {
     "experimental": { "visible": false, "runnable": false, "production": false },
     "community-preview": { "visible": true, "runnable": "evaluation-only", "production": false },
     "production": { "visible": true, "runnable": true, "production": true }
   },
   "features": [
-    { "id": "collabora-bundled", "label": "Bundled Collabora", "maturity": "production", "targets": ["docker", "podman"], "resourceRule": "collabora-v1" },
-    { "id": "collabora-external", "label": "External Collabora", "maturity": "production", "targets": ["docker", "podman", "kubernetes"], "resourceRule": "external-capacity" },
-    { "id": "clamav", "label": "ClamAV", "maturity": "production", "targets": ["docker", "podman"], "resourceRule": "clamav-v1" },
-    { "id": "kubernetes", "label": "Kubernetes / Helm", "maturity": "community-preview", "targets": ["kubernetes"], "compatibilityGate": "helm-ocis" }
+    { "id": "purpose-evaluation", "label": "Evaluation", "maturity": "production", "targets": ["docker", "podman", "kubernetes"], "dependencies": [], "resourceImpact": "No production headroom claim", "documentation": "docs/ARCHITECTURE.md" },
+    { "id": "purpose-production", "label": "Production", "maturity": "production", "targets": ["docker"], "dependencies": ["trusted-tls", "persistent-storage", "load-test"], "resourceImpact": "Adds at least 30 percent planning headroom", "documentation": "docs/SIZING.md" },
+    { "id": "runtime-docker", "label": "Docker", "maturity": "production", "targets": ["docker"], "dependencies": ["docker-compose-v2"], "resourceImpact": "Container runtime overhead is host-specific", "documentation": "docs/PLATFORM_SUPPORT.md" },
+    { "id": "runtime-podman", "label": "Podman", "maturity": "community-preview", "targets": ["podman"], "dependencies": ["podman-compose-provider", "bind-mount-preflight"], "resourceImpact": "Rootless networking and UID mapping are preflighted", "documentation": "docs/PLATFORM_SUPPORT.md" },
+    { "id": "runtime-kubernetes", "label": "Kubernetes / Helm", "maturity": "community-preview", "targets": ["kubernetes"], "dependencies": ["existing-cluster", "helm-0.7.0", "ocis-7.1.4"], "resourceImpact": "Requests and limits derive from the sizing report", "documentation": "docs/KUBERNETES.md", "compatibilityGate": "helm-ocis" },
+    { "id": "manager-ansible", "label": "Ansible", "maturity": "production", "targets": ["docker", "podman"], "dependencies": ["locked-compose-bundle", "community.docker-4.4.0"], "resourceImpact": "Management wrapper only", "documentation": "docs/ANSIBLE.md" },
+    { "id": "manager-argocd", "label": "Argo CD", "maturity": "community-preview", "targets": ["kubernetes"], "dependencies": ["existing-controller", "helm-0.7.0"], "resourceImpact": "Management wrapper only", "documentation": "docs/ARGOCD.md" },
+    { "id": "identity-embedded", "label": "Embedded IDP/IDM", "maturity": "production", "targets": ["docker", "podman", "kubernetes"], "dependencies": ["registered-users-at-most-20"], "resourceImpact": "Included in the oCIS base floor", "documentation": "site/docs.md" },
+    { "id": "identity-external", "label": "External OIDC and LDAP", "maturity": "production", "targets": ["docker", "podman", "kubernetes"], "dependencies": ["https-oidc", "trusted-ldaps", "secret-reference"], "resourceImpact": "External service capacity is excluded", "documentation": "site/docs.md" },
+    { "id": "storage-ocis", "label": "Standard ocis storage", "maturity": "production", "targets": ["docker", "podman", "kubernetes"], "dependencies": ["posix-metadata-filesystem"], "resourceImpact": "Stored data and annual growth are included", "documentation": "site/docs.md" },
+    { "id": "storage-s3ng", "label": "s3ng with POSIX metadata", "maturity": "production", "targets": ["docker", "podman", "kubernetes"], "dependencies": ["https-object-store", "posix-metadata-filesystem"], "resourceImpact": "Object-store capacity is external; metadata remains local", "documentation": "site/docs.md" },
+    { "id": "filesystem-ext4", "label": "ext4", "maturity": "production", "targets": ["docker", "podman"], "dependencies": ["posix-semantics"], "resourceImpact": "No additional formula", "documentation": "docs/PLATFORM_SUPPORT.md" },
+    { "id": "filesystem-xfs", "label": "XFS", "maturity": "production", "targets": ["docker", "podman"], "dependencies": ["posix-semantics"], "resourceImpact": "No additional formula", "documentation": "docs/PLATFORM_SUPPORT.md" },
+    { "id": "filesystem-btrfs", "label": "Btrfs", "maturity": "production", "targets": ["docker", "podman"], "dependencies": ["posix-semantics"], "resourceImpact": "Snapshot overhead is operator-specific", "documentation": "docs/PLATFORM_SUPPORT.md" },
+    { "id": "filesystem-zfs", "label": "ZFS", "maturity": "production", "targets": ["docker", "podman"], "dependencies": ["posix-semantics"], "resourceImpact": "ARC and snapshot overhead are operator-specific", "documentation": "docs/PLATFORM_SUPPORT.md" },
+    { "id": "filesystem-nfs42", "label": "NFSv4.2", "maturity": "production", "targets": ["docker", "podman", "kubernetes"], "dependencies": ["effective-nfsv4.2-mount"], "resourceImpact": "Requires workload-specific network and server sizing", "documentation": "docs/NETWORK_REQUIREMENTS.md" },
+    { "id": "office-none", "label": "No office integration", "maturity": "production", "targets": ["docker", "podman", "kubernetes"], "dependencies": [], "resourceImpact": "No office resource contribution", "documentation": "site/docs.md" },
+    { "id": "collabora-bundled", "label": "Bundled Collabora", "maturity": "production", "targets": ["docker", "podman"], "dependencies": ["dedicated-domain"], "resourceImpact": "collabora-v1", "documentation": "docs/SIZING.md" },
+    { "id": "collabora-external", "label": "External Collabora", "maturity": "production", "targets": ["docker", "podman", "kubernetes"], "dependencies": ["https-collabora-url"], "resourceImpact": "External capacity is excluded", "documentation": "docs/SIZING.md" },
+    { "id": "search", "label": "Search and content extraction", "maturity": "production", "targets": ["docker", "podman", "kubernetes"], "dependencies": ["tika-on-single-host"], "resourceImpact": "search-v1", "documentation": "docs/SIZING.md" },
+    { "id": "clamav", "label": "ClamAV", "maturity": "production", "targets": ["docker", "podman"], "dependencies": ["clamav-database-updates"], "resourceImpact": "clamav-v1", "documentation": "docs/SIZING.md" },
+    { "id": "notifications", "label": "Email notifications", "maturity": "production", "targets": ["docker", "podman", "kubernetes"], "dependencies": ["smtp"], "resourceImpact": "No additional formula", "documentation": "site/docs.md" },
+    { "id": "tls-evaluation", "label": "Evaluation self-signed TLS", "maturity": "community-preview", "targets": ["docker", "podman"], "dependencies": ["evaluation-only"], "resourceImpact": "No additional formula", "documentation": "site/docs.md" },
+    { "id": "tls-acme", "label": "Trusted ACME TLS", "maturity": "production", "targets": ["docker"], "dependencies": ["public-dns", "ports-80-443", "acme-contact"], "resourceImpact": "No additional formula", "documentation": "docs/NETWORK_REQUIREMENTS.md" },
+    { "id": "security-patch-automation", "label": "Automatic eligible security patches", "maturity": "production", "targets": ["docker"], "dependencies": ["backup-recipient", "systemd-or-cron", "24-hour-delay"], "resourceImpact": "Requires backup capacity", "documentation": "docs/UPDATE_POLICY.md" }
   ],
   "denied": [
     "onlyoffice",

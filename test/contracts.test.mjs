@@ -95,6 +95,18 @@ test("Argo CD uses one Application and a namespace-scoped project", async () => 
   assert.match(project, /namespace: owncloud/);
   assert.doesNotMatch(project, /group: "\*"|kind: "\*"/);
   assert.doesNotMatch(application, /CreateNamespace=true/);
+  assert.match(application, /ingress:\n\s+enabled: false/);
+});
+
+test("Argo deployment refuses a missing or unauthorized existing controller", async () => {
+  const deploy = await read("scripts/deploy-kubernetes.sh");
+  assert.match(deploy, /applications\.argoproj\.io/);
+  assert.match(deploy, /appprojects\.argoproj\.io/);
+  assert.match(deploy, /statefulset\/argocd-application-controller/);
+  assert.match(deploy, /deployment\/argocd-application-controller/);
+  assert.doesNotMatch(deploy, /rollout status deployment\/argocd-server/);
+  assert.match(deploy, /kubectl auth can-i create applications/);
+  assert.doesNotMatch(deploy, /--create-namespace/);
 });
 
 test("security update defaults are narrow and breaking updates are never automatic", async () => {
@@ -113,6 +125,31 @@ test("Docker security updates have explicit systemd and cron scheduler contracts
   assert.match(bootstrap, /Scheduled updates require a bundle path without spaces or shell metacharacters/);
 });
 
+test("rootless Podman retains keep-id mapping, provider selection and the write preflight", async () => {
+  const runtime = await read("scripts/runtime-e2e.sh");
+  const bootstrap = await read("scripts/install.sh");
+  assert.match(await read("deploy/compose/template/podman.yml"), /keep-id:uid=1000,gid=1000/);
+  assert.match(await read("scripts/runtime-common.sh"), /PODMAN_COMPOSE_PROVIDER.*podman-compose/);
+  assert.match(await read("scripts/runtime-common.sh"), /get_owncloud_compose_validate/);
+  assert.match(await read("scripts/runtime-common.sh"), /export COMPOSE_PROJECT_NAME COMPOSE_FILE/);
+  assert.match(await read("src/bundle.mjs"), /runtime === "podman" \? "k8s-file" : "local"/);
+  assert.match(bootstrap, /Rootless Podman cannot write bind mount/);
+  assert.doesNotMatch(bootstrap, /podman unshare chown/);
+  assert.match(runtime, /get_owncloud_compose_validate/);
+});
+
+test("backup restart detection is provider-neutral", async () => {
+  const backup = await read("scripts/backup.sh");
+  assert.match(backup, /get_owncloud_compose ps -q 2>\/dev\/null/);
+  assert.doesNotMatch(backup, /get_owncloud_compose ps -q ocis/);
+});
+
+test("Ansible only pulls missing images so a second apply stays idempotent", async () => {
+  const role = await read("ansible/roles/get_owncloud/tasks/main.yml");
+  assert.match(role, /pull: missing/);
+  assert.doesNotMatch(role, /pull: policy/);
+});
+
 test("sizing formula version is recorded in the changelog", async () => {
   const sizing = await json("catalog/sizing.json");
   assert.match(await read("CHANGELOG.md"), new RegExp(sizing.version.replaceAll(".", "\\.")));
@@ -124,6 +161,9 @@ test("release provenance generates an SPDX SBOM before attestation", async () =>
   assert.match(workflow, /generate-sbom\.mjs/);
   assert.match(workflow, /attest-build-provenance@/);
   assert.match(workflow, /get-owncloud\/ci get-owncloud\/full-e2e/);
+  assert.match(workflow, /uses: \.\/\.github\/workflows\/deployment-e2e\.yml/);
+  assert.match(workflow, /tags:/);
+  assert.match(workflow, /environment: production-release/);
 });
 
 test("Pages publishes only a successful main-push Full E2E commit", async () => {

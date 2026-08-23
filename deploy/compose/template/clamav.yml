@@ -11,7 +11,7 @@ services:
   clamav:
     image: docker.io/clamav/clamav@sha256:75fb5fd95fcbe1d7e6d240c369c1572b686ee2c95949d1042b5148de8eddebb4
     networks:
-      ocis-net:
+      ocis-net: {}
     volumes:
       - clamav-socket:/tmp
       - clamav-db:/var/lib/clamav

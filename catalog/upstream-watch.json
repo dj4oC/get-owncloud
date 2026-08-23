@@ -1,0 +1,57 @@
+{
+  "version": 1,
+  "checks": [
+    {
+      "id": "ocis-8.2-release-commit",
+      "kind": "github-commit",
+      "repository": "owncloud/ocis",
+      "ref": "v8.2.0",
+      "expected": "42f7fdcfee2714cb14eedb36509f74ef205703f9",
+      "policy": "blocking-integrity"
+    },
+    {
+      "id": "ocis-8.2-new-patch",
+      "kind": "github-same-minor-release",
+      "repository": "owncloud/ocis",
+      "minor": "8.2",
+      "expected": "8.2.0",
+      "policy": "manual-release-review"
+    },
+    {
+      "id": "ocis-8.2-documentation",
+      "kind": "github-commit",
+      "repository": "owncloud/docs-ocis",
+      "ref": "8.2",
+      "expected": "1cde377784a62087a32a97c32a08c658237fd4fa",
+      "policy": "manual-policy-review"
+    },
+    {
+      "id": "ocis-chart-upstream",
+      "kind": "github-latest-commit",
+      "repository": "owncloud/ocis-charts",
+      "expected": "161472690d7577b6b4342dbf2b87fa04e3dd6181",
+      "policy": "issue-6-review-only"
+    },
+    {
+      "id": "collabora-sizing-source",
+      "kind": "github-latest-commit",
+      "repository": "CollaboraOnline/richdocumentscode",
+      "expected": "5bb6ae9e1940b41a16166c8aaaf6aa6f05cb2fa7",
+      "policy": "manual-sizing-review"
+    },
+    {
+      "id": "clamav-sizing-source",
+      "kind": "github-latest-commit",
+      "repository": "Cisco-Talos/clamav-documentation",
+      "expected": "26dceb239dff15088c5b04b469fd056d1933548b",
+      "policy": "manual-sizing-review"
+    },
+    {
+      "id": "stable-8.2-eula",
+      "kind": "https-sha256",
+      "url": "https://raw.githubusercontent.com/owncloud/ocis/stable-8.2/assets/End-User-License-Agreement-for-ownCloud-Infinite-Scale.pdf",
+      "expected": "f608b0819964232648c5fb6b22a4d58310331128ad645ab158a35ef1790e2148",
+      "policy": "blocking-legal-review"
+    }
+  ]
+}

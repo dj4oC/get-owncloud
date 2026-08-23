@@ -486,7 +486,7 @@ if [ "$NO_START" = true ]; then
   exit 0
 fi
 get_owncloud_runtime_setup "$ENGINE" "$BUNDLE_DIR"
-(cd "$BUNDLE_DIR" && get_owncloud_compose config --quiet)
+(cd "$BUNDLE_DIR" && get_owncloud_compose_validate)
 (cd "$BUNDLE_DIR" && get_owncloud_compose pull)
 podman_rootless_preflight
 (cd "$BUNDLE_DIR" && get_owncloud_compose up -d --remove-orphans)
