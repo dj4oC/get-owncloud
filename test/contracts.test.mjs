@@ -32,6 +32,33 @@ test("health check validates an actual oCIS endpoint rather than container state
   assert.match(health, /"\$status" = 200/);
 });
 
+test("runtime WebDAV reads tolerate asynchronous post-processing", async () => {
+  const runtime = await read("scripts/runtime-e2e.sh");
+  assert.match(runtime, /webdav_get\(\)/);
+  assert.match(runtime, /--retry 20 --retry-all-errors --retry-delay 2/);
+  assert.match(runtime, /webdav_get "\$WORK_DIR\/download\.txt"/);
+  assert.match(runtime, /webdav_get "\$WORK_DIR\/restarted\.txt"/);
+  assert.match(runtime, /webdav_get "\$WORK_DIR\/restored\.txt"/);
+});
+
+test("Docker prepares oCIS bind mounts with the container identity before startup", async () => {
+  const runtime = await read("scripts/runtime-common.sh");
+  const installer = await read("scripts/install.sh");
+  const role = await read("ansible/roles/get_owncloud/tasks/main.yml");
+  assert.match(runtime, /get_owncloud_prepare_docker_storage\(\)/);
+  assert.match(runtime, /--user 0:0/);
+  assert.match(runtime, /--user 1000:1000/);
+  assert.match(installer, /get_owncloud_prepare_docker_storage/);
+  assert.match(role, /get_owncloud_prepare_docker_storage/);
+});
+
+test("bundled Collabora can activate the capabilities required by coolforkit", async () => {
+  const collabora = await read("deploy/compose/template/collabora.yml");
+  assert.match(collabora, /cap_add:\n\s+- MKNOD/);
+  const service = collabora.slice(collabora.lastIndexOf("\n  collabora:\n"));
+  assert.doesNotMatch(service, /no-new-privileges/);
+});
+
 test("Traefik shares its ping endpoint without opening a conflicting default listener", async () => {
   const compose = await read("deploy/compose/template/docker-compose.yml");
   assert.match(compose, /--ping\.entryPoint=http/);

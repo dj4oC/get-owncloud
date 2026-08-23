@@ -59,13 +59,21 @@ curl -fsS --insecure --resolve "$DOMAIN:$PORT:127.0.0.1" "https://$DOMAIN:$PORT/
 ADMIN_PASSWORD=$(node -e "const f=require(process.argv[1]); process.stdout.write(f.adminPassword)" "$ROOT_DIR/test/fixtures/e2e-secrets.json")
 printf '%s\n' "get-owncloud persistence and restore e2e" >"$WORK_DIR/payload.txt"
 WEBDAV_URL="https://$DOMAIN:$PORT/remote.php/dav/files/admin/get-owncloud-e2e.txt"
+
+webdav_get() {
+  destination=$1
+  curl -fsS --retry 20 --retry-all-errors --retry-delay 2 \
+    --insecure --resolve "$DOMAIN:$PORT:127.0.0.1" \
+    -u "admin:$ADMIN_PASSWORD" "$WEBDAV_URL" -o "$destination"
+}
+
 curl -fsS --insecure --resolve "$DOMAIN:$PORT:127.0.0.1" -u "admin:$ADMIN_PASSWORD" -T "$WORK_DIR/payload.txt" "$WEBDAV_URL"
-curl -fsS --insecure --resolve "$DOMAIN:$PORT:127.0.0.1" -u "admin:$ADMIN_PASSWORD" "$WEBDAV_URL" -o "$WORK_DIR/download.txt"
+webdav_get "$WORK_DIR/download.txt"
 cmp "$WORK_DIR/payload.txt" "$WORK_DIR/download.txt" || die "WebDAV upload/download mismatch"
 
 (cd "$BUNDLE_DIR" && get_owncloud_compose restart)
 sh "$BUNDLE_DIR/scripts/healthcheck.sh" --url "https://$DOMAIN:$PORT/healthz" --domain "$DOMAIN" --port "$PORT" --evaluation-insecure --timeout 180
-curl -fsS --insecure --resolve "$DOMAIN:$PORT:127.0.0.1" -u "admin:$ADMIN_PASSWORD" "$WEBDAV_URL" -o "$WORK_DIR/restarted.txt"
+webdav_get "$WORK_DIR/restarted.txt"
 cmp "$WORK_DIR/payload.txt" "$WORK_DIR/restarted.txt" || die "Persistence failed after restart"
 
 sh "$BUNDLE_DIR/scripts/backup.sh" --bundle-dir "$BUNDLE_DIR" --output "$BACKUP" --allow-unencrypted-evaluation
@@ -77,7 +85,7 @@ fi
 
 sh "$BUNDLE_DIR/scripts/restore.sh" --bundle-dir "$BUNDLE_DIR" --archive "$BACKUP" --start
 sh "$BUNDLE_DIR/scripts/healthcheck.sh" --url "https://$DOMAIN:$PORT/healthz" --domain "$DOMAIN" --port "$PORT" --evaluation-insecure --timeout 180
-curl -fsS --insecure --resolve "$DOMAIN:$PORT:127.0.0.1" -u "admin:$ADMIN_PASSWORD" "$WEBDAV_URL" -o "$WORK_DIR/restored.txt"
+webdav_get "$WORK_DIR/restored.txt"
 cmp "$WORK_DIR/payload.txt" "$WORK_DIR/restored.txt" || die "Backup/restore recovery mismatch"
 
 test -s "$BUNDLE_DIR/.get-owncloud/eula-acceptance.log" || die "Local EULA audit evidence is missing"

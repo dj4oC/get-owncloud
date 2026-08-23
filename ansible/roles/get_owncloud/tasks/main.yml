@@ -35,6 +35,22 @@
   changed_when: false
   no_log: "{{ owncloud_contains_generated_secrets | bool }}"
 
+- name: Prepare Docker bind mounts for the oCIS container identity
+  ansible.builtin.shell: |
+    set -eu
+    die() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
+    env_get() { sed -n "s/^$1=\"\(.*\)\"/\1/p" .env | tail -n 1; }
+    bundle_path() { case "$1" in /*) printf '%s\n' "$1" ;; *) printf '%s/%s\n' "{{ owncloud_bundle_dir }}" "${1#./}" ;; esac; }
+    . ./scripts/runtime-common.sh
+    get_owncloud_prepare_docker_storage "$(env_get GET_OWNCLOUD_STORAGE_FILESYSTEM)" "$(env_get OCIS_IMAGE)" \
+      "$(bundle_path "$(env_get OCIS_CONFIG_DIR)")" "$(bundle_path "$(env_get OCIS_DATA_DIR)")"
+  args:
+    chdir: "{{ owncloud_bundle_dir }}"
+    executable: /bin/sh
+  changed_when: false
+  no_log: "{{ owncloud_contains_generated_secrets | bool }}"
+  when: owncloud_runtime.stdout == 'docker'
+
 - name: Apply the generated locked bundle
   community.docker.docker_compose_v2:
     project_src: "{{ owncloud_bundle_dir }}"

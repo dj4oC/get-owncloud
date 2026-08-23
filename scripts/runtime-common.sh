@@ -22,6 +22,21 @@ get_owncloud_compose_debug() {
   fi
 }
 
+get_owncloud_prepare_docker_storage() {
+  storage_filesystem=$1
+  storage_image=$2
+  shift 2
+  for storage_path in "$@"; do
+    if [ "$storage_filesystem" != nfs ]; then
+      docker run --rm --user 0:0 --entrypoint /bin/sh -v "$storage_path:/get-owncloud-storage:rw" "$storage_image" \
+        -ec 'chown -R 1000:1000 /get-owncloud-storage'
+    fi
+    docker run --rm --user 1000:1000 --entrypoint /bin/sh -v "$storage_path:/get-owncloud-storage:rw" "$storage_image" \
+      -ec 'touch /get-owncloud-storage/.write-test && rm /get-owncloud-storage/.write-test' ||
+      die "oCIS UID/GID 1000 cannot write bind mount: $storage_path"
+  done
+}
+
 get_owncloud_runtime_setup() {
   runtime_engine=$1
   runtime_bundle=$2

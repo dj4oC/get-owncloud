@@ -487,6 +487,7 @@ fi
 get_owncloud_runtime_setup "$ENGINE" "$BUNDLE_DIR"
 (cd "$BUNDLE_DIR" && get_owncloud_compose_validate)
 (cd "$BUNDLE_DIR" && get_owncloud_compose pull)
+[ "$ENGINE" != docker ] || get_owncloud_prepare_docker_storage "$(env_get GET_OWNCLOUD_STORAGE_FILESYSTEM)" "$(env_get OCIS_IMAGE)" "$config_dir" "$data_dir"
 podman_rootless_preflight
 (cd "$BUNDLE_DIR" && get_owncloud_compose up -d --remove-orphans)
 domain=$(env_get OCIS_DOMAIN); port=$(env_get HTTPS_PORT)
