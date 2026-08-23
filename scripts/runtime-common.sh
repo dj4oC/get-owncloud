@@ -25,6 +25,9 @@ get_owncloud_compose_debug() {
 get_owncloud_runtime_setup() {
   runtime_engine=$1
   runtime_bundle=$2
+  COMPOSE_PROJECT_NAME=$(sed -n 's/^COMPOSE_PROJECT_NAME="\([^"]*\)"/\1/p' "$runtime_bundle/.env" | tail -n 1)
+  COMPOSE_FILE=$(sed -n 's/^COMPOSE_FILE="\([^"]*\)"/\1/p' "$runtime_bundle/.env" | tail -n 1)
+  export COMPOSE_PROJECT_NAME COMPOSE_FILE
   GET_OWNCLOUD_COMPOSE_ENGINE=$runtime_engine
   case "$runtime_engine" in
     docker)

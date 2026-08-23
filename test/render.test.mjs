@@ -42,6 +42,7 @@ test("Podman Ansible output carries the shared runtime helper and thin role", as
   ]) assert.ok(result.files[required], required);
   assert.match(result.files[".env"], /GET_OWNCLOUD_RUNTIME="podman"/);
   assert.match(result.files[".env"], /LOG_DRIVER="k8s-file"/);
+  assert.doesNotMatch(result.files[".env"], /DOCKER_SOCKET_PATH=/);
   assert.match(result.files["README.md"], /ansible-playbook/);
   assert.match(result.files["README.md"], /-i "owncloud," -c local/);
 });

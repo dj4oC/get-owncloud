@@ -31,19 +31,19 @@ response=$(mktemp)
 cleanup() { rm -f "$response"; }
 trap cleanup EXIT HUP INT TERM
 if [ -n "$DOMAIN" ] && [ "$EVALUATION_INSECURE" = true ]; then
-  status=$(curl -sS --retry 10 --retry-all-errors --retry-delay 3 --max-time "$TIMEOUT" \
+  status=$(curl -fsS --retry 10 --retry-all-errors --retry-delay 3 --max-time "$TIMEOUT" \
     --insecure --resolve "$DOMAIN:$PORT:127.0.0.1" -o "$response" -w '%{http_code}' "$URL") ||
     { printf 'oCIS health endpoint failed: %s\n' "$URL" >&2; exit 1; }
 elif [ -n "$DOMAIN" ]; then
-  status=$(curl -sS --retry 10 --retry-all-errors --retry-delay 3 --max-time "$TIMEOUT" \
+  status=$(curl -fsS --retry 10 --retry-all-errors --retry-delay 3 --max-time "$TIMEOUT" \
     --resolve "$DOMAIN:$PORT:127.0.0.1" -o "$response" -w '%{http_code}' "$URL") ||
     { printf 'oCIS health endpoint failed: %s\n' "$URL" >&2; exit 1; }
 elif [ "$EVALUATION_INSECURE" = true ]; then
-  status=$(curl -sS --retry 10 --retry-all-errors --retry-delay 3 --max-time "$TIMEOUT" \
+  status=$(curl -fsS --retry 10 --retry-all-errors --retry-delay 3 --max-time "$TIMEOUT" \
     --insecure -o "$response" -w '%{http_code}' "$URL") ||
     { printf 'oCIS health endpoint failed: %s\n' "$URL" >&2; exit 1; }
 else
-  status=$(curl -sS --retry 10 --retry-all-errors --retry-delay 3 --max-time "$TIMEOUT" \
+  status=$(curl -fsS --retry 10 --retry-all-errors --retry-delay 3 --max-time "$TIMEOUT" \
     -o "$response" -w '%{http_code}' "$URL") ||
     { printf 'oCIS health endpoint failed: %s\n' "$URL" >&2; exit 1; }
 fi
