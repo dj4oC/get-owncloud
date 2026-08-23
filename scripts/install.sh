@@ -475,8 +475,7 @@ note "EULA sections acknowledged: No warranties; Limitation of liability"
 record_eula
 config_dir=$(bundle_path "$(env_get OCIS_CONFIG_DIR)")
 data_dir=$(bundle_path "$(env_get OCIS_DATA_DIR)")
-mkdir -p "$config_dir" "$data_dir"
-chmod 700 "$config_dir" "$data_dir"
+for path in "$config_dir" "$data_dir"; do mkdir -p "$path"; [ ! -O "$path" ] || chmod 700 "$path"; done
 
 if [ "$NO_START" = true ]; then
   note "Bundle verified and prepared; --no-start prevented service changes."

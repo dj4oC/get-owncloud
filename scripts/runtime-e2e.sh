@@ -29,6 +29,11 @@ trap cleanup EXIT HUP INT TERM
 for tool in "$ENGINE" curl sha256sum cmp node; do command -v "$tool" >/dev/null 2>&1 || die "$tool is required"; done
 node "$ROOT_DIR/src/cli.mjs" render "$PROFILE" "$BUNDLE_DIR" \
   --accept-eula --secrets-file "$ROOT_DIR/test/fixtures/e2e-secrets.json"
+if [ "$ENGINE" = podman ]; then
+  # Model the documented operator-owned UID/GID preparation without weakening the runtime preflight.
+  mkdir -p "$BUNDLE_DIR/data/config" "$BUNDLE_DIR/data/data"
+  podman unshare chown -R 1000:1000 "$BUNDLE_DIR/data/config" "$BUNDLE_DIR/data/data"
+fi
 # shellcheck source=/dev/null
 . "$BUNDLE_DIR/scripts/runtime-common.sh"
 get_owncloud_runtime_setup "$ENGINE" "$BUNDLE_DIR"

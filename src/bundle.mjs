@@ -109,7 +109,7 @@ function makeEnv(profile, sizing, secrets, selected) {
 function readme(profile) {
   const command = profile.target.runtime === "podman" ? "podman compose" : "docker compose";
   const deployCommand = profile.target.manager === "ansible"
-    ? 'ANSIBLE_ROLES_PATH=ansible/roles ansible-playbook -i "localhost," -c local ansible/playbook.yml -e "owncloud_bundle_dir=$PWD" -e owncloud_accept_eula=true'
+    ? 'ANSIBLE_ROLES_PATH=ansible/roles ansible-playbook -i "owncloud," -c local ansible/playbook.yml -e "owncloud_bundle_dir=$PWD" -e owncloud_accept_eula=true'
     : "sh install.sh --bundle-dir . --accept-eula";
   return [
     "# Generated ownCloud Infinite Scale deployment",

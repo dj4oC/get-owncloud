@@ -23,6 +23,10 @@ contract passes. Every adapter shows repository, key fingerprint, packages and c
 ## Podman decision tree
 
 Rootless is preferred when all requested ports are at least 1024 and bind-mount UID/GID preflight passes.
+The operator prepares the persistent directories for the image UID (for example with
+`podman unshare chown -R 1000:1000`) before deployment; the installer verifies actual container write
+access and never applies recursive ownership changes implicitly. The rootless E2E performs this explicit
+preparation before testing persistence, backup and restore.
 Tests must upload, persist, restart and download data; “container started” is insufficient. If port or
 ownership checks fail, the UI explains the problem and offers an explicit rootful path. Production on
 ports 80/443 defaults to rootful or an existing privileged reverse proxy; it never silently changes mode.

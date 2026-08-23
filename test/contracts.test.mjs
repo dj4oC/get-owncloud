@@ -68,6 +68,14 @@ test("Docker security updates have explicit systemd and cron scheduler contracts
   assert.match(bootstrap, /Scheduled updates require a bundle path without spaces or shell metacharacters/);
 });
 
+test("rootless Podman E2E prepares image ownership explicitly and retains the write preflight", async () => {
+  const runtime = await read("scripts/runtime-e2e.sh");
+  const bootstrap = await read("scripts/install.sh");
+  assert.match(runtime, /podman unshare chown -R 1000:1000/);
+  assert.match(bootstrap, /Rootless Podman cannot write bind mount/);
+  assert.doesNotMatch(bootstrap, /podman unshare chown/);
+});
+
 test("sizing formula version is recorded in the changelog", async () => {
   const sizing = await json("catalog/sizing.json");
   assert.match(await read("CHANGELOG.md"), new RegExp(sizing.version.replaceAll(".", "\\.")));

@@ -42,6 +42,7 @@ test("Podman Ansible output carries the shared runtime helper and thin role", as
   ]) assert.ok(result.files[required], required);
   assert.match(result.files[".env"], /GET_OWNCLOUD_RUNTIME="podman"/);
   assert.match(result.files["README.md"], /ansible-playbook/);
+  assert.match(result.files["README.md"], /-i "owncloud," -c local/);
 });
 
 test("Kubernetes renderer preserves issue #6 at chart 0.7.0 and oCIS 7.1.4", async () => {
