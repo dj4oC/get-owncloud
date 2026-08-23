@@ -21,8 +21,16 @@ fi
 
 die() { printf 'E2E ERROR: %s\n' "$*" >&2; exit 1; }
 cleanup() {
+  status=$?
+  trap - EXIT HUP INT TERM
+  if [ "$status" -ne 0 ] && [ -f "$BUNDLE_DIR/.env" ] && [ -n "${GET_OWNCLOUD_COMPOSE_ENGINE:-}" ]; then
+    printf '%s\n' "E2E failure diagnostics ($ENGINE):" >&2
+    (cd "$BUNDLE_DIR" && get_owncloud_compose ps -a) >&2 || true
+    (cd "$BUNDLE_DIR" && get_owncloud_compose logs --no-color --tail 200) >&2 || true
+  fi
   if [ -f "$BUNDLE_DIR/.env" ] && [ -n "${GET_OWNCLOUD_COMPOSE_ENGINE:-}" ]; then (cd "$BUNDLE_DIR" && get_owncloud_compose down -v --remove-orphans) >/dev/null 2>&1 || true; fi
   [ -n "${GET_OWNCLOUD_E2E_KEEP:-}" ] || rm -rf "$WORK_DIR"
+  exit "$status"
 }
 trap cleanup EXIT HUP INT TERM
 

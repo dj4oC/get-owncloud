@@ -17,6 +17,22 @@ permissions:
   statuses: write
 
 jobs:
+  e2e-announcement:
+    name: Publish Full E2E run link
+    runs-on: ubuntu-24.04
+    if: github.event_name == 'push'
+    steps:
+      - name: Publish pending aggregate status
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          SHA: ${{ github.sha }}
+        run: |
+          gh api --method POST "repos/$REPOSITORY/statuses/$SHA" \
+            -f state=pending -f context=get-owncloud/full-e2e \
+            -f description="Full deployment E2E is running" -f target_url="$RUN_URL" >/dev/null
+
   compose-runtime:
     name: oCIS 8.2.0 + Collabora lifecycle (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
@@ -191,7 +207,7 @@ jobs:
       - name: Install pinned Ansible environment
         run: |
           python3 -m venv "$RUNNER_TEMP/ansible"
-          "$RUNNER_TEMP/ansible/bin/pip" install ansible-core==2.18.8
+          "$RUNNER_TEMP/ansible/bin/pip" install ansible-core==2.18.8 ansible-lint==25.8.2 molecule==25.9.0
           "$RUNNER_TEMP/ansible/bin/ansible-galaxy" collection install community.docker:4.4.0
           echo "$RUNNER_TEMP/ansible/bin" >> "$GITHUB_PATH"
       - name: Render test bundle
@@ -199,14 +215,24 @@ jobs:
           bundle="$RUNNER_TEMP/ansible-bundle"
           SOURCE_DATE_EPOCH=0 node src/cli.mjs render examples/evaluation-docker-collabora.json "$bundle" --accept-eula --secrets-file test/fixtures/e2e-secrets.json
           echo "GET_OWNCLOUD_ANSIBLE_BUNDLE=$bundle" >> "$GITHUB_ENV"
-      - name: Apply role twice and require second-run idempotence
+          echo "GET_OWNCLOUD_E2E_BUNDLE=$bundle" >> "$GITHUB_ENV"
+      - name: Lint and syntax-check the Ansible contract
         env:
           ANSIBLE_ROLES_PATH: ansible/roles
         run: |
-          args=(-i 'owncloud,' -c local ansible/playbook.yml -e "owncloud_bundle_dir=$GET_OWNCLOUD_ANSIBLE_BUNDLE" -e owncloud_accept_eula=true)
-          ansible-playbook "${args[@]}"
-          ansible-playbook "${args[@]}" | tee "$RUNNER_TEMP/second-apply.log"
-          grep -Eq 'changed=0 +unreachable=0 +failed=0' "$RUNNER_TEMP/second-apply.log"
+          ansible-lint ansible
+          ansible-playbook --syntax-check -i 'owncloud,' -c local ansible/playbook.yml
+      - name: Run Molecule live convergence and second-apply idempotence
+        env:
+          ANSIBLE_ROLES_PATH: ansible/roles
+        run: |
+          molecule test -s default
+      - name: Show Docker state and service logs on failure
+        if: failure()
+        run: |
+          cd "$GET_OWNCLOUD_ANSIBLE_BUNDLE"
+          docker compose ps -a || true
+          docker compose logs --no-color --tail 200 || true
       - name: Stop test services
         if: always()
         run: |

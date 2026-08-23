@@ -31,6 +31,14 @@ test("health check validates an actual oCIS endpoint rather than container state
   assert.match(health, /"\$status" = 200/);
 });
 
+test("Collabora retains only its required MKNOD exception", async () => {
+  const compose = await read("deploy/compose/template/collabora.yml");
+  const service = compose.slice(compose.indexOf("\n  collabora:\n") + 1);
+  assert.match(service, /cap_add:\n\s+- MKNOD/);
+  assert.doesNotMatch(service, /privileged:/);
+  assert.doesNotMatch(service, /no-new-privileges/);
+});
+
 test("Argo CD uses one Application and a namespace-scoped project", async () => {
   const application = await read("argocd/application.yaml");
   const project = await read("argocd/project.yaml");

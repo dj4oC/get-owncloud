@@ -42,7 +42,7 @@ test("one-page configurator is accessible and downloads verified bundles", async
 
   await page.locator("#runtime").selectOption("kubernetes");
   await expect(page.locator("#maturity-note")).toContainText("issue #6 remains open");
-  await expect(page.locator("#purpose option[value=production]")).toBeDisabled();
+  await expect(page.locator("#purpose option[value=production]")).toHaveAttribute("disabled", "");
   await page.locator("#manager").selectOption("argocd");
   await page.getByRole("button", { name: "Validate and calculate" }).click();
   await expect(page.locator("#generate")).toBeEnabled();
@@ -61,7 +61,7 @@ test("Podman and Ansible wrapper generate the same locked single-host family", a
   await page.goto("/");
   await page.locator("#runtime").selectOption("podman");
   await expect(page.locator("#maturity-note")).toContainText("runnable Community Preview");
-  await expect(page.locator("#purpose option[value=production]")).toBeDisabled();
+  await expect(page.locator("#purpose option[value=production]")).toHaveAttribute("disabled", "");
   await expect(page.locator("#auto-updates")).toBeDisabled();
   await page.locator("#manager").selectOption("ansible");
   await page.getByRole("button", { name: "Validate and calculate" }).click();

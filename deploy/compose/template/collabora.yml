@@ -74,8 +74,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 30
-    security_opt:
-      - no-new-privileges:true
     logging:
       driver: ${LOG_DRIVER:-local}
     restart: always

@@ -205,7 +205,7 @@ function renderSizing(profile, sizing) {
     list.append(row);
   }
   if (sizing.systemComparison) {
-    const comparison = document.createElement("p");
+    const comparison = document.createElement("li");
     comparison.textContent = `Entered host comparison — CPU: ${sizing.systemComparison.cpu}; RAM: ${sizing.systemComparison.ram}; disk: ${sizing.systemComparison.disk}.`;
     list.append(comparison);
   }
