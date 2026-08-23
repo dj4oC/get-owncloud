@@ -1,0 +1,40 @@
+{
+  "version": 2,
+  "generatedAt": "2026-08-23T00:00:00Z",
+  "sources": {
+    "ocisDocumentation": {
+      "url": "https://github.com/owncloud/docs-ocis/tree/8.2",
+      "commit": "1cde377784a62087a32a97c32a08c658237fd4fa"
+    },
+    "ocisCompose": {
+      "url": "https://github.com/owncloud/ocis/tree/v8.2.0/deployments/examples/ocis_full",
+      "commit": "42f7fdcfee2714cb14eedb36509f74ef205703f9"
+    },
+    "ocisCharts": {
+      "url": "https://github.com/owncloud/ocis-charts/tree/161472690d7577b6b4342dbf2b87fa04e3dd6181/charts/ocis",
+      "commit": "161472690d7577b6b4342dbf2b87fa04e3dd6181",
+      "chartVersion": "0.7.0",
+      "appVersion": "7.1.4"
+    },
+    "brandLogo": {
+      "url": "https://github.com/owncloud/web/blob/b16a34fdf5569d2fd63b1ff3c575c1a4ee569ad3/packages/web-runtime/themes/owncloud/assets/logo_dark.svg",
+      "commit": "b16a34fdf5569d2fd63b1ff3c575c1a4ee569ad3",
+      "sha256": "3eb4271705494f251fbc2ec768af3818ab9a1b2f104ff31b59ac8696cd35e07d",
+      "vendoredSha256": "e1851117cbf71ca2b6e3793478ee2ac67b50b17ac601b8ea76fa78687cb52727",
+      "vendoringNote": "Upstream SVG bytes plus a single POSIX trailing newline"
+    },
+    "eula": {
+      "url": "https://raw.githubusercontent.com/owncloud/ocis/stable-8.2/assets/End-User-License-Agreement-for-ownCloud-Infinite-Scale.pdf",
+      "sha256": "f608b0819964232648c5fb6b22a4d58310331128ad645ab158a35ef1790e2148"
+    },
+    "collaboraSizing": {
+      "url": "https://github.com/CollaboraOnline/richdocumentscode/blob/5bb6ae9e1940b41a16166c8aaaf6aa6f05cb2fa7/README.md",
+      "commit": "5bb6ae9e1940b41a16166c8aaaf6aa6f05cb2fa7"
+    },
+    "clamavSizing": {
+      "url": "https://github.com/Cisco-Talos/clamav-documentation/blob/26dceb239dff15088c5b04b469fd056d1933548b/src/manual/Installing/Docker.md",
+      "commit": "26dceb239dff15088c5b04b469fd056d1933548b"
+    }
+  },
+  "authority": "docs/CATALOGUE_MAINTENANCE.md"
+}

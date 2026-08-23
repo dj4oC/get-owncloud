@@ -1,0 +1,8 @@
+---
+galaxy_info:
+  role_name: get_owncloud
+  author: get-owncloud contributors
+  description: Thin idempotent wrapper around a policy-checked ownCloud Compose bundle
+  license: Apache-2.0
+  min_ansible_version: "2.18"
+dependencies: []

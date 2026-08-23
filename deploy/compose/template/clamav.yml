@@ -1,0 +1,25 @@
+---
+services:
+  ocis:
+    environment:
+      ANTIVIRUS_SCANNER_TYPE: clamav
+      ANTIVIRUS_CLAMAV_SOCKET: /var/run/clamav/clamd.sock
+      POSTPROCESSING_STEPS: virusscan
+      STORAGE_USERS_DATA_GATEWAY_URL: http://ocis:9200/data
+    volumes:
+      - clamav-socket:/var/run/clamav
+  clamav:
+    image: docker.io/clamav/clamav@sha256:75fb5fd95fcbe1d7e6d240c369c1572b686ee2c95949d1042b5148de8eddebb4
+    networks:
+      ocis-net:
+    volumes:
+      - clamav-socket:/tmp
+      - clamav-db:/var/lib/clamav
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: ${LOG_DRIVER:-local}
+    restart: always
+volumes:
+  clamav-socket:
+  clamav-db:

@@ -1,0 +1,40 @@
+{
+  "version": "ocis-8.2.0-sizing-v3",
+  "vocabulary": {
+    "minimum": "Meets the component floor and is expected to start, but may degrade under real load.",
+    "recommended": "Includes documented component floors and planning headroom; production still requires load testing.",
+    "forbidden": ["guaranteed", "certified capacity"]
+  },
+  "defaults": {
+    "peakConcurrentPercent": 10,
+    "collaboraConcurrentPercent": 5,
+    "spacesPerUser": 1.5,
+    "annualGrowthPercent": 20,
+    "headroomPercent": 30
+  },
+  "headroomBreakdown": {
+    "backgroundTasksPercent": 15,
+    "requestSpikesPercent": 10,
+    "observabilityPercent": 5
+  },
+  "base": { "cpu": 2, "ramMiB": 4096, "diskGiB": 5 },
+  "spaceCache": { "kiBPerSpace": 5 },
+  "search": { "cpu": 1, "ramMiB": 2048, "diskPercentOfStoredData": 10, "maximumDiskGiB": 100 },
+  "collabora": {
+    "minimumCpu": 2,
+    "baseRamMiB": 1024,
+    "ramMiBPerConcurrentUser": 100,
+    "networkKbitPerConcurrentUser": 100,
+    "usersPerCpuThreadCrossCheck": 10,
+    "imageDiskGiB": 2,
+    "evidence": "Collabora-maintained richdocumentscode requirements plus conservative container-image allowance"
+  },
+  "clamav": { "cpu": 1, "minimumRamMiB": 3072, "recommendedRamMiB": 4096, "diskGiB": 5 },
+  "productionLoadTestRequired": true,
+  "sources": [
+    "https://doc.owncloud.com/ocis/8.2/admin/prerequisites/prerequisites.html",
+    "https://doc.owncloud.com/ocis/8.2/admin/depl-examples/ubuntu-compose/ubuntu-compose-prod.html",
+    "https://github.com/CollaboraOnline/richdocumentscode/blob/5bb6ae9e1940b41a16166c8aaaf6aa6f05cb2fa7/README.md",
+    "https://docs.clamav.net/manual/Installing/Docker.html"
+  ]
+}

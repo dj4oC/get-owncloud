@@ -1,0 +1,27 @@
+{
+  "name": "get-owncloud",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "One profile and one page for safe ownCloud Infinite Scale deployment generation.",
+  "scripts": {
+    "build": "node scripts/build-site.mjs",
+    "check": "node scripts/check.mjs",
+    "test": "node --test test/*.test.mjs",
+    "test:e2e": "playwright test",
+    "verify": "npm run check && npm test && npm run build"
+  },
+  "bin": {
+    "get-owncloud": "src/cli.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
+    "@playwright/test": "1.62.1",
+    "ajv": "8.20.0",
+    "yaml": "2.9.0"
+  },
+  "license": "Apache-2.0"
+}

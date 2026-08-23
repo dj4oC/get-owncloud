@@ -1,0 +1,11 @@
+---
+- name: Verify idempotent live service
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Apply the role a second time
+      ansible.builtin.include_role:
+        name: get_owncloud
+    - name: Verify second Compose apply made no changes
+      ansible.builtin.assert:
+        that: not (owncloud_compose_apply.changed | default(true))

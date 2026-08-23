@@ -1,0 +1,50 @@
+---
+services:
+  traefik:
+    image: docker.io/library/traefik@sha256:c549d482c55d7a797398562064f35428cc53e748d84d7190997930e7b31bcc32
+    networks:
+      ocis-net:
+    command:
+      - "--log.level=${TRAEFIK_LOG_LEVEL:-ERROR}"
+      - "--ping=true"
+      - "--certificatesResolvers.http.acme.email=${TRAEFIK_ACME_MAIL}"
+      - "--certificatesResolvers.http.acme.storage=/certs/acme.json"
+      - "--certificatesResolvers.http.acme.httpChallenge.entryPoint=http"
+      - "--certificatesResolvers.http.acme.caserver=${TRAEFIK_ACME_CASERVER:-https://acme-v02.api.letsencrypt.org/directory}"
+      - "--entryPoints.http.address=:${HTTP_PORT:-80}"
+      - "--entryPoints.http.http.redirections.entryPoint.to=https"
+      - "--entryPoints.http.http.redirections.entryPoint.scheme=https"
+      - "--entryPoints.https.address=:${HTTPS_PORT:-443}"
+      - "--entryPoints.https.transport.respondingTimeouts.readTimeout=12h"
+      - "--entryPoints.https.transport.respondingTimeouts.writeTimeout=12h"
+      - "--entryPoints.https.transport.respondingTimeouts.idleTimeout=3m"
+      - "--entryPoints.https.http.encodedCharacters.allowEncodedSlash=true"
+      - "--entryPoints.https.http.encodedCharacters.allowEncodedQuestionMark=true"
+      - "--entryPoints.https.http.encodedCharacters.allowEncodedPercent=true"
+      - "--providers.docker.endpoint=unix:///var/run/docker.sock"
+      - "--providers.docker.exposedByDefault=false"
+      - "--accessLog=true"
+      - "--accessLog.format=json"
+      - "--accessLog.fields.headers.names.X-Request-Id=keep"
+    ports:
+      - "${HTTP_PORT:-80}:${HTTP_PORT:-80}"
+      - "${HTTPS_PORT:-443}:${HTTPS_PORT:-443}"
+    volumes:
+      - "${DOCKER_SOCKET_PATH:-/var/run/docker.sock}:/var/run/docker.sock:ro"
+      - "certs:/certs"
+    healthcheck:
+      test: ["CMD", "traefik", "healthcheck", "--ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: ${LOG_DRIVER:-local}
+    restart: always
+
+volumes:
+  certs:
+
+networks:
+  ocis-net:

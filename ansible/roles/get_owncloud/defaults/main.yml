@@ -1,0 +1,7 @@
+---
+owncloud_bundle_dir: /opt/get-owncloud/bundle
+owncloud_accept_eula: false
+owncloud_install_missing_runtime: false
+owncloud_allow_sudo: false
+owncloud_contains_generated_secrets: true
+owncloud_health_timeout: 180

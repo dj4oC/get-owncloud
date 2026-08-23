@@ -1,0 +1,26 @@
+{
+  "version": "2026.08.22",
+  "platforms": [
+    { "id": "ubuntu-22.04", "tier": 1, "manager": "apt" },
+    { "id": "ubuntu-24.04", "tier": 1, "manager": "apt" },
+    { "id": "debian-12", "tier": 1, "manager": "apt" },
+    { "id": "rhel-9", "tier": 1, "manager": "dnf" },
+    { "id": "centos-stream-9", "tier": 1, "manager": "dnf" },
+    { "id": "rocky-9", "tier": 1, "manager": "dnf" },
+    { "id": "alma-9", "tier": 1, "manager": "dnf" },
+    { "id": "fedora-current", "tier": 2, "manager": "dnf" },
+    { "id": "opensuse-tumbleweed", "tier": 2, "manager": "zypper" },
+    { "id": "sles-15-sp6", "tier": 2, "manager": "zypper" }
+  ],
+  "tools": {
+    "docker": { "detect": ["docker", "docker compose"], "sourcePreference": ["vendor", "distribution-fallback"] },
+    "podman": { "detect": ["podman", "podman compose"], "sourcePreference": ["vendor", "distribution-fallback"] },
+    "kubernetes": { "detect": ["kubectl", "kubectl cluster-info"], "minimumVersion": "1.28", "installableEvaluationProfile": "k3s" },
+    "helm": { "detect": ["helm"], "minimumVersion": "3" },
+    "ansible": { "detect": ["ansible", "ansible-galaxy"], "isolatedEnvironment": true },
+    "argocd": { "detect": ["argocd"], "v1Install": "cli-only", "controllerRequired": true }
+  },
+  "mutationsRequireApproval": true,
+  "nonInteractiveFlags": ["--non-interactive", "--install-missing"],
+  "privilegeFlag": "--allow-sudo"
+}

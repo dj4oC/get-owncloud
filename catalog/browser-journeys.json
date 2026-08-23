@@ -1,0 +1,24 @@
+{
+  "version": "2026.08.22",
+  "journeys": [
+    { "id": "docker-evaluation", "target": "docker", "expected": "allowed" },
+    { "id": "podman-rootless-evaluation", "target": "podman", "expected": "community-preview" },
+    { "id": "kubernetes-held-7.1.4", "target": "kubernetes", "expected": "runnable-community-preview-issue-6-open" },
+    { "id": "argocd-inherits-held-helm-version", "target": "argocd", "expected": "runnable-community-preview-issue-6-open" },
+    { "id": "ansible-locked-compose", "target": "ansible", "expected": "production-gated" },
+    { "id": "identity-20", "boundary": 20, "expected": "allowed" },
+    { "id": "identity-21", "boundary": 21, "expected": "blocked" },
+    { "id": "collabora-bundled", "feature": "collabora", "expected": "allowed-and-sized" },
+    { "id": "collabora-external", "feature": "collabora", "expected": "https-required" },
+    { "id": "s3ng-secrets", "storage": "s3ng", "expected": "local-secrets-or-kubernetes-reference" },
+    { "id": "clamav-sized", "feature": "clamav", "expected": "resource-increment-visible" },
+    { "id": "smtp-authentication", "feature": "notifications", "expected": "password-required-and-local" },
+    { "id": "host-comparison", "sizing": "entered-system", "expected": "pass-warn-fail-visible" },
+    { "id": "automatic-update-backup", "updates": "automatic", "expected": "operator-recipient-required" },
+    { "id": "unsupported-office", "feature": "other-office", "expected": "blocked" },
+    { "id": "nfs-4.2", "storage": "nfs", "version": "4.2", "expected": "effective-check" },
+    { "id": "posixfs-import", "storage": "posixfs", "expected": "blocked-at-all-layers" },
+    { "id": "eula-unchecked", "legal": "unchecked", "expected": "runnable-disabled" },
+    { "id": "no-javascript-facts", "discoverability": "html", "expected": "complete" }
+  ]
+}
