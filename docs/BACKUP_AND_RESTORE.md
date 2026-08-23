@@ -19,9 +19,12 @@ consistent. Backups default outside the live deployment directory, receive a SHA
 operator-controlled `age` encryption in production. Unencrypted output needs an explicit evaluation-only
 flag. Restore verifies the checksum, rejects unsafe archive paths and symbolic links, enforces the exact
 oCIS version, retains the pre-restore data, and starts only when requested.
-For Docker bind mounts, `--allow-sudo` repairs the documented UID 1000 ownership after recovery;
-rootless Podman preserves the operator mapping and does not need this flag. The ownership change is
-limited to the two resolved storage roots and is never recursive.
+For Docker bind mounts, backup and restore require explicit `--allow-sudo` when the operator is not root,
+because oCIS can create mode-0600 files as UID 1000. Backup escalates only while copying into a disposable
+staging directory, normalizes that staging copy for archiving and never changes live data. Restore repairs
+only the two resolved storage-root directories and never recursively changes recovered content. Rootless
+Podman enters its own user namespace for backup and does not need sudo. Restore permits only non-dangling
+symbolic links that resolve inside the same extracted bundle or persistent-data root; escaping links fail closed.
 
 The required runtime workflow proves upload → restart persistence → stopped backup → delete → restore →
 download recovery. Operators must still rehearse their own external object storage, secret manager and

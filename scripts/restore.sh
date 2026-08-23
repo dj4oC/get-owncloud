@@ -55,9 +55,19 @@ tar -tzf "$RAW" | while IFS= read -r path; do
   case "$path" in /*|../*|*/../*|*/..) die "Unsafe path in backup: $path" ;; esac
 done
 tar -C "$STAGE" -xzf "$RAW"
-if find "$STAGE" -type l -print -quit | grep -q .; then
-  die "Backup contains symbolic links; restore refuses link traversal ambiguity"
-fi
+find "$STAGE" -type l -print | while IFS= read -r link; do
+  case "$link" in
+    "$STAGE/bundle"/*) allowed_root=$STAGE/bundle ;;
+    "$STAGE/persistent"/*) allowed_root=$STAGE/persistent ;;
+    *) die "Backup link is outside an allowed root: $link" ;;
+  esac
+  resolved=$(readlink -f "$link") || die "Backup contains a dangling link: $link"
+  [ -e "$resolved" ] || die "Backup contains a dangling link: $link"
+  case "$resolved" in
+    "$allowed_root"|"$allowed_root"/*) ;;
+    *) die "Backup link escapes its allowed root: $link" ;;
+  esac
+done
 [ -f "$STAGE/backup.properties" ] || die "Invalid backup: missing metadata"
 [ -d "$STAGE/persistent/config" ] || die "Invalid backup: missing config data"
 [ -d "$STAGE/persistent/data" ] || die "Invalid backup: missing user data"

@@ -77,7 +77,8 @@ sh "$BUNDLE_DIR/scripts/healthcheck.sh" --url "https://$DOMAIN:$PORT/healthz" --
 service_curl -fsS --insecure --resolve "$DOMAIN:$PORT:127.0.0.1" -u "admin:$ADMIN_PASSWORD" "$WEBDAV_URL" -o "$WORK_DIR/restarted.txt"
 cmp "$WORK_DIR/payload.txt" "$WORK_DIR/restarted.txt" || die "Persistence failed after restart"
 
-sh "$BUNDLE_DIR/scripts/backup.sh" --bundle-dir "$BUNDLE_DIR" --output "$BACKUP" --allow-unencrypted-evaluation
+# shellcheck disable=SC2086
+sh "$BUNDLE_DIR/scripts/backup.sh" --bundle-dir "$BUNDLE_DIR" --output "$BACKUP" --allow-unencrypted-evaluation $PRIVILEGE_ARGS
 sh "$BUNDLE_DIR/scripts/healthcheck.sh" --url "https://$DOMAIN:$PORT/healthz" --domain "$DOMAIN" --port "$PORT" --evaluation-insecure --timeout 180
 curl -fsS --insecure --resolve "$DOMAIN:$PORT:127.0.0.1" -u "admin:$ADMIN_PASSWORD" -X DELETE "$WEBDAV_URL"
 if curl -fsS --insecure --resolve "$DOMAIN:$PORT:127.0.0.1" -u "admin:$ADMIN_PASSWORD" "$WEBDAV_URL" >/dev/null 2>&1; then

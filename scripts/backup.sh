@@ -5,10 +5,11 @@ BUNDLE_DIR=.
 OUTPUT=""
 RECIPIENT=""
 ALLOW_UNENCRYPTED=false
+ALLOW_SUDO=false
 RESTART=true
 
 usage() {
-  printf '%s\n' "Usage: backup.sh [--bundle-dir DIR] [--output FILE] --recipient AGE_RECIPIENT"
+  printf '%s\n' "Usage: backup.sh [--bundle-dir DIR] [--output FILE] --recipient AGE_RECIPIENT [--allow-sudo]"
   printf '%s\n' "       backup.sh ... --allow-unencrypted-evaluation"
 }
 die() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
@@ -24,12 +25,20 @@ while [ "$#" -gt 0 ]; do
     --output) OUTPUT=$2; shift ;;
     --recipient) RECIPIENT=$2; shift ;;
     --allow-unencrypted-evaluation) ALLOW_UNENCRYPTED=true ;;
+    --allow-sudo) ALLOW_SUDO=true ;;
     --no-restart) RESTART=false ;;
     --help) usage; exit 0 ;;
     *) die "Unknown option: $1" ;;
   esac
   shift
 done
+
+run_privileged() {
+  if [ "$(id -u)" -eq 0 ]; then "$@"; return; fi
+  [ "$ALLOW_SUDO" = true ] || die "Docker storage backup requires explicit --allow-sudo: $*"
+  has sudo || die "sudo is unavailable: $*"
+  sudo "$@"
+}
 
 [ -f "$BUNDLE_DIR/.env" ] || die "Missing $BUNDLE_DIR/.env"
 PURPOSE=$(env_get GET_OWNCLOUD_PURPOSE)
@@ -96,6 +105,13 @@ if [ "$ENGINE" = podman ] && [ "$(id -u)" -ne 0 ]; then
   # user namespace so the backup is complete without broad host permissions.
   podman unshare cp -a "$CONFIG_DIR/." "$STAGE/persistent/config/"
   podman unshare cp -a "$DATA_DIR/." "$STAGE/persistent/data/"
+  podman unshare chown -hR 0:0 "$STAGE/persistent"
+elif [ "$ENGINE" = docker ]; then
+  # The stopped container's UID 1000 may create mode-0600 files. Escalation is
+  # explicit and applies only to the disposable staging copy, never live data.
+  run_privileged cp -a "$CONFIG_DIR/." "$STAGE/persistent/config/"
+  run_privileged cp -a "$DATA_DIR/." "$STAGE/persistent/data/"
+  run_privileged chown -hR "$(id -u):$(id -g)" "$STAGE/persistent"
 else
   cp -a "$CONFIG_DIR/." "$STAGE/persistent/config/"
   cp -a "$DATA_DIR/." "$STAGE/persistent/data/"

@@ -52,6 +52,15 @@ test("rootless Podman backups read subordinate-ID files inside the user namespac
   const backup = await read("scripts/backup.sh");
   assert.match(backup, /podman unshare cp -a/);
   assert.match(backup, /podman unshare tar/);
+  assert.match(backup, /run_privileged cp -a/);
+  assert.match(backup, /disposable staging copy/);
+});
+
+test("restore allows only non-dangling links contained by their archive root", async () => {
+  const restore = await read("scripts/restore.sh");
+  assert.match(restore, /readlink -f/);
+  assert.match(restore, /Backup link escapes its allowed root/);
+  assert.match(restore, /Backup contains a dangling link/);
 });
 
 test("Collabora retains only its required MKNOD exception", async () => {
