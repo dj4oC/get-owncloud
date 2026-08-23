@@ -223,10 +223,9 @@ jobs:
           ansible-lint ansible
           ansible-playbook --syntax-check -i 'owncloud,' -c local ansible/playbook.yml
       - name: Run Molecule live convergence and second-apply idempotence
-        env:
-          ANSIBLE_ROLES_PATH: ansible/roles
         run: |
-          molecule test -s default
+          cd ansible
+          ANSIBLE_ROLES_PATH="$GITHUB_WORKSPACE/ansible/roles" molecule test -s default
       - name: Show Docker state and service logs on failure
         if: failure()
         run: |

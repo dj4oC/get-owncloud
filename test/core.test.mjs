@@ -130,3 +130,10 @@ test("reserved example names and IP addresses are never accepted as production d
     assert.match(result.errors.join(" "), /real FQDN/);
   }
 });
+
+test("single-host profiles reject the internal Traefik health port", async () => {
+  const input = profile({ networking: { httpPort: 8082 } });
+  const result = await validateProfile(input);
+  assert.equal(result.valid, false);
+  assert.ok(result.errors.some((error) => error.includes("8082")));
+});

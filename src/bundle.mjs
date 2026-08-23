@@ -59,6 +59,7 @@ function makeEnv(profile, sizing, secrets, selected) {
     ["DOCKER_SOCKET_PATH", profile.target.runtime === "podman" ? "/run/podman/podman.sock" : "/var/run/docker.sock"],
     ["TRAEFIK_ACME_MAIL", profile.networking.tls.email ?? "hostmaster@" + profile.networking.domain],
     ["TRAEFIK_ACME_CASERVER", profile.networking.tls.caServer ?? "https://acme-v02.api.letsencrypt.org/directory"],
+    ["TRAEFIK_CERT_RESOLVER", profile.networking.tls.mode === "acme" ? "http" : ""],
     ["TRAEFIK_DASHBOARD", "false"],
     ["OCIS_DOMAIN", profile.networking.domain],
     ["OCIS_URL", ocisUrl],

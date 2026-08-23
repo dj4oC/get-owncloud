@@ -229,6 +229,9 @@ export function validateNormalizedProfile(profile, policies, compatibility) {
   const domain = profile.networking?.domain;
   if (!domain) errors.push("Deployment domain is required");
   if (!["acme", "evaluation-self-signed"].includes(profile.networking?.tls?.mode)) errors.push("Unsupported TLS mode");
+  if (runtime !== "kubernetes" && [profile.networking.httpPort, profile.networking.httpsPort].includes(8082)) {
+    errors.push("Port 8082 is reserved for the internal Traefik health endpoint");
+  }
   if (profile.purpose === "production") {
     if (!isProductionDomain(domain)) errors.push("Production requires a real FQDN");
     if (profile.networking?.tls?.mode !== "acme") errors.push("Production requires trusted ACME TLS in the current single-host release");
