@@ -32,6 +32,15 @@ test("health check validates an actual oCIS endpoint rather than container state
   assert.match(health, /"\$status" = 200/);
 });
 
+test("Traefik separates configured host ports from collision-free container entrypoints", async () => {
+  const compose = await read("deploy/compose/template/docker-compose.yml");
+  assert.match(compose, /--ping\.entryPoint=http/);
+  assert.match(compose, /--entryPoints\.http\.address=:80/);
+  assert.match(compose, /--entryPoints\.https\.address=:443/);
+  assert.match(compose, /\$\{HTTP_PORT:-80\}:80/);
+  assert.match(compose, /\$\{HTTPS_PORT:-443\}:443/);
+});
+
 test("Argo CD uses one Application and a namespace-scoped project", async () => {
   const application = await read("argocd/application.yaml");
   const project = await read("argocd/project.yaml");
