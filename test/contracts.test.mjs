@@ -56,7 +56,8 @@ test("recovered Docker ownership repair is recursive but confined to validated s
 test("mandatory upstream notifications keep a safe default sender without enabling SMTP delivery", async () => {
   const compose = await read("deploy/compose/template/ocis.yml");
   const bundle = await read("src/bundle.mjs");
-  assert.match(compose, /SMTP_SENDER:-oCIS notifications/);
+  assert.match(compose, /SMTP_SENDER:-notifications@localhost\.invalid/);
+  assert.doesNotMatch(compose, /SMTP_SENDER:-[^\n]*\$\{OCIS_DOMAIN\}/);
   assert.match(bundle, /notificationServices = \["notifications"\]/);
   assert.doesNotMatch(compose, /ocis init \|\| true/);
 });
