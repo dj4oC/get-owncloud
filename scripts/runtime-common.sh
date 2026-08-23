@@ -18,10 +18,11 @@ get_owncloud_compose_validate() {
 }
 
 get_owncloud_compose_debug() {
-  get_owncloud_compose ps -a
   if [ "$GET_OWNCLOUD_COMPOSE_ENGINE" = podman ]; then
+    get_owncloud_compose ps
     get_owncloud_compose logs
   else
+    get_owncloud_compose ps -a
     get_owncloud_compose logs --no-color --tail 200
   fi
 }

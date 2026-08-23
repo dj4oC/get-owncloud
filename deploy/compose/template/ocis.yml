@@ -9,7 +9,7 @@ services:
   ocis:
     image: ${OCIS_IMAGE}
     networks:
-      ocis-net:
+      ocis-net: {}
     entrypoint: ["/bin/sh"]
     command: ["-c", "umask 0007; if [ ! -s /etc/ocis/ocis.yaml ]; then ocis init; fi; test -r /etc/ocis/ocis.yaml; exec ocis server"]
     environment:

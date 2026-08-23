@@ -3,7 +3,7 @@ services:
   traefik:
     image: docker.io/library/traefik@sha256:c549d482c55d7a797398562064f35428cc53e748d84d7190997930e7b31bcc32
     networks:
-      ocis-net:
+      ocis-net: {}
     command:
       - "--log.level=${TRAEFIK_LOG_LEVEL:-ERROR}"
       - "--entryPoints.traefik.address=:8082"

@@ -33,10 +33,13 @@ test("health check validates an actual oCIS endpoint rather than container state
 
 test("evaluation ports preserve service routing, reserve Traefik health, and make Docker repair explicit", async () => {
   const compose = await read("deploy/compose/template/docker-compose.yml");
+  const ocis = await read("deploy/compose/template/ocis.yml");
   const runtime = await read("scripts/runtime-common.sh");
   assert.match(compose, /entryPoints\.traefik\.address=:8082/);
   assert.match(compose, /\$\{HTTP_PORT:-80\}:\$\{HTTP_PORT:-80\}/);
   assert.match(compose, /\$\{HTTPS_PORT:-443\}:\$\{HTTPS_PORT:-443\}/);
+  assert.match(compose, /traefik:\n[\s\S]*?networks:\n\s+ocis-net: \{\}/);
+  assert.match(ocis, /\n  ocis:\n[\s\S]*?networks:\n\s+ocis-net: \{\}/);
   assert.match(runtime, /get_owncloud_prepare_storage/);
   assert.match(runtime, /run_privileged chown "1000:\$storage_operator_gid"/);
   assert.doesNotMatch(runtime, /chown -R/);
