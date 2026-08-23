@@ -47,9 +47,14 @@ tar -tzf "$RAW" | while IFS= read -r path; do
   case "$path" in /*|../*|*/../*|*/..) die "Unsafe path in backup: $path" ;; esac
 done
 tar -C "$STAGE" -xzf "$RAW"
-if find "$STAGE" -type l -print -quit | grep -q .; then
-  die "Backup contains symbolic links; restore refuses link traversal ambiguity"
-fi
+links=$STAGE/.restore-links
+find "$STAGE" -type l -print >"$links"
+while IFS= read -r link; do
+  target=$(readlink "$link")
+  case "$target" in /*) die "Backup contains an absolute symbolic link: $link" ;; esac
+  resolved=$(realpath -m "$(dirname "$link")/$target")
+  case "$resolved" in "$STAGE"|"$STAGE"/*) ;; *) die "Backup symbolic link escapes the extraction root: $link" ;; esac
+done <"$links"
 [ -f "$STAGE/backup.properties" ] || die "Invalid backup: missing metadata"
 [ -d "$STAGE/persistent/config" ] || die "Invalid backup: missing config data"
 [ -d "$STAGE/persistent/data" ] || die "Invalid backup: missing user data"

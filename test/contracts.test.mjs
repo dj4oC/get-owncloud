@@ -55,12 +55,15 @@ test("Docker prepares oCIS bind mounts with the container identity before startu
 test("backup and restore cross Docker and rootless Podman ownership boundaries", async () => {
   const backup = await read("scripts/backup.sh");
   const restore = await read("scripts/restore.sh");
-  assert.match(backup, /podman unshare chown/);
-  assert.match(backup, /cp -aL \/source\/\. \/destination\//);
+  assert.match(backup, /podman unshare cp -a/);
+  assert.match(backup, /Persistent symlink is absolute/);
+  assert.match(backup, /Persistent symlink escapes its storage root/);
+  assert.match(backup, /cp -a \/source\/\. \/destination\//);
   assert.match(backup, /podman unshare rm -rf/);
   assert.match(backup, /--user 1000:1000/);
   assert.match(restore, /podman unshare sh/);
   assert.match(restore, /chown -R 1000:1000/);
+  assert.match(restore, /Backup symbolic link escapes the extraction root/);
 });
 
 test("Ansible pulls missing images without changing every subsequent apply", async () => {

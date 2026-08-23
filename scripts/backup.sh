@@ -87,11 +87,7 @@ copy_persistent() {
   source_path=$1
   destination_path=$2
   if [ "$ENGINE" = podman ] && [ "$(id -u)" -ne 0 ]; then
-    image=$(env_get OCIS_IMAGE)
-    podman unshare chown -R 1000:1000 "$destination_path"
-    podman run --rm --user 1000:1000 --entrypoint /bin/sh \
-      -v "$source_path:/source:ro" -v "$destination_path:/destination:rw" "$image" \
-      -ec 'cp -aL /source/. /destination/'
+    podman unshare cp -a "$source_path/." "$destination_path/"
   elif [ "$ENGINE" = docker ]; then
     image=$(env_get OCIS_IMAGE)
     uid=$(id -u); gid=$(id -g)
@@ -99,12 +95,28 @@ copy_persistent() {
       -ec 'chown -R 1000:1000 /destination'
     docker run --rm --user 1000:1000 --entrypoint /bin/sh \
       -v "$source_path:/source:ro" -v "$destination_path:/destination:rw" "$image" \
-      -ec 'cp -aL /source/. /destination/'
+      -ec 'cp -a /source/. /destination/'
     docker run --rm --user 0:0 --entrypoint /bin/sh -v "$destination_path:/destination:rw" "$image" \
       -ec "chown -R $uid:$gid /destination"
   else
     cp -a "$source_path/." "$destination_path/"
   fi
+
+  links=$STAGE/.persistent-links
+  if [ "$ENGINE" = podman ] && [ "$(id -u)" -ne 0 ]; then
+    podman unshare find "$destination_path" -type l -print >"$links"
+  else
+    find "$destination_path" -type l -print >"$links"
+  fi
+  while IFS= read -r link; do
+    if [ "$ENGINE" = podman ] && [ "$(id -u)" -ne 0 ]; then
+      target=$(podman unshare readlink "$link"); resolved=$(podman unshare realpath -m "$(dirname "$link")/$target")
+    else
+      target=$(readlink "$link"); resolved=$(realpath -m "$(dirname "$link")/$target")
+    fi
+    case "$target" in /*) die "Persistent symlink is absolute: $link" ;; esac
+    case "$resolved" in "$destination_path"|"$destination_path"/*) ;; *) die "Persistent symlink escapes its storage root: $link" ;; esac
+  done <"$links"
 }
 copy_persistent "$CONFIG_DIR" "$STAGE/persistent/config"
 copy_persistent "$DATA_DIR" "$STAGE/persistent/data"
