@@ -103,7 +103,9 @@ export function buildHelmValues(profile, sizing) {
       "          insecure: false",
       "          disableProof: false",
       "          secureViewEnabled: true",
-      "          disableChat: false"
+      "          disableChat: false",
+      "          ingress:",
+      "            enabled: false"
     );
   }
 

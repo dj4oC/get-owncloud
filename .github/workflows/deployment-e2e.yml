@@ -81,7 +81,7 @@ jobs:
           bundle="$RUNNER_TEMP/ansible-podman-bundle"
           SOURCE_DATE_EPOCH=0 node src/cli.mjs render examples/evaluation-podman.json "$bundle" --accept-eula --secrets-file test/fixtures/e2e-secrets.json
           echo "GET_OWNCLOUD_PODMAN_ANSIBLE_BUNDLE=$bundle" >> "$GITHUB_ENV"
-          args=(-i 'localhost,' -c local ansible/playbook.yml -e "owncloud_bundle_dir=$bundle" -e owncloud_accept_eula=true)
+          args=(-i 'owncloud,' -c local ansible/playbook.yml -e "owncloud_bundle_dir=$bundle" -e owncloud_accept_eula=true)
           ansible-playbook "${args[@]}"
           ansible-playbook "${args[@]}" | tee "$RUNNER_TEMP/podman-second-apply.log"
           grep -Eq 'changed=0 +unreachable=0 +failed=0' "$RUNNER_TEMP/podman-second-apply.log"
@@ -203,7 +203,7 @@ jobs:
         env:
           ANSIBLE_ROLES_PATH: ansible/roles
         run: |
-          args=(-i 'localhost,' -c local ansible/playbook.yml -e "owncloud_bundle_dir=$GET_OWNCLOUD_ANSIBLE_BUNDLE" -e owncloud_accept_eula=true)
+          args=(-i 'owncloud,' -c local ansible/playbook.yml -e "owncloud_bundle_dir=$GET_OWNCLOUD_ANSIBLE_BUNDLE" -e owncloud_accept_eula=true)
           ansible-playbook "${args[@]}" --syntax-check
           ansible-playbook "${args[@]}"
           ansible-playbook "${args[@]}" | tee "$RUNNER_TEMP/second-apply.log"

@@ -20,6 +20,7 @@ test("Ansible is a thin module wrapper around the locked bundle with secret reda
   assert.match(role, /community\.docker\.docker_compose_v2/);
   assert.match(role, /project_src: "\{\{ owncloud_bundle_dir \}\}"/);
   assert.match(role, /no_log:/);
+  assert.match(await read(".github/workflows/deployment-e2e.yml"), /-i 'owncloud,' -c local/);
 });
 
 test("health check validates an actual oCIS endpoint rather than container state", async () => {
@@ -39,6 +40,7 @@ test("Argo CD uses one Application and a namespace-scoped project", async () => 
   assert.match(project, /namespace: owncloud/);
   assert.doesNotMatch(project, /group: "\*"|kind: "\*"/);
   assert.doesNotMatch(application, /CreateNamespace=true/);
+  assert.match(application, /ingress:\n\s+enabled: false/);
 });
 
 test("Argo deployment refuses a missing or unauthorized existing controller", async () => {
