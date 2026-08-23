@@ -32,13 +32,13 @@ test("health check validates an actual oCIS endpoint rather than container state
   assert.match(health, /"\$status" = 200/);
 });
 
-test("Traefik separates configured host ports from collision-free container entrypoints", async () => {
+test("Traefik shares its ping endpoint without opening a conflicting default listener", async () => {
   const compose = await read("deploy/compose/template/docker-compose.yml");
   assert.match(compose, /--ping\.entryPoint=http/);
-  assert.match(compose, /--entryPoints\.http\.address=:80/);
-  assert.match(compose, /--entryPoints\.https\.address=:443/);
-  assert.match(compose, /\$\{HTTP_PORT:-80\}:80/);
-  assert.match(compose, /\$\{HTTPS_PORT:-443\}:443/);
+  assert.match(compose, /--entryPoints\.http\.address=:\$\{HTTP_PORT:-80\}/);
+  assert.match(compose, /--entryPoints\.https\.address=:\$\{HTTPS_PORT:-443\}/);
+  assert.match(compose, /\$\{HTTP_PORT:-80\}:\$\{HTTP_PORT:-80\}/);
+  assert.match(compose, /\$\{HTTPS_PORT:-443\}:\$\{HTTPS_PORT:-443\}/);
   assert.match(compose, /ocis-net: \{\}/);
 });
 
