@@ -60,6 +60,8 @@ test("backup and restore cross Docker and rootless Podman ownership boundaries",
   assert.match(backup, /Persistent symlink escapes its storage root/);
   assert.match(backup, /cp -a \/source\/\. \/destination\//);
   assert.match(backup, /podman unshare rm -rf/);
+  assert.match(backup, /get_owncloud_compose ps -q 2>\/dev\/null/);
+  assert.doesNotMatch(backup, /get_owncloud_compose ps -q ocis/);
   assert.match(backup, /--user 1000:1000/);
   assert.match(restore, /podman unshare sh/);
   assert.match(restore, /chown -R 1000:1000/);
