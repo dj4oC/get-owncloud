@@ -50,7 +50,7 @@ function makeEnv(profile, sizing, secrets, selected) {
     ["GET_OWNCLOUD_RECOMMENDED_RAM_MIB", sizing.recommended.ramMiB],
     ["GET_OWNCLOUD_RECOMMENDED_DISK_GIB", sizing.recommended.diskGiB],
     ["GET_OWNCLOUD_EULA_SHA256", "f608b0819964232648c5fb6b22a4d58310331128ad645ab158a35ef1790e2148"],
-    ["LOG_DRIVER", "local"],
+    ["LOG_DRIVER", profile.target.runtime === "podman" ? "k8s-file" : "local"],
     ["INSECURE", profile.purpose === "evaluation" ? "true" : "false"],
     ["HTTP_PORT", profile.networking.httpPort],
     ["HTTPS_PORT", profile.networking.httpsPort],
