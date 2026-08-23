@@ -462,7 +462,7 @@ podman_rootless_preflight() {
   done
   image=$(env_get OCIS_IMAGE)
   for path in "$config_dir" "$data_dir"; do
-    podman run --rm --entrypoint /bin/sh -v "$path:/get-owncloud-preflight:rw" "$image" \
+    podman run --rm --userns keep-id:uid=1000,gid=1000 --entrypoint /bin/sh -v "$path:/get-owncloud-preflight:rw" "$image" \
       -ec 'touch /get-owncloud-preflight/.write-test && rm /get-owncloud-preflight/.write-test' ||
       die "Rootless Podman cannot write bind mount: $path; fix UID/GID/SELinux mapping or choose rootful"
   done

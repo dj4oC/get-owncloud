@@ -1,0 +1,6 @@
+---
+# The pinned oCIS image runs as UID/GID 1000. Preserve the rootless operator's
+# host ownership instead of recursively chowning bind mounts with Podman's :U.
+services:
+  ocis:
+    userns_mode: keep-id:uid=1000,gid=1000

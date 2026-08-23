@@ -34,7 +34,7 @@ services:
       COLLABORATION_LOG_LEVEL: ${LOG_LEVEL:-info}
       OCIS_URL: ${OCIS_URL}
     volumes:
-      - ${OCIS_CONFIG_DIR}:/etc/ocis
+      - ${OCIS_CONFIG_DIR}:/etc/ocis${OCIS_BIND_RW_OPTIONS}
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.collaboration.entrypoints=http"

@@ -38,11 +38,11 @@ services:
       COLLABORA_DOMAIN: ${COLLABORA_DOMAIN}
       OCIS_PASSWORD_POLICY_BANNED_PASSWORDS_LIST: banned-password-list.txt
     volumes:
-      - ./config/ocis/app-registry.yaml:/etc/ocis/app-registry.yaml:ro
-      - ./config/ocis/csp.yaml:/etc/ocis/csp.yaml:ro
-      - ./config/ocis/banned-password-list.txt:/etc/ocis/banned-password-list.txt:ro
-      - ${OCIS_CONFIG_DIR}:/etc/ocis
-      - ${OCIS_DATA_DIR}:/var/lib/ocis
+      - ./config/ocis/app-registry.yaml:/etc/ocis/app-registry.yaml${OCIS_BIND_RO_OPTIONS}
+      - ./config/ocis/csp.yaml:/etc/ocis/csp.yaml${OCIS_BIND_RO_OPTIONS}
+      - ./config/ocis/banned-password-list.txt:/etc/ocis/banned-password-list.txt${OCIS_BIND_RO_OPTIONS}
+      - ${OCIS_CONFIG_DIR}:/etc/ocis${OCIS_BIND_RW_OPTIONS}
+      - ${OCIS_DATA_DIR}:/var/lib/ocis${OCIS_BIND_RW_OPTIONS}
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.ocis.entrypoints=https"

@@ -13,10 +13,12 @@ function env(name, value) {
 
 function composeFiles(profile) {
   const files = ["docker-compose.yml", "ocis.yml"];
+  if (profile.target.runtime === "podman") files.push("podman.yml");
   if (profile.features.search) files.push("tika.yml");
   if (profile.storage.mode === "s3ng") files.push("s3ng.yml");
   if (profile.office.mode === "collabora") {
     files.push(profile.office.deployment === "bundled" ? "collabora.yml" : "collabora-external.yml");
+    if (profile.target.runtime === "podman") files.push("podman-collaboration.yml");
   }
   if (profile.features.clamav) files.push("clamav.yml");
   if (profile.identity.mode === "external-oidc") files.push("external-oidc.yml");
@@ -63,6 +65,8 @@ function makeEnv(profile, sizing, secrets, selected) {
     ["OCIS_IMAGE", "docker.io/owncloud/ocis@sha256:8c053ea63fc15b9788d55725b5d3abd9632dd89abfcb8a127e0c85acdd4ec2b4"],
     ["OCIS_CONFIG_DIR", profile.storage.configPath],
     ["OCIS_DATA_DIR", profile.storage.dataPath],
+    ["OCIS_BIND_RO_OPTIONS", profile.target.runtime === "podman" && profile.storage.filesystem !== "nfs" ? ":ro,z" : ":ro"],
+    ["OCIS_BIND_RW_OPTIONS", profile.target.runtime === "podman" && profile.storage.filesystem !== "nfs" ? ":z" : ""],
     ["ADMIN_PASSWORD", secrets.adminPassword],
     ["DEMO_USERS", profile.security.demoUsers ? "true" : "false"],
     ["PROXY_ENABLE_BASIC_AUTH", profile.security.basicAuth ? "true" : "false"],
@@ -109,7 +113,7 @@ function makeEnv(profile, sizing, secrets, selected) {
 function readme(profile) {
   const command = profile.target.runtime === "podman" ? "podman compose" : "docker compose";
   const deployCommand = profile.target.manager === "ansible"
-    ? 'ANSIBLE_ROLES_PATH=ansible/roles ansible-playbook -i "localhost," -c local ansible/playbook.yml -e "owncloud_bundle_dir=$PWD" -e owncloud_accept_eula=true'
+    ? 'ANSIBLE_ROLES_PATH=ansible/roles ansible-playbook -i "owncloud," -c local ansible/playbook.yml -e "owncloud_bundle_dir=$PWD" -e owncloud_accept_eula=true'
     : "sh install.sh --bundle-dir . --accept-eula";
   return [
     "# Generated ownCloud Infinite Scale deployment",
