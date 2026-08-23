@@ -63,7 +63,7 @@ case "$OUTPUT" in *.age) RAW_OUTPUT=${OUTPUT%.age} ;; *) RAW_OUTPUT=$OUTPUT ;; e
 STAGE=$(mktemp -d)
 WAS_RUNNING=false
 cleanup() {
-  rm -rf "$STAGE"
+  if [ "$ENGINE" = podman ] && [ "$(id -u)" -ne 0 ]; then podman unshare rm -rf "$STAGE"; else rm -rf "$STAGE"; fi
   if [ "$WAS_RUNNING" = true ] && [ "$RESTART" = true ]; then
     (cd "$BUNDLE_DIR" && get_owncloud_compose up -d) >/dev/null 2>&1 || true
   fi
@@ -87,7 +87,11 @@ copy_persistent() {
   source_path=$1
   destination_path=$2
   if [ "$ENGINE" = podman ] && [ "$(id -u)" -ne 0 ]; then
-    podman unshare cp -a "$source_path/." "$destination_path/"
+    image=$(env_get OCIS_IMAGE)
+    podman unshare chown -R 1000:1000 "$destination_path"
+    podman run --rm --user 1000:1000 --entrypoint /bin/sh \
+      -v "$source_path:/source:ro" -v "$destination_path:/destination:rw" "$image" \
+      -ec 'cp -aL /source/. /destination/'
   elif [ "$ENGINE" = docker ]; then
     image=$(env_get OCIS_IMAGE)
     uid=$(id -u); gid=$(id -g)
@@ -95,7 +99,7 @@ copy_persistent() {
       -ec 'chown -R 1000:1000 /destination'
     docker run --rm --user 1000:1000 --entrypoint /bin/sh \
       -v "$source_path:/source:ro" -v "$destination_path:/destination:rw" "$image" \
-      -ec 'cp -a /source/. /destination/'
+      -ec 'cp -aL /source/. /destination/'
     docker run --rm --user 0:0 --entrypoint /bin/sh -v "$destination_path:/destination:rw" "$image" \
       -ec "chown -R $uid:$gid /destination"
   else
@@ -135,5 +139,5 @@ if [ "$WAS_RUNNING" = true ] && [ "$RESTART" = true ]; then
   WAS_RUNNING=false
 fi
 trap - EXIT HUP INT TERM
-rm -rf "$STAGE"
+if [ "$ENGINE" = podman ] && [ "$(id -u)" -ne 0 ]; then podman unshare rm -rf "$STAGE"; else rm -rf "$STAGE"; fi
 printf 'Verified backup created: %s\n' "$FINAL"
