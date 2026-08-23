@@ -15,7 +15,7 @@ get_owncloud_runtime_setup() {
   GET_OWNCLOUD_COMPOSE_ENGINE=$runtime_engine
   case "$runtime_engine" in
     docker)
-      export DOCKER_SOCKET_PATH=${DOCKER_SOCKET_PATH:-/var/run/docker.sock}
+      export DOCKER_SOCKET_PATH="${DOCKER_SOCKET_PATH:-/var/run/docker.sock}"
       ;;
     podman)
       command -v podman >/dev/null 2>&1 || die "podman is required"
@@ -32,9 +32,13 @@ get_owncloud_runtime_setup() {
         socket_started=false
         if command -v systemctl >/dev/null 2>&1; then
           if [ "$(id -u)" -eq 0 ]; then
-            systemctl enable --now podman.socket >/dev/null 2>&1 && socket_started=true || true
+            if systemctl enable --now podman.socket >/dev/null 2>&1; then
+              socket_started=true
+            fi
           else
-            systemctl --user enable --now podman.socket >/dev/null 2>&1 && socket_started=true || true
+            if systemctl --user enable --now podman.socket >/dev/null 2>&1; then
+              socket_started=true
+            fi
           fi
         fi
         if [ "$socket_started" = false ]; then
