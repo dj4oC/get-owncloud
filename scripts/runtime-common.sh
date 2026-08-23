@@ -9,6 +9,25 @@ get_owncloud_compose() {
   esac
 }
 
+get_owncloud_prepare_storage() {
+  storage_engine=$1
+  storage_config=$2
+  storage_data=$3
+  mkdir -p "$storage_config" "$storage_data"
+  if [ "$storage_engine" = docker ]; then
+    storage_operator_gid=$(id -g)
+    for storage_path in "$storage_config" "$storage_data"; do
+      storage_metadata=$(stat -c '%u:%g:%a' "$storage_path")
+      if [ "$storage_metadata" != "1000:$storage_operator_gid:2770" ]; then
+        run_privileged chown "1000:$storage_operator_gid" "$storage_path"
+        run_privileged chmod 2770 "$storage_path"
+      fi
+    done
+  else
+    chmod 700 "$storage_config" "$storage_data"
+  fi
+}
+
 get_owncloud_runtime_setup() {
   runtime_engine=$1
   runtime_bundle=$2

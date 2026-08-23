@@ -8,4 +8,4 @@
         name: get_owncloud
     - name: Verify second Compose apply made no changes
       ansible.builtin.assert:
-        that: not (owncloud_compose_apply.changed | default(true))
+        that: not (get_owncloud_compose_apply.changed | default(true))

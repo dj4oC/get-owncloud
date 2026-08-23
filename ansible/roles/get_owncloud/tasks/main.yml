@@ -2,133 +2,137 @@
 - name: Validate explicit deployment approvals
   ansible.builtin.assert:
     that:
-      - owncloud_bundle_dir | length > 0
-      - owncloud_accept_eula | bool
-    fail_msg: "Set owncloud_bundle_dir and explicitly set owncloud_accept_eula=true after reviewing the pinned EULA."
+      - get_owncloud_bundle_dir | length > 0
+      - get_owncloud_accept_eula | bool
+    fail_msg: "Set get_owncloud_bundle_dir and explicitly set get_owncloud_accept_eula=true after reviewing the pinned EULA."
 
 - name: Verify the locked bundle exists
   ansible.builtin.stat:
-    path: "{{ owncloud_bundle_dir }}/manifest.sha256"
-  register: owncloud_manifest
+    path: "{{ get_owncloud_bundle_dir }}/manifest.sha256"
+  register: get_owncloud_manifest
 
 - name: Refuse an incomplete bundle
   ansible.builtin.assert:
-    that: owncloud_manifest.stat.isreg | default(false)
+    that: get_owncloud_manifest.stat.isreg | default(false)
 
-- name: Read the locked runtime
-  ansible.builtin.shell: |
-    sed -n 's/^GET_OWNCLOUD_RUNTIME="\(.*\)"/\1/p' .env
-  args:
-    chdir: "{{ owncloud_bundle_dir }}"
-  register: owncloud_runtime
-  changed_when: false
-  failed_when: owncloud_runtime.stdout not in ['docker', 'podman']
+- name: Read the locked non-secret environment
+  ansible.builtin.slurp:
+    src: "{{ get_owncloud_bundle_dir }}/.env"
+  register: get_owncloud_environment_file
+  no_log: "{{ get_owncloud_contains_generated_secrets | bool }}"
+
+- name: Decode the locked environment without logging it
+  ansible.builtin.set_fact:
+    get_owncloud_environment: "{{ get_owncloud_environment_file.content | b64decode }}"
+  no_log: "{{ get_owncloud_contains_generated_secrets | bool }}"
+
+- name: Derive the public runtime and endpoint contract
+  ansible.builtin.set_fact:
+    get_owncloud_runtime: "{{ (get_owncloud_environment | regex_findall('(?m)^GET_OWNCLOUD_RUNTIME=\"([^\"]+)\"$')) | first }}"
+    get_owncloud_domain: "{{ (get_owncloud_environment | regex_findall('(?m)^OCIS_DOMAIN=\"([^\"]+)\"$')) | first }}"
+    get_owncloud_port: "{{ (get_owncloud_environment | regex_findall('(?m)^HTTPS_PORT=\"([^\"]+)\"$')) | first }}"
+    get_owncloud_purpose: "{{ (get_owncloud_environment | regex_findall('(?m)^GET_OWNCLOUD_PURPOSE=\"([^\"]+)\"$')) | first }}"
+  no_log: "{{ get_owncloud_contains_generated_secrets | bool }}"
+
+- name: Refuse an unsupported locked runtime or purpose
+  ansible.builtin.assert:
+    that:
+      - get_owncloud_runtime in ['docker', 'podman']
+      - get_owncloud_purpose in ['evaluation', 'production']
 
 - name: Run Part 1 readiness and bundle preflight
   ansible.builtin.command:
     cmd: >-
-      sh {{ owncloud_bundle_dir }}/install.sh
-      --bundle-dir {{ owncloud_bundle_dir }}
-      --engine {{ owncloud_runtime.stdout }} --non-interactive --accept-eula --no-start
-      {{ '--install-missing' if owncloud_install_missing_runtime | bool else '' }}
-      {{ '--allow-sudo' if owncloud_allow_sudo | bool else '' }}
+      sh {{ get_owncloud_bundle_dir }}/install.sh
+      --bundle-dir {{ get_owncloud_bundle_dir }}
+      --engine {{ get_owncloud_runtime }} --non-interactive --accept-eula --no-start
+      {{ '--install-missing' if get_owncloud_install_missing_runtime | bool else '' }}
+      {{ '--allow-sudo' if get_owncloud_allow_sudo | bool else '' }}
   changed_when: false
-  no_log: "{{ owncloud_contains_generated_secrets | bool }}"
+  no_log: "{{ get_owncloud_contains_generated_secrets | bool }}"
 
 - name: Apply the generated locked bundle
   community.docker.docker_compose_v2:
-    project_src: "{{ owncloud_bundle_dir }}"
+    project_src: "{{ get_owncloud_bundle_dir }}"
     state: present
     pull: policy
     remove_orphans: true
-  register: owncloud_compose_apply
-  no_log: "{{ owncloud_contains_generated_secrets | bool }}"
-  when: owncloud_runtime.stdout == 'docker'
+  register: get_owncloud_compose_apply
+  no_log: "{{ get_owncloud_contains_generated_secrets | bool }}"
+  when: get_owncloud_runtime == 'docker'
 
 - name: Capture Podman project before apply
   ansible.builtin.shell: |
     set -eu
     die() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
     . ./scripts/runtime-common.sh
-    get_owncloud_runtime_setup podman "{{ owncloud_bundle_dir }}"
-    get_owncloud_compose ps -q | sort
+    get_owncloud_runtime_setup podman "{{ get_owncloud_bundle_dir }}"
+    get_owncloud_compose ps -q
   args:
-    chdir: "{{ owncloud_bundle_dir }}"
+    chdir: "{{ get_owncloud_bundle_dir }}"
     executable: /bin/sh
-  register: owncloud_podman_before
+  register: get_owncloud_podman_before
   changed_when: false
-  when: owncloud_runtime.stdout == 'podman'
+  when: get_owncloud_runtime == 'podman'
 
 - name: Apply locked bundle with Podman Compose
   ansible.builtin.shell: |
     set -eu
     die() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
     . ./scripts/runtime-common.sh
-    get_owncloud_runtime_setup podman "{{ owncloud_bundle_dir }}"
+    get_owncloud_runtime_setup podman "{{ get_owncloud_bundle_dir }}"
     get_owncloud_compose pull
     get_owncloud_compose up -d --remove-orphans
   args:
-    chdir: "{{ owncloud_bundle_dir }}"
+    chdir: "{{ get_owncloud_bundle_dir }}"
     executable: /bin/sh
   changed_when: false
-  no_log: "{{ owncloud_contains_generated_secrets | bool }}"
-  when: owncloud_runtime.stdout == 'podman'
+  no_log: "{{ get_owncloud_contains_generated_secrets | bool }}"
+  when: get_owncloud_runtime == 'podman'
 
 - name: Capture Podman project after apply
   ansible.builtin.shell: |
     set -eu
     die() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
     . ./scripts/runtime-common.sh
-    get_owncloud_runtime_setup podman "{{ owncloud_bundle_dir }}"
-    get_owncloud_compose ps -q | sort
+    get_owncloud_runtime_setup podman "{{ get_owncloud_bundle_dir }}"
+    get_owncloud_compose ps -q
   args:
-    chdir: "{{ owncloud_bundle_dir }}"
+    chdir: "{{ get_owncloud_bundle_dir }}"
     executable: /bin/sh
-  register: owncloud_podman_after
-  changed_when: owncloud_podman_before.stdout != owncloud_podman_after.stdout
-  when: owncloud_runtime.stdout == 'podman'
-
-- name: Read public endpoint settings without logging secrets
-  ansible.builtin.shell: |
-    set -eu
-    domain=$(sed -n 's/^OCIS_DOMAIN="\(.*\)"/\1/p' .env)
-    port=$(sed -n 's/^HTTPS_PORT="\(.*\)"/\1/p' .env)
-    purpose=$(sed -n 's/^GET_OWNCLOUD_PURPOSE="\(.*\)"/\1/p' .env)
-    printf '%s\t%s\t%s' "$domain" "$port" "$purpose"
-  args:
-    chdir: "{{ owncloud_bundle_dir }}"
-  register: owncloud_endpoint
-  changed_when: false
+  register: get_owncloud_podman_after
+  changed_when: get_owncloud_podman_before.stdout != get_owncloud_podman_after.stdout
+  when: get_owncloud_runtime == 'podman'
 
 - name: Verify the production oCIS health endpoint and trusted certificate
   ansible.builtin.command:
     argv:
       - sh
-      - "{{ owncloud_bundle_dir }}/scripts/healthcheck.sh"
+      - "{{ get_owncloud_bundle_dir }}/scripts/healthcheck.sh"
       - --url
-      - "https://{{ owncloud_endpoint.stdout.split('\t')[0] }}:{{ owncloud_endpoint.stdout.split('\t')[1] }}/healthz"
+      - "https://{{ get_owncloud_domain }}:{{ get_owncloud_port }}/healthz"
       - --domain
-      - "{{ owncloud_endpoint.stdout.split('\t')[0] }}"
+      - "{{ get_owncloud_domain }}"
       - --port
-      - "{{ owncloud_endpoint.stdout.split('\t')[1] }}"
+      - "{{ get_owncloud_port }}"
       - --timeout
-      - "{{ owncloud_health_timeout | string }}"
+      - "{{ get_owncloud_health_timeout | string }}"
   changed_when: false
-  when: owncloud_endpoint.stdout.split('\t')[2] == 'production'
+  when: get_owncloud_purpose == 'production'
 
 - name: Verify the evaluation oCIS health endpoint
   ansible.builtin.command:
     argv:
       - sh
-      - "{{ owncloud_bundle_dir }}/scripts/healthcheck.sh"
+      - "{{ get_owncloud_bundle_dir }}/scripts/healthcheck.sh"
       - --url
-      - "https://{{ owncloud_endpoint.stdout.split('\t')[0] }}:{{ owncloud_endpoint.stdout.split('\t')[1] }}/healthz"
+      - "https://{{ get_owncloud_domain }}:{{ get_owncloud_port }}/healthz"
       - --domain
-      - "{{ owncloud_endpoint.stdout.split('\t')[0] }}"
+      - "{{ get_owncloud_domain }}"
       - --port
-      - "{{ owncloud_endpoint.stdout.split('\t')[1] }}"
+      - "{{ get_owncloud_port }}"
       - --timeout
-      - "{{ owncloud_health_timeout | string }}"
+      - "{{ get_owncloud_health_timeout | string }}"
       - --evaluation-insecure
   changed_when: false
-  when: owncloud_endpoint.stdout.split('\t')[2] == 'evaluation'
+  when: get_owncloud_purpose == 'evaluation'

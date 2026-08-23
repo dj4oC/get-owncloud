@@ -475,16 +475,15 @@ note "EULA sections acknowledged: No warranties; Limitation of liability"
 record_eula
 config_dir=$(bundle_path "$(env_get OCIS_CONFIG_DIR)")
 data_dir=$(bundle_path "$(env_get OCIS_DATA_DIR)")
-mkdir -p "$config_dir" "$data_dir"
-chmod 700 "$config_dir" "$data_dir"
+[ -f "$BUNDLE_DIR/scripts/runtime-common.sh" ] || die "Bundle is missing scripts/runtime-common.sh"
+# shellcheck source=/dev/null
+. "$BUNDLE_DIR/scripts/runtime-common.sh"
+get_owncloud_prepare_storage "$ENGINE" "$config_dir" "$data_dir"
 
 if [ "$NO_START" = true ]; then
   note "Bundle verified and prepared; --no-start prevented service changes."
   exit 0
 fi
-[ -f "$BUNDLE_DIR/scripts/runtime-common.sh" ] || die "Bundle is missing scripts/runtime-common.sh"
-# shellcheck source=/dev/null
-. "$BUNDLE_DIR/scripts/runtime-common.sh"
 get_owncloud_runtime_setup "$ENGINE" "$BUNDLE_DIR"
 (cd "$BUNDLE_DIR" && get_owncloud_compose config --quiet)
 (cd "$BUNDLE_DIR" && get_owncloud_compose pull)

@@ -1,6 +1,6 @@
 ---
 - name: Apply locked ownCloud Compose bundle
   hosts: owncloud
-  become: "{{ owncloud_become | default(false) }}"
+  become: "{{ get_owncloud_become | default(false) }}"
   roles:
     - role: get_owncloud

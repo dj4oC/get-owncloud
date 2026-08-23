@@ -19,6 +19,9 @@ consistent. Backups default outside the live deployment directory, receive a SHA
 operator-controlled `age` encryption in production. Unencrypted output needs an explicit evaluation-only
 flag. Restore verifies the checksum, rejects unsafe archive paths and symbolic links, enforces the exact
 oCIS version, retains the pre-restore data, and starts only when requested.
+For Docker bind mounts, `--allow-sudo` repairs the documented UID 1000 ownership after recovery;
+rootless Podman preserves the operator mapping and does not need this flag. The ownership change is
+limited to the two resolved storage roots and is never recursive.
 
 The required runtime workflow proves upload → restart persistence → stopped backup → delete → restore →
 download recovery. Operators must still rehearse their own external object storage, secret manager and

@@ -18,7 +18,7 @@ test("Ansible is a thin module wrapper around the locked bundle with secret reda
   const role = await read("ansible/roles/get_owncloud/tasks/main.yml");
   assert.match(playbook, /role: get_owncloud/);
   assert.match(role, /community\.docker\.docker_compose_v2/);
-  assert.match(role, /project_src: "\{\{ owncloud_bundle_dir \}\}"/);
+  assert.match(role, /project_src: "\{\{ get_owncloud_bundle_dir \}\}"/);
   assert.match(role, /no_log:/);
 });
 
@@ -29,6 +29,16 @@ test("health check validates an actual oCIS endpoint rather than container state
   assert.match(health, /--resolve/);
   assert.match(health, /http_code/);
   assert.match(health, /"\$status" = 200/);
+});
+
+test("evaluation ports map to fixed Traefik listeners and Docker storage repair is explicit", async () => {
+  const compose = await read("deploy/compose/template/docker-compose.yml");
+  const runtime = await read("scripts/runtime-common.sh");
+  assert.match(compose, /\$\{HTTP_PORT:-80\}:80/);
+  assert.match(compose, /\$\{HTTPS_PORT:-443\}:443/);
+  assert.match(runtime, /get_owncloud_prepare_storage/);
+  assert.match(runtime, /run_privileged chown "1000:\$storage_operator_gid"/);
+  assert.doesNotMatch(runtime, /chown -R/);
 });
 
 test("Collabora retains only its required MKNOD exception", async () => {

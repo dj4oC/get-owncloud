@@ -18,6 +18,8 @@ else
   PROFILE=$ROOT_DIR/examples/evaluation-docker-collabora.json
   COLLABORA_ENABLED=true
 fi
+PRIVILEGE_ARGS=""
+[ "$ENGINE" != docker ] || PRIVILEGE_ARGS=--allow-sudo
 
 die() { printf 'E2E ERROR: %s\n' "$*" >&2; exit 1; }
 cleanup() {
@@ -43,7 +45,8 @@ get_owncloud_runtime_setup "$ENGINE" "$BUNDLE_DIR"
 (cd "$BUNDLE_DIR" && sha256sum -c manifest.sha256)
 (cd "$BUNDLE_DIR" && get_owncloud_compose config --quiet)
 
-sh "$BUNDLE_DIR/install.sh" --bundle-dir "$BUNDLE_DIR" --engine "$ENGINE" --non-interactive --accept-eula
+# shellcheck disable=SC2086
+sh "$BUNDLE_DIR/install.sh" --bundle-dir "$BUNDLE_DIR" --engine "$ENGINE" --non-interactive --accept-eula $PRIVILEGE_ARGS
 sh "$BUNDLE_DIR/scripts/healthcheck.sh" --url "https://$DOMAIN:$PORT/healthz" --domain "$DOMAIN" --port "$PORT" --evaluation-insecure --timeout 180
 
 if [ "$COLLABORA_ENABLED" = true ]; then
@@ -72,7 +75,8 @@ if curl -fsS --insecure --resolve "$DOMAIN:$PORT:127.0.0.1" -u "admin:$ADMIN_PAS
   die "WebDAV delete did not remove the recovery fixture"
 fi
 
-sh "$BUNDLE_DIR/scripts/restore.sh" --bundle-dir "$BUNDLE_DIR" --archive "$BACKUP" --start
+# shellcheck disable=SC2086
+sh "$BUNDLE_DIR/scripts/restore.sh" --bundle-dir "$BUNDLE_DIR" --archive "$BACKUP" --start $PRIVILEGE_ARGS
 sh "$BUNDLE_DIR/scripts/healthcheck.sh" --url "https://$DOMAIN:$PORT/healthz" --domain "$DOMAIN" --port "$PORT" --evaluation-insecure --timeout 180
 curl -fsS --insecure --resolve "$DOMAIN:$PORT:127.0.0.1" -u "admin:$ADMIN_PASSWORD" "$WEBDAV_URL" -o "$WORK_DIR/restored.txt"
 cmp "$WORK_DIR/payload.txt" "$WORK_DIR/restored.txt" || die "Backup/restore recovery mismatch"

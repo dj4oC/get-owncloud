@@ -5,9 +5,16 @@ BUNDLE_DIR=.
 ARCHIVE=""
 IDENTITY=""
 START=false
+ALLOW_SUDO=false
 
 die() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
 has() { command -v "$1" >/dev/null 2>&1; }
+run_privileged() {
+  if [ "$(id -u)" -eq 0 ]; then "$@"; return; fi
+  [ "$ALLOW_SUDO" = true ] || die "Storage ownership repair requires explicit --allow-sudo: $*"
+  has sudo || die "sudo is unavailable: $*"
+  sudo "$@"
+}
 env_get() {
   value=$(sed -n "s/^$1=//p" "$BUNDLE_DIR/.env" | tail -n 1)
   printf '%s' "$value" | sed 's/^"//; s/"$//'
@@ -19,7 +26,8 @@ while [ "$#" -gt 0 ]; do
     --archive) ARCHIVE=$2; shift ;;
     --identity) IDENTITY=$2; shift ;;
     --start) START=true ;;
-    --help) printf '%s\n' "Usage: restore.sh --archive FILE [--identity AGE_KEY] [--bundle-dir DIR] [--start]"; exit 0 ;;
+    --allow-sudo) ALLOW_SUDO=true ;;
+    --help) printf '%s\n' "Usage: restore.sh --archive FILE [--identity AGE_KEY] [--bundle-dir DIR] [--start] [--allow-sudo]"; exit 0 ;;
     *) die "Unknown option: $1" ;;
   esac
   shift
@@ -79,6 +87,7 @@ mkdir -p "$CONFIG_DIR" "$DATA_DIR"
 cp -a "$STAGE/persistent/config/." "$CONFIG_DIR/"
 cp -a "$STAGE/persistent/data/." "$DATA_DIR/"
 chmod 700 "$CONFIG_DIR" "$DATA_DIR"
+get_owncloud_prepare_storage "$ENGINE" "$CONFIG_DIR" "$DATA_DIR"
 
 if [ "$START" = true ]; then
   (cd "$BUNDLE_DIR" && get_owncloud_compose up -d)

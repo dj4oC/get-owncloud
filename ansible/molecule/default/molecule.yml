@@ -11,7 +11,8 @@ provisioner:
     host_vars:
       localhost:
         ansible_connection: local
-        owncloud_bundle_dir: "{{ lookup('env', 'GET_OWNCLOUD_E2E_BUNDLE') }}"
-        owncloud_accept_eula: true
+        get_owncloud_bundle_dir: "{{ lookup('env', 'GET_OWNCLOUD_E2E_BUNDLE') }}"
+        get_owncloud_accept_eula: true
+        get_owncloud_allow_sudo: true
 verifier:
   name: ansible

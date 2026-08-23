@@ -11,7 +11,7 @@ services:
     networks:
       ocis-net:
     entrypoint: ["/bin/sh"]
-    command: ["-c", "ocis init || true; exec ocis server"]
+    command: ["-c", "umask 0007; ocis init || true; exec ocis server"]
     environment:
       OCIS_ADD_RUN_SERVICES: ${START_ADDITIONAL_SERVICES}
       OCIS_URL: ${OCIS_URL}

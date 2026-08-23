@@ -6,7 +6,7 @@ all:
         cloud.example.net:
           ansible_user: deploy
       vars:
-        owncloud_bundle_dir: /opt/get-owncloud/bundle
-        owncloud_accept_eula: false
-        owncloud_install_missing_runtime: true
-        owncloud_allow_sudo: true
+        get_owncloud_bundle_dir: /opt/get-owncloud/bundle
+        get_owncloud_accept_eula: false
+        get_owncloud_install_missing_runtime: true
+        get_owncloud_allow_sudo: true
