@@ -55,4 +55,6 @@ test("Kubernetes/Argo dry-run includes kubectl, Helm and Argo CD readiness", () 
   const result = spawnSync("sh", [script.pathname, "--dry-run", "--target", "kubernetes", "--manager", "argocd"], { encoding: "utf8" });
   assert.equal(result.status, 0, result.stderr);
   for (const tool of ["kubectl", "helm", "argocd"]) assert.match(result.stdout, new RegExp(tool, "i"));
+  assert.match(result.stdout, /Argo CD controller status:/);
+  assert.match(result.stdout, /never mutates a controller/);
 });

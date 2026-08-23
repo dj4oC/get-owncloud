@@ -1,8 +1,8 @@
 # Argo CD contract
 
-V1 installs/detects the pinned Argo CD CLI only and requires an existing compatible controller. Controller
-bootstrap remains in the full roadmap but needs its own separately reviewed cluster-wide security adapter;
-it is not hidden or silently attempted.
+V1 installs/detects the pinned Argo CD CLI only and reports authenticated controller reachability separately.
+It requires an existing compatible controller. Controller bootstrap remains in the full roadmap but needs
+its own separately reviewed cluster-wide security adapter; it is not hidden or silently attempted.
 
 V1 emits one `Application` for the one chart/release. App-of-apps activates only when independently
 synced child releases have a demonstrated need.

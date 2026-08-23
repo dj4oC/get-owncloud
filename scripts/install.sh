@@ -293,6 +293,7 @@ MISSING=""
 for tool in $(required_tools); do
   if tool_present "$tool"; then note "READY: $tool"; else MISSING="$MISSING $tool"; install_tool "$tool"; fi
 done
+if [ "$MANAGER" = argocd ]; then argocd_controller=cli-missing; if tool_present argocd; then argocd_controller=unreachable; argocd version >/dev/null 2>&1 && argocd_controller=reachable; fi; note "Argo CD controller status: $argocd_controller (v1 installs the CLI only and never mutates a controller)"; fi
 
 if [ "$TARGET" = kubernetes ] && [ "$K8S_DISTRIBUTION" = k3s ]; then
   note "K3s is evaluation-only; production requires an existing approved cluster."
@@ -372,7 +373,7 @@ resource_preflight() {
   [ "$ram_mib" -ge "$min_ram" ] || result=fail
   [ "$disk_gib" -ge "$min_disk" ] || result=fail
   cat >"$BUNDLE_DIR/readiness-report.json" <<EOF
-{"scriptVersion":"$SCRIPT_VERSION","os":"$OS_ID","osVersion":"$OS_VERSION","architecture":"$ARCH","runtime":"$ENGINE","cpu":$cpu,"ramMiB":$ram_mib,"availableDiskGiB":$disk_gib,"minimum":{"cpu":$min_cpu,"ramMiB":$min_ram,"diskGiB":$min_disk},"result":"$result","firewallChanged":false,"dnsChanged":false}
+{"scriptVersion":"$SCRIPT_VERSION","os":"$OS_ID","osVersion":"$OS_VERSION","architecture":"$ARCH","runtime":"$ENGINE","cpu":$cpu,"ramMiB":$ram_mib,"availableDiskGiB":$disk_gib,"minimum":{"cpu":$min_cpu,"ramMiB":$min_ram,"diskGiB":$min_disk},"result":"$result","firewallChanged":false,"dnsChanged":false,"removalGuidance":"Stop with the generated Compose command; package or controller removal is never automatic."}
 EOF
   chmod 600 "$BUNDLE_DIR/readiness-report.json"
   if [ "$result" = fail ] && [ "$(env_get GET_OWNCLOUD_PURPOSE)" = production ]; then
