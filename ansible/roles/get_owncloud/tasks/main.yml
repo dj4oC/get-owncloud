@@ -55,7 +55,7 @@
   community.docker.docker_compose_v2:
     project_src: "{{ get_owncloud_bundle_dir }}"
     state: present
-    pull: policy
+    pull: missing
     remove_orphans: true
   register: get_owncloud_compose_apply
   no_log: "{{ get_owncloud_contains_generated_secrets | bool }}"

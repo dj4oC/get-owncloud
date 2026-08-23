@@ -21,3 +21,27 @@ test("schema exposes only standard storage and Collabora choices", async () => {
   assert.deepEqual(schema.properties.office.properties.mode.enum, ["none", "collabora"]);
   assert.equal(schema.properties.storage.properties.nfsVersion.const, "4.2");
 });
+
+test("update policy catalogue passes its public schema", async () => {
+  const ajv = new Ajv2020({ strict: false, allErrors: true });
+  const validate = ajv.compile(await json("schema/update-policy.schema.json"));
+  assert.equal(validate(await json("catalog/update-policy.json")), true, ajv.errorsText(validate.errors));
+});
+
+test("every visible configuration family has complete catalogue metadata", async () => {
+  const catalogue = await json("catalog/features.json");
+  const ids = new Set(catalogue.features.map((item) => item.id));
+  for (const id of [
+    "runtime-docker", "runtime-podman", "runtime-kubernetes", "manager-ansible", "manager-argocd",
+    "identity-embedded", "identity-external", "storage-ocis", "storage-s3ng", "filesystem-nfs42",
+    "office-none", "collabora-bundled", "collabora-external", "search", "clamav", "notifications",
+    "tls-evaluation", "tls-acme", "security-patch-automation"
+  ]) assert.ok(ids.has(id), id);
+  for (const item of catalogue.features) {
+    assert.ok(["community-preview", "production"].includes(item.maturity), item.id);
+    assert.ok(item.targets.length > 0, item.id);
+    assert.ok(Array.isArray(item.dependencies), item.id);
+    assert.ok(item.resourceImpact, item.id);
+    assert.ok(item.documentation, item.id);
+  }
+});

@@ -1,0 +1,57 @@
+name: Upstream and security discovery
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "23 3 * * *"
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  discover:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "22.18.0"
+      - name: Compare pinned sources, EULA and same-minor releases
+        id: discovery
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          node scripts/upstream-discovery.mjs catalog/upstream-watch.json upstream-report.json
+          review_required=$(jq -r '(.summary.reviewRequired + .summary.errors) > 0' upstream-report.json)
+          echo "review_required=$review_required" >> "$GITHUB_OUTPUT"
+      - name: Upload immutable discovery evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: upstream-discovery-report
+          path: upstream-report.json
+          if-no-files-found: error
+          retention-days: 30
+      - name: Open one review issue without changing pins
+        if: steps.discovery.outputs.review_required == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          title="[upstream-discovery] Review source, EULA or security-release drift"
+          existing=$(gh issue list --state open --search "in:title $title" --json number --jq '.[0].number // empty')
+          if test -z "$existing"; then
+            {
+              echo "Automated discovery found upstream changes or an observation error. No pin or deployment was changed."
+              echo
+              echo "| Check | Policy | Expected | Observed | Status |"
+              echo "| --- | --- | --- | --- | --- |"
+              jq -r '.checks[] | select(.status != "current") | "| `\(.id)` | `\(.policy)` | `\(.expected)` | `\(.observed // .error)` | `\(.status)` |"' upstream-report.json
+              echo
+              echo "Review the attached workflow artifact, update source evidence and tests, then change a pin only through a normal reviewed commit. Issue #6 remains independently held at 7.1.4."
+            } > upstream-issue.md
+            gh issue create --title "$title" --body-file upstream-issue.md
+          fi

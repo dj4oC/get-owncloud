@@ -15,6 +15,10 @@ synced child releases have a demonstrated need.
   the pinned chart; it contains no wildcard resource grant.
 - The `owncloud` namespace must be pre-created. The Application cannot create namespaces or silently
   expand the existing controller service account.
+- Before dry-run or mutation, deployment verifies both Argo CRDs, the CLI, and the
+  `argocd-application-controller` rollout (StatefulSet or Deployment), plus the caller's ability to create
+  `Application` and `AppProject` resources. The API server alone is not treated as reconciliation
+  readiness. Any missing readiness or authorization signal stops with a targeted diagnostic.
 - The existing controller service account receives only the verbs/resources required by the rendered
   output through operator-owned Argo CD RBAC; missing permission blocks sync with a diagnostic.
 - Existing cluster policy remains authoritative; missing permission blocks sync with a diagnostic.

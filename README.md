@@ -76,6 +76,9 @@ workflow also runs deterministic Part 1 adapters across the retained distro matr
 0.7.0 against the pinned upstream schema, proves Helm/Argo value equivalence, and applies the Docker
 Ansible wrapper twice. Browser generation, ZIP integrity, keyboard operation and axe WCAG 2.1 AA checks
 run in that same workflow; the `Full E2E code gate` job fails unless every matrix job succeeds.
+Every `v*` release tag calls this complete workflow before generating and attesting release evidence.
+Daily upstream discovery records source, EULA and same-minor release drift and opens a deduplicated review
+issue; it never changes a deployment pin automatically.
 
 The repository structure, ownership and delivery sequence are described in [ROADMAP.md](ROADMAP.md).
 Architecture and policy details are under [docs/](docs/ARCHITECTURE.md).

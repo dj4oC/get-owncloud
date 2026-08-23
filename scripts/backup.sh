@@ -88,7 +88,7 @@ cleanup() {
 }
 trap cleanup EXIT HUP INT TERM
 
-if (cd "$BUNDLE_DIR" && get_owncloud_compose ps -q ocis 2>/dev/null | grep -q .); then WAS_RUNNING=true; fi
+if (cd "$BUNDLE_DIR" && get_owncloud_compose ps -q 2>/dev/null | grep -q .); then WAS_RUNNING=true; fi
 (cd "$BUNDLE_DIR" && get_owncloud_compose down --remove-orphans)
 
 mkdir -p "$STAGE/bundle" "$STAGE/persistent/config" "$STAGE/persistent/data"
