@@ -52,6 +52,21 @@ test("Docker prepares oCIS bind mounts with the container identity before startu
   assert.match(role, /get_owncloud_prepare_docker_storage/);
 });
 
+test("backup and restore cross Docker and rootless Podman ownership boundaries", async () => {
+  const backup = await read("scripts/backup.sh");
+  const restore = await read("scripts/restore.sh");
+  assert.match(backup, /podman unshare cp/);
+  assert.match(backup, /--user 1000:1000/);
+  assert.match(restore, /podman unshare sh/);
+  assert.match(restore, /chown -R 1000:1000/);
+});
+
+test("Ansible pulls missing images without changing every subsequent apply", async () => {
+  const role = await read("ansible/roles/get_owncloud/tasks/main.yml");
+  assert.match(role, /pull: missing/);
+  assert.doesNotMatch(role, /pull: policy/);
+});
+
 test("bundled Collabora can activate the capabilities required by coolforkit", async () => {
   const collabora = await read("deploy/compose/template/collabora.yml");
   assert.match(collabora, /cap_add:\n\s+- MKNOD/);

@@ -26,6 +26,10 @@ cleanup() {
     (cd "$BUNDLE_DIR" && get_owncloud_compose_debug) >&2 || true
   fi
   if [ -f "$BUNDLE_DIR/.env" ] && [ -n "${GET_OWNCLOUD_COMPOSE_ENGINE:-}" ]; then (cd "$BUNDLE_DIR" && get_owncloud_compose down -v --remove-orphans) >/dev/null 2>&1 || true; fi
+  if [ "$ENGINE" = docker ] && [ -f "$BUNDLE_DIR/.env" ]; then
+    image=$(sed -n 's/^OCIS_IMAGE="\(.*\)"/\1/p' "$BUNDLE_DIR/.env")
+    docker run --rm --user 0:0 --entrypoint /bin/sh -v "$WORK_DIR:/work:rw" "$image" -ec "chown -R $(id -u):$(id -g) /work" >/dev/null 2>&1 || true
+  fi
   if [ -z "${GET_OWNCLOUD_E2E_KEEP:-}" ]; then
     if [ "$ENGINE" = podman ]; then podman unshare rm -rf "$WORK_DIR"; else rm -rf "$WORK_DIR"; fi
   fi

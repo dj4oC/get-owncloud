@@ -77,14 +77,33 @@ mkdir -p "$STAGE/bundle" "$STAGE/persistent/config" "$STAGE/persistent/data"
 for item in .env deployment-profile.json deployment.lock.json sizing-report.json eula-acknowledgement.json manifest.sha256 README.md config *.yml install.sh scripts; do
   case "$item" in '*.yml') continue ;; esac
   [ -e "$BUNDLE_DIR/$item" ] || continue
-  cp -a "$BUNDLE_DIR/$item" "$STAGE/bundle/"
+cp -a "$BUNDLE_DIR/$item" "$STAGE/bundle/"
 done
 for item in "$BUNDLE_DIR"/*.yml; do
   [ -f "$item" ] || continue
   cp -a "$item" "$STAGE/bundle/"
 done
-cp -a "$CONFIG_DIR/." "$STAGE/persistent/config/"
-cp -a "$DATA_DIR/." "$STAGE/persistent/data/"
+copy_persistent() {
+  source_path=$1
+  destination_path=$2
+  if [ "$ENGINE" = podman ] && [ "$(id -u)" -ne 0 ]; then
+    podman unshare cp -a "$source_path/." "$destination_path/"
+  elif [ "$ENGINE" = docker ]; then
+    image=$(env_get OCIS_IMAGE)
+    uid=$(id -u); gid=$(id -g)
+    docker run --rm --user 0:0 --entrypoint /bin/sh -v "$destination_path:/destination:rw" "$image" \
+      -ec 'chown -R 1000:1000 /destination'
+    docker run --rm --user 1000:1000 --entrypoint /bin/sh \
+      -v "$source_path:/source:ro" -v "$destination_path:/destination:rw" "$image" \
+      -ec 'cp -a /source/. /destination/'
+    docker run --rm --user 0:0 --entrypoint /bin/sh -v "$destination_path:/destination:rw" "$image" \
+      -ec "chown -R $uid:$gid /destination"
+  else
+    cp -a "$source_path/." "$destination_path/"
+  fi
+}
+copy_persistent "$CONFIG_DIR" "$STAGE/persistent/config"
+copy_persistent "$DATA_DIR" "$STAGE/persistent/data"
 {
   printf 'format=1\n'
   printf 'created_at=%s\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
@@ -93,7 +112,11 @@ cp -a "$DATA_DIR/." "$STAGE/persistent/data/"
   printf 'data_source=%s\n' "$DATA_DIR"
 } >"$STAGE/backup.properties"
 
-tar -C "$STAGE" -czf "$RAW_OUTPUT" backup.properties bundle persistent
+if [ "$ENGINE" = podman ] && [ "$(id -u)" -ne 0 ]; then
+  podman unshare tar -C "$STAGE" -czf "$RAW_OUTPUT" backup.properties bundle persistent
+else
+  tar -C "$STAGE" -czf "$RAW_OUTPUT" backup.properties bundle persistent
+fi
 chmod 600 "$RAW_OUTPUT"
 if [ -n "$RECIPIENT" ]; then
   ENCRYPTED=$RAW_OUTPUT.age

@@ -69,7 +69,7 @@ function makeEnv(profile, sizing, secrets, selected) {
     ["START_ADDITIONAL_SERVICES", notificationServices.join(",")],
     ["SMTP_HOST", profile.mail?.host ?? ""],
     ["SMTP_PORT", profile.mail?.port ?? ""],
-    ["SMTP_SENDER", profile.mail?.sender ?? ""],
+    ["SMTP_SENDER", profile.mail?.sender ?? `no-reply@${profile.networking.domain}`],
     ["SMTP_USERNAME", profile.mail?.username ?? ""],
     ["SMTP_PASSWORD", profile.mail?.username ? secrets.smtpPassword ?? "" : ""],
     ["SMTP_AUTHENTICATION", profile.mail?.authentication === "none" ? "" : profile.mail?.authentication ?? ""],

@@ -72,13 +72,27 @@ DATA_DIR=$(env_get OCIS_DATA_DIR)
 case "$CONFIG_DIR" in /*) ;; *) CONFIG_DIR=$BUNDLE_DIR/$CONFIG_DIR ;; esac
 case "$DATA_DIR" in /*) ;; *) DATA_DIR=$BUNDLE_DIR/$DATA_DIR ;; esac
 recovery=$BUNDLE_DIR/.pre-restore-$(date -u '+%Y%m%dT%H%M%SZ')
-mkdir -p "$recovery" "$(dirname "$CONFIG_DIR")" "$(dirname "$DATA_DIR")"
-[ ! -e "$CONFIG_DIR" ] || mv "$CONFIG_DIR" "$recovery/config"
-[ ! -e "$DATA_DIR" ] || mv "$DATA_DIR" "$recovery/data"
-mkdir -p "$CONFIG_DIR" "$DATA_DIR"
-cp -a "$STAGE/persistent/config/." "$CONFIG_DIR/"
-cp -a "$STAGE/persistent/data/." "$DATA_DIR/"
-chmod 700 "$CONFIG_DIR" "$DATA_DIR"
+mkdir -p "$recovery/config" "$recovery/data" "$CONFIG_DIR" "$DATA_DIR"
+restore_persistent() {
+  source_path=$1
+  target_path=$2
+  recovery_path=$3
+  if [ "$ENGINE" = podman ] && [ "$(id -u)" -ne 0 ]; then
+    podman unshare sh -ec 'cp -a "$1/." "$2/"; find "$1" -mindepth 1 -maxdepth 1 -exec rm -rf {} +; cp -a "$3/." "$1/"; chown -R 1000:1000 "$1"' sh "$target_path" "$recovery_path" "$source_path"
+  elif [ "$ENGINE" = docker ]; then
+    image=$(env_get OCIS_IMAGE)
+    docker run --rm --user 0:0 --entrypoint /bin/sh \
+      -v "$target_path:/target:rw" -v "$recovery_path:/recovery:rw" -v "$source_path:/source:ro" "$image" \
+      -ec 'cp -a /target/. /recovery/; find /target -mindepth 1 -maxdepth 1 -exec rm -rf {} +; cp -a /source/. /target/; chown -R 1000:1000 /target'
+  else
+    cp -a "$target_path/." "$recovery_path/"
+    find "$target_path" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+    cp -a "$source_path/." "$target_path/"
+    chown -R 1000:1000 "$target_path"
+  fi
+}
+restore_persistent "$STAGE/persistent/config" "$CONFIG_DIR" "$recovery/config"
+restore_persistent "$STAGE/persistent/data" "$DATA_DIR" "$recovery/data"
 
 if [ "$START" = true ]; then
   (cd "$BUNDLE_DIR" && get_owncloud_compose up -d)
