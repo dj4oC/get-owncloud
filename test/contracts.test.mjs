@@ -42,6 +42,22 @@ test("evaluation ports preserve service routing, reserve Traefik health, and mak
   assert.doesNotMatch(runtime, /chown -R/);
 });
 
+test("recovered Docker ownership repair is recursive but confined to validated storage roots", async () => {
+  const runtime = await read("scripts/runtime-common.sh");
+  const restore = await read("scripts/restore.sh");
+  assert.match(runtime, /get_owncloud_assert_storage_paths/);
+  assert.match(runtime, /run_privileged chown -hR "1000:\$storage_operator_gid" "\$storage_config" "\$storage_data"/);
+  assert.match(restore, /get_owncloud_repair_restored_storage/);
+});
+
+test("mandatory upstream notifications keep a safe default sender without enabling SMTP delivery", async () => {
+  const compose = await read("deploy/compose/template/ocis.yml");
+  const bundle = await read("src/bundle.mjs");
+  assert.match(compose, /SMTP_SENDER:-oCIS notifications/);
+  assert.match(bundle, /notificationServices = \["notifications"\]/);
+  assert.doesNotMatch(compose, /ocis init \|\| true/);
+});
+
 test("runtime E2E does not retry a successful response after a consumer closes its pipe", async () => {
   const runtime = await read("scripts/runtime-e2e.sh");
   assert.match(runtime, /web-response\.html/);
@@ -107,4 +123,14 @@ test("release provenance generates an SPDX SBOM before attestation", async () =>
   const workflow = await read(".github/workflows/release.yml");
   assert.match(workflow, /generate-sbom\.mjs/);
   assert.match(workflow, /attest-build-provenance@/);
+  assert.match(workflow, /get-owncloud\/ci get-owncloud\/full-e2e/);
+});
+
+test("Pages publishes only a successful main-push Full E2E commit", async () => {
+  const workflow = await read(".github/workflows/pages.yml");
+  assert.match(workflow, /workflows: \["Full deployment E2E"\]/);
+  assert.match(workflow, /workflow_run\.event == 'push'/);
+  assert.match(workflow, /workflow_run\.head_branch == 'main'/);
+  assert.match(workflow, /workflow_run\.conclusion == 'success'/);
+  assert.match(workflow, /workflow_run\.head_sha \|\| github\.sha/);
 });

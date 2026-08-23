@@ -7,6 +7,7 @@ permissions:
   contents: read
   id-token: write
   attestations: write
+  statuses: read
 
 jobs:
   production-runtime-e2e:
@@ -58,6 +59,20 @@ jobs:
           cache: npm
       - name: Install locked dependencies
         run: npm ci --ignore-scripts
+      - name: Require green source and full deployment gates on this exact commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+        run: |
+          for context in get-owncloud/ci get-owncloud/full-e2e; do
+            state=$(gh api "repos/$REPOSITORY/commits/$SHA/status" \
+              --jq ".statuses | map(select(.context == \"$context\")) | first | .state // \"missing\"")
+            test "$state" = success || {
+              echo "Required commit status $context is $state for $SHA" >&2
+              exit 1
+            }
+          done
       - name: Verify
         run: npm run verify
       - name: Build checksums and source manifest

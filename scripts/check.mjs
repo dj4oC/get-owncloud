@@ -113,6 +113,9 @@ for (const evidence of ["podman-rootless-runtime", "part1-platform-contract", "u
 }
 
 const updateFeed = await text("releases/stable-8.2.env");
+for (const marker of ["STORAGE_SCHEMA=false", "IDM_SCHEMA=false"]) {
+  if (!updateFeed.includes(marker)) fail(`Stable update feed is missing fail-closed metadata: ${marker}`);
+}
 const updateChecksum = (await text("releases/stable-8.2.env.sha256")).trim().split(/\s+/)[0];
 if (createHash("sha256").update(updateFeed).digest("hex") !== updateChecksum) fail("Stable 8.2 update feed checksum is stale");
 

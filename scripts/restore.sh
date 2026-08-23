@@ -83,12 +83,13 @@ ENGINE=$(env_get GET_OWNCLOUD_RUNTIME)
 # shellcheck source=/dev/null
 . "$BUNDLE_DIR/scripts/runtime-common.sh"
 get_owncloud_runtime_setup "$ENGINE" "$BUNDLE_DIR"
-(cd "$BUNDLE_DIR" && get_owncloud_compose down --remove-orphans)
 
 CONFIG_DIR=$(env_get OCIS_CONFIG_DIR)
 DATA_DIR=$(env_get OCIS_DATA_DIR)
 case "$CONFIG_DIR" in /*) ;; *) CONFIG_DIR=$BUNDLE_DIR/$CONFIG_DIR ;; esac
 case "$DATA_DIR" in /*) ;; *) DATA_DIR=$BUNDLE_DIR/$DATA_DIR ;; esac
+get_owncloud_assert_storage_paths "$CONFIG_DIR" "$DATA_DIR"
+(cd "$BUNDLE_DIR" && get_owncloud_compose down --remove-orphans)
 recovery=$BUNDLE_DIR/.pre-restore-$(date -u '+%Y%m%dT%H%M%SZ')
 mkdir -p "$recovery" "$(dirname "$CONFIG_DIR")" "$(dirname "$DATA_DIR")"
 [ ! -e "$CONFIG_DIR" ] || mv "$CONFIG_DIR" "$recovery/config"
@@ -96,8 +97,7 @@ mkdir -p "$recovery" "$(dirname "$CONFIG_DIR")" "$(dirname "$DATA_DIR")"
 mkdir -p "$CONFIG_DIR" "$DATA_DIR"
 cp -a "$STAGE/persistent/config/." "$CONFIG_DIR/"
 cp -a "$STAGE/persistent/data/." "$DATA_DIR/"
-chmod 700 "$CONFIG_DIR" "$DATA_DIR"
-get_owncloud_prepare_storage "$ENGINE" "$CONFIG_DIR" "$DATA_DIR"
+get_owncloud_repair_restored_storage "$ENGINE" "$CONFIG_DIR" "$DATA_DIR"
 
 if [ "$START" = true ]; then
   (cd "$BUNDLE_DIR" && get_owncloud_compose up -d)

@@ -148,3 +148,16 @@ test("single-host profiles reject the internal Traefik health port", async () =>
   assert.equal(result.valid, false);
   assert.ok(result.errors.some((error) => error.includes("8082")));
 });
+
+test("storage paths reject root, traversal and identical targets", async () => {
+  for (const storage of [
+    { mode: "ocis", filesystem: "ext4", dataPath: "/", configPath: "./config" },
+    { mode: "ocis", filesystem: "ext4", dataPath: "../data", configPath: "./config" },
+    { mode: "ocis", filesystem: "ext4", dataPath: "./same", configPath: "./same" },
+    { mode: "ocis", filesystem: "ext4", dataPath: "./data", configPath: "./data/config" }
+  ]) {
+    const result = await validateProfile(profile({ storage }));
+    assert.equal(result.valid, false);
+    assert.match(result.errors.join(" "), /safe persistent|must be distinct|must not be nested/);
+  }
+});

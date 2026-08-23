@@ -43,6 +43,8 @@ IMAGE=$(candidate_get IMAGE)
 SECURITY=$(candidate_get SECURITY)
 BREAKING=$(candidate_get BREAKING)
 MIGRATION=$(candidate_get MIGRATION)
+STORAGE_SCHEMA=$(candidate_get STORAGE_SCHEMA)
+IDM_SCHEMA=$(candidate_get IDM_SCHEMA)
 ROLLBACK_SAFE=$(candidate_get ROLLBACK_SAFE)
 PUBLISHED_EPOCH=$(candidate_get PUBLISHED_EPOCH)
 case "$VERSION" in 8.2.*) ;; *) die "Only same-minor 8.2 patches are eligible" ;; esac
@@ -55,9 +57,10 @@ if [ "$candidate_patch" -le "$current_patch" ]; then
   printf 'No newer eligible patch: current=%s candidate=%s\n' "$CURRENT" "$VERSION"
   exit 0
 fi
-if [ "$SECURITY" != true ] || [ "$BREAKING" != false ] || [ "$MIGRATION" != false ] || [ "$ROLLBACK_SAFE" != true ]; then
-  printf 'Manual review required for %s: security=%s breaking=%s migration=%s rollback_safe=%s\n' \
-    "$VERSION" "$SECURITY" "$BREAKING" "$MIGRATION" "$ROLLBACK_SAFE"
+if [ "$SECURITY" != true ] || [ "$BREAKING" != false ] || [ "$MIGRATION" != false ] || \
+  [ "$STORAGE_SCHEMA" != false ] || [ "$IDM_SCHEMA" != false ] || [ "$ROLLBACK_SAFE" != true ]; then
+  printf 'Manual review required for %s: security=%s breaking=%s migration=%s storage_schema=%s idm_schema=%s rollback_safe=%s\n' \
+    "$VERSION" "$SECURITY" "$BREAKING" "$MIGRATION" "$STORAGE_SCHEMA" "$IDM_SCHEMA" "$ROLLBACK_SAFE"
   exit 0
 fi
 now=$(date -u '+%s')

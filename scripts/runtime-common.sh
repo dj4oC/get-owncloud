@@ -9,10 +9,24 @@ get_owncloud_compose() {
   esac
 }
 
+get_owncloud_assert_storage_paths() {
+  storage_config=$1
+  storage_data=$2
+  for storage_path in "$storage_config" "$storage_data"; do
+    case "$storage_path" in
+      ""|/|.|..|../*|*/../*|*/..) die "Unsafe storage path: $storage_path" ;;
+    esac
+  done
+  [ "$storage_config" != "$storage_data" ] || die "Configuration and data paths must be distinct"
+  case "$storage_config/" in "$storage_data/"*) die "Configuration path must not be inside the data path" ;; esac
+  case "$storage_data/" in "$storage_config/"*) die "Data path must not be inside the configuration path" ;; esac
+}
+
 get_owncloud_prepare_storage() {
   storage_engine=$1
   storage_config=$2
   storage_data=$3
+  get_owncloud_assert_storage_paths "$storage_config" "$storage_data"
   mkdir -p "$storage_config" "$storage_data"
   if [ "$storage_engine" = docker ]; then
     storage_operator_gid=$(id -g)
@@ -23,6 +37,23 @@ get_owncloud_prepare_storage() {
         run_privileged chmod 2770 "$storage_path"
       fi
     done
+  else
+    chmod 700 "$storage_config" "$storage_data"
+  fi
+}
+
+
+get_owncloud_repair_restored_storage() {
+  storage_engine=$1
+  storage_config=$2
+  storage_data=$3
+  get_owncloud_assert_storage_paths "$storage_config" "$storage_data"
+  if [ "$storage_engine" = docker ]; then
+    storage_operator_gid=$(id -g)
+    # Restore extraction deliberately normalizes archive ownership. Reassign
+    # only the two validated recovered roots to the pinned container UID.
+    run_privileged chown -hR "1000:$storage_operator_gid" "$storage_config" "$storage_data"
+    run_privileged chmod 2770 "$storage_config" "$storage_data"
   else
     chmod 700 "$storage_config" "$storage_data"
   fi

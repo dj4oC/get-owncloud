@@ -22,7 +22,8 @@ oCIS version, retains the pre-restore data, and starts only when requested.
 For Docker bind mounts, backup and restore require explicit `--allow-sudo` when the operator is not root,
 because oCIS can create mode-0600 files as UID 1000. Backup escalates only while copying into a disposable
 staging directory, normalizes that staging copy for archiving and never changes live data. Restore repairs
-only the two resolved storage-root directories and never recursively changes recovered content. Rootless
+ownership recursively only inside the two validated recovered Docker roots so mode-0600 oCIS files remain
+readable by the pinned container UID. Root, traversal, identical and nested roots are rejected. Rootless
 Podman enters its own user namespace for backup and does not need sudo. Restore permits only non-dangling
 symbolic links that resolve inside the same extracted bundle or persistent-data root; escaping links fail closed.
 

@@ -59,6 +59,20 @@ function isProductionDomain(value) {
   ) && !/^\d{1,3}(?:\.\d{1,3}){3}$/.test(lower);
 }
 
+function isSafeStoragePath(value) {
+  if (typeof value !== "string" || !value.trim()) return false;
+  const normalized = value.replaceAll("\\", "/").replace(/\/+$/, "") || "/";
+  if (["/", ".", ".."].includes(normalized)) return false;
+  return !normalized.split("/").includes("..");
+}
+
+function normalizedStoragePath(value) {
+  const text = String(value).replaceAll("\\", "/");
+  const absolute = text.startsWith("/");
+  const parts = text.split("/").filter((part) => part && part !== ".");
+  return `${absolute ? "/" : ""}${parts.join("/")}` || (absolute ? "/" : ".");
+}
+
 function flattenValues(value, output = []) {
   if (Array.isArray(value)) {
     for (const item of value) flattenValues(item, output);
@@ -217,7 +231,14 @@ export function validateNormalizedProfile(profile, policies, compatibility) {
   if (profile.storage?.filesystem === "nfs" && profile.storage?.nfsVersion !== policies.storage.requiredNfsVersion) {
     errors.push(`NFS must be ${policies.storage.requiredNfsVersion}`);
   }
-  if (!profile.storage?.dataPath) errors.push("A persistent dataPath is required");
+  if (!isSafeStoragePath(profile.storage?.dataPath)) errors.push("A safe persistent dataPath is required");
+  if (!isSafeStoragePath(profile.storage?.configPath)) errors.push("A safe persistent configPath is required");
+  const normalizedDataPath = normalizedStoragePath(profile.storage?.dataPath);
+  const normalizedConfigPath = normalizedStoragePath(profile.storage?.configPath);
+  if (normalizedDataPath === normalizedConfigPath) errors.push("Storage dataPath and configPath must be distinct");
+  if (normalizedDataPath.startsWith(`${normalizedConfigPath}/`) || normalizedConfigPath.startsWith(`${normalizedDataPath}/`)) {
+    errors.push("Storage dataPath and configPath must not be nested");
+  }
   if (storage === "s3ng") {
     const s3 = profile.storage?.s3;
     if (!s3 || !isHttpsUrl(s3.endpoint)) errors.push("s3ng requires an HTTPS endpoint");

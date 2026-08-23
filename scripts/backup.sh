@@ -66,6 +66,7 @@ ENGINE=$(env_get GET_OWNCLOUD_RUNTIME)
 # shellcheck source=/dev/null
 . "$BUNDLE_DIR/scripts/runtime-common.sh"
 get_owncloud_runtime_setup "$ENGINE" "$BUNDLE_DIR"
+get_owncloud_assert_storage_paths "$CONFIG_DIR" "$DATA_DIR"
 
 timestamp=$(date -u '+%Y%m%dT%H%M%SZ')
 [ -n "$OUTPUT" ] || OUTPUT=$(dirname "$BUNDLE_DIR")/get-owncloud-backup-$timestamp.tar.gz

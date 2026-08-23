@@ -26,14 +26,13 @@ function composeFiles(profile) {
 }
 
 function makeEnv(profile, sizing, secrets, selected) {
-  const notificationServices = [];
+  const notificationServices = ["notifications"];
   const ocisUrl = `https://${profile.networking.domain}${profile.networking.httpsPort === 443 ? "" : `:${profile.networking.httpsPort}`}`;
   const collaboraUrl = profile.office.mode === "collabora" && profile.office.deployment === "external"
     ? profile.office.url.replace(/\/$/, "")
     : profile.networking.collaboraDomain
       ? `https://${profile.networking.collaboraDomain}${profile.networking.httpsPort === 443 ? "" : `:${profile.networking.httpsPort}`}`
       : "";
-  if (profile.features.notifications) notificationServices.push("notifications");
   if (profile.features.clamav) notificationServices.push("antivirus");
   const values = [
     ["COMPOSE_PROJECT_NAME", "get-owncloud"],
