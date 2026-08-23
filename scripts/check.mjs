@@ -11,7 +11,7 @@ const catalogFiles = (await readdir(new URL("catalog/", root))).filter((name) =>
 for (const name of catalogFiles) {
   try { await json(`catalog/${name}`); } catch (error) { fail(`Invalid catalog/${name}: ${error.message}`); }
 }
-for (const name of ["deployment.schema.json", "sizing-input.schema.json"]) {
+for (const name of ["deployment.schema.json", "sizing-input.schema.json", "update-policy.schema.json"]) {
   try { await json(`schema/${name}`); } catch (error) { fail(`Invalid schema/${name}: ${error.message}`); }
 }
 
@@ -24,7 +24,7 @@ for (const flag of ["--non-interactive", "--install-missing", "--allow-sudo", "-
 if (!install.includes("/dev/tty")) fail("install.sh must explicitly support /dev/tty approval");
 
 const releaseWorkflow = await text(".github/workflows/release.yml");
-for (const required of ["generate-sbom.mjs", "attest-build-provenance@", "subject-path: \"dist/*\"", "runtime-e2e.sh", "test:e2e"]) {
+for (const required of ["generate-sbom.mjs", "attest-build-provenance@", "subject-path: \"dist/*\"", "uses: ./.github/workflows/deployment-e2e.yml", "tags:"]) {
   if (!releaseWorkflow.includes(required)) fail(`Release workflow is missing: ${required}`);
 }
 
@@ -78,6 +78,13 @@ if (policies.identity.embeddedMaximumUsers !== 20) fail("Embedded identity limit
 if (policies.storage.requiredNfsVersion !== "4.2") fail("NFS policy must require v4.2");
 if (!policies.denyExperimental) fail("Experimental features must be denied");
 
+const featureCatalogue = await json("catalog/features.json");
+for (const feature of featureCatalogue.features) {
+  for (const field of ["id", "label", "maturity", "targets", "dependencies", "resourceImpact", "documentation"]) {
+    if (feature[field] === undefined) fail(`Feature catalogue entry ${feature.id ?? "<unknown>"} is missing ${field}`);
+  }
+}
+
 const logo = await readFile(new URL("site/assets/owncloud-logo.svg", root));
 const sources = await json("catalog/sources.lock.json");
 const logoHash = createHash("sha256").update(logo).digest("hex");
@@ -88,15 +95,20 @@ for (const name of composeTemplates) {
   if (/onlyoffice|posixfs|xattr|gpfs/i.test(name)) fail(`Forbidden deployment template is present: ${name}`);
 }
 
-for (const workflowName of ["ci.yml", "browser-e2e.yml", "deployment-e2e.yml", "pages.yml", "release.yml"]) {
+for (const workflowName of ["ci.yml", "browser-e2e.yml", "deployment-e2e.yml", "pages.yml", "release.yml", "upstream-discovery.yml"]) {
   const workflow = await text(`.github/workflows/${workflowName}`);
   for (const match of workflow.matchAll(/uses:\s+([^\s]+)/g)) {
-    if (!/@[0-9a-f]{40}$/.test(match[1])) fail(`${workflowName} has an unpinned action: ${match[1]}`);
+    if (!match[1].startsWith("./") && !/@[0-9a-f]{40}$/.test(match[1])) fail(`${workflowName} has an unpinned action: ${match[1]}`);
   }
 }
 const deploymentWorkflow = await text(".github/workflows/deployment-e2e.yml");
 for (const evidence of ["runtime-e2e.sh", "Collabora lifecycle", "validate-helm.mjs", "Ansible double-apply"]) {
   if (!deploymentWorkflow.includes(evidence)) fail(`Full deployment E2E is missing: ${evidence}`);
+}
+if (!deploymentWorkflow.includes("workflow_call:")) fail("Full deployment E2E must be callable by the release workflow");
+const upstreamWorkflow = await text(".github/workflows/upstream-discovery.yml");
+for (const evidence of ["schedule:", "upstream-discovery.mjs", "issues: write", "No pin or deployment was changed"]) {
+  if (!upstreamWorkflow.includes(evidence)) fail(`Upstream discovery workflow is missing: ${evidence}`);
 }
 const runtimeE2e = await text("scripts/runtime-e2e.sh");
 for (const evidence of ["backup.sh", "restore.sh", "WebDAV", "hosting/discovery", "get_owncloud_compose restart"]) {

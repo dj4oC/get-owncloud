@@ -44,6 +44,20 @@ fi
 helm repo add owncloud https://owncloud.github.io/ocis-charts/ --force-update >/dev/null
 helm repo update owncloud >/dev/null
 helm template owncloud owncloud/ocis --version 0.7.0 --namespace "$namespace" -f "$BUNDLE_DIR/values.yaml" >/dev/null
+if [ "$ARGOCD" = true ]; then
+  command -v argocd >/dev/null 2>&1 || die "argocd CLI is required; run Part 1 first"
+  argocd version --client >/dev/null 2>&1 || die "argocd CLI is not usable"
+  kubectl get crd applications.argoproj.io >/dev/null 2>&1 ||
+    die "Existing Argo CD controller is missing the Application CRD"
+  kubectl get crd appprojects.argoproj.io >/dev/null 2>&1 ||
+    die "Existing Argo CD controller is missing the AppProject CRD"
+  kubectl -n argocd rollout status deployment/argocd-server --timeout=60s >/dev/null 2>&1 ||
+    die "Existing Argo CD controller is not ready in namespace argocd"
+  [ "$(kubectl auth can-i create applications.argoproj.io -n argocd)" = yes ] ||
+    die "Current Kubernetes identity cannot create Argo CD Applications in namespace argocd"
+  [ "$(kubectl auth can-i create appprojects.argoproj.io -n argocd)" = yes ] ||
+    die "Current Kubernetes identity cannot create Argo CD AppProjects in namespace argocd"
+fi
 [ "$DRY_RUN" = false ] || { printf '%s\n' "Kubernetes render passed; dry-run made no cluster changes."; exit 0; }
 
 timestamp=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
@@ -52,12 +66,11 @@ printf '%s chart=0.7.0 ocis=7.1.4 sections=no-warranties,limitation-of-liability
 chmod 600 "$BUNDLE_DIR/.get-owncloud/eula-acceptance.log"
 
 if [ "$ARGOCD" = true ]; then
-  command -v argocd >/dev/null 2>&1 || die "argocd CLI is required; run Part 1 first"
   kubectl apply -f "$BUNDLE_DIR/argocd/project.yaml"
   kubectl apply -f "$BUNDLE_DIR/argocd/application.yaml"
   if [ "$SYNC" = true ]; then argocd app sync owncloud --prune=false; else printf '%s\n' "Application created without automatic sync; review the diff before --sync."; fi
 else
-  helm upgrade --install owncloud owncloud/ocis --version 0.7.0 --namespace "$namespace" --create-namespace \
+  helm upgrade --install owncloud owncloud/ocis --version 0.7.0 --namespace "$namespace" \
     -f "$BUNDLE_DIR/values.yaml" --wait --timeout 15m
 fi
 

@@ -1,6 +1,7 @@
 name: Full deployment E2E
 
 on:
+  workflow_call:
   push:
     branches: [main]
   pull_request:
@@ -203,6 +204,7 @@ jobs:
           ANSIBLE_ROLES_PATH: ansible/roles
         run: |
           args=(-i 'localhost,' -c local ansible/playbook.yml -e "owncloud_bundle_dir=$GET_OWNCLOUD_ANSIBLE_BUNDLE" -e owncloud_accept_eula=true)
+          ansible-playbook "${args[@]}" --syntax-check
           ansible-playbook "${args[@]}"
           ansible-playbook "${args[@]}" | tee "$RUNNER_TEMP/second-apply.log"
           grep -Eq 'changed=0 +unreachable=0 +failed=0' "$RUNNER_TEMP/second-apply.log"

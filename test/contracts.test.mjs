@@ -41,6 +41,15 @@ test("Argo CD uses one Application and a namespace-scoped project", async () => 
   assert.doesNotMatch(application, /CreateNamespace=true/);
 });
 
+test("Argo deployment refuses a missing or unauthorized existing controller", async () => {
+  const deploy = await read("scripts/deploy-kubernetes.sh");
+  assert.match(deploy, /applications\.argoproj\.io/);
+  assert.match(deploy, /appprojects\.argoproj\.io/);
+  assert.match(deploy, /rollout status deployment\/argocd-server/);
+  assert.match(deploy, /kubectl auth can-i create applications/);
+  assert.doesNotMatch(deploy, /--create-namespace/);
+});
+
 test("security update defaults are narrow and breaking updates are never automatic", async () => {
   const policy = await json("catalog/update-policy.json");
   assert.equal(policy.automaticSecurityUpdates, true);
@@ -67,4 +76,6 @@ test("release provenance generates an SPDX SBOM before attestation", async () =>
   const workflow = await read(".github/workflows/release.yml");
   assert.match(workflow, /generate-sbom\.mjs/);
   assert.match(workflow, /attest-build-provenance@/);
+  assert.match(workflow, /uses: \.\/\.github\/workflows\/deployment-e2e\.yml/);
+  assert.match(workflow, /tags:/);
 });
