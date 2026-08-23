@@ -6,7 +6,7 @@ services:
   collaboration:
     image: ${OCIS_IMAGE}
     networks:
-      ocis-net:
+      ocis-net: {}
     depends_on:
       ocis:
         condition: service_started

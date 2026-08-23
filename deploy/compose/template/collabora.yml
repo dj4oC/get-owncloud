@@ -12,7 +12,7 @@ services:
   collaboration:
     image: ${OCIS_IMAGE}
     networks:
-      ocis-net:
+      ocis-net: {}
     depends_on:
       ocis:
         condition: service_started
@@ -49,7 +49,7 @@ services:
   collabora:
     image: docker.io/collabora/code@sha256:0011be3edac909b390e6f297093bb82f61f9f3ce5476a3bdd4f3ce6b12f74ec3
     networks:
-      ocis-net:
+      ocis-net: {}
     environment:
       DONT_GEN_SSL_CERT: "YES"
       extra_params: >-

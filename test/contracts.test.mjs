@@ -39,6 +39,7 @@ test("Traefik separates configured host ports from collision-free container entr
   assert.match(compose, /--entryPoints\.https\.address=:443/);
   assert.match(compose, /\$\{HTTP_PORT:-80\}:80/);
   assert.match(compose, /\$\{HTTPS_PORT:-443\}:443/);
+  assert.match(compose, /ocis-net: \{\}/);
 });
 
 test("Argo CD uses one Application and a namespace-scoped project", async () => {

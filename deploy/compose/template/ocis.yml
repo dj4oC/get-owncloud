@@ -9,7 +9,7 @@ services:
   ocis:
     image: ${OCIS_IMAGE}
     networks:
-      ocis-net:
+      ocis-net: {}
     entrypoint: ["/bin/sh"]
     command: ["-c", "ocis init || true; exec ocis server"]
     environment:
