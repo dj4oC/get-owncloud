@@ -2,10 +2,22 @@
 
 ## Evaluation versus production
 
-K3s remains a retained **UX/smoke-test evaluation-only** profile, but Part 1 deliberately refuses to
-install it while issue #6 is open. Its default local-path provisioner and Traefik ingress would not prove
-NFSv4.2 or production ingress/TLS behavior. The current 7.1.4 Community Preview therefore requires an
-existing compatible cluster; a separately approved K3s adapter remains an explicit #6 exit item.
+**K3s is explicitly marked as EVALUATION-ONLY** and is not approved for production use. Part 1
+deliberately refuses to install K3s while issue #6 is open. Its default local-path provisioner and
+Traefik ingress do not satisfy production requirements for NFSv4.2 verification or ingress/TLS behavior.
+
+The current 7.1.4 Community Preview therefore requires an **existing compatible cluster**; a separately
+approved K3s adapter remains an explicit #6 exit item. K3s may only graduate from evaluation-only status
+when:
+
+1. A production-ready storage provisioner (supporting NFSv4.2) is available and verified
+2. Production ingress/TLS behavior is proven on real clusters
+3. The NFSv4.2 effective-mount verifier passes on the advertised storage matrix
+4. All visible presets pass resource and policy checks
+5. Chart/oCIS owner approves the support statement
+
+Until all criteria are met, K3s remains explicitly labeled as **EVALUATION-ONLY** in all documentation
+and generated outputs.
 
 ## Cluster requirements
 

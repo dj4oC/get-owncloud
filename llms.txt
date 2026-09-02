@@ -2,6 +2,10 @@
 
 > Supplemental, non-standard discovery file generated from the same policy sources as the HTML and Markdown documentation. It is not an API or a substitute for the official documentation.
 
+## Overview
+
+Deploy ownCloud by Kiteworks is a one-page deployment hub that generates target-neutral ownCloud Infinite Scale profiles and renders them for Docker Compose, Podman Compose, Helm, and Argo CD. All generation happens locally in the browser or CLI; no profile data or secrets are transmitted.
+
 ## Deployment constraints
 
 - Embedded IDP/IDM is allowed for no more than 20 users. Above 20, external OIDC plus a trusted LDAPS directory is required.
@@ -10,16 +14,59 @@
 - NFS must be effectively verified as NFSv4.2.
 - PosixFS, xattr, GPFS-specific modes and experimental/unsupported features are denied.
 
+## Version Pinning
+
+| Component | Pinned Version | Maturity |
+| --- | --- | --- |
+| oCIS (Docker/Podman) | 8.2.0 | Production-gated |
+| oCIS (Kubernetes) | 7.1.4 | Community Preview |
+| Helm chart | 0.7.0 | Community Preview |
+| Collabora | Latest stable | Production-ready |
+
+Pins are recorded in `catalog/sources.lock.json` and `catalog/compatibility.json`. The generator rejects any profile that would select a non-pinned or incompatible version. Automated discovery records upstream drift but never auto-updates pins.
+
 ## EULA
 
 Runnable output requires explicit acknowledgement of the pinned ownCloud Infinite Scale EULA, including Section 6 (No warranties) and Section 7 (Limitation of liability). Browser acceptance is local. CLI acceptance is recorded in a local audit file and is not transmitted.
 
 ## Support and maturity
 
-- Experimental: metadata only; never selectable or runnable.
-- Community Preview: visible with a persistent warning and no production support claim.
-- Production: only after the named owner and runtime launch gates approve the statement.
+| Maturity Level | Visibility | Runnable | Production Claim |
+| --- | --- | --- | --- |
+| Experimental | No; catalogue metadata only | Never | Never |
+| Community Preview | Yes with persistent warning | Evaluation/tested combinations only | No |
+| Production | Yes | Yes after all gates | Only with named owner approval |
+
 - Kubernetes/Helm and Argo CD are runnable Community Preview outputs held at chart 0.7.0 / oCIS 7.1.4 under open issue #6. They are not presented as oCIS 8.2 or production.
+- K3s is explicitly EVALUATION-ONLY and Part 1 refuses to install it while issue #6 is open.
+
+## Deployment Families
+
+| Family | Native Deployment | Management Wrapper | Status |
+| --- | --- | --- | --- |
+| Single host | Docker Compose | Ansible | Production (Docker), Community Preview (Podman) |
+| Single host | Podman Compose | Ansible | Community Preview |
+| Kubernetes | Helm | Argo CD | Community Preview |
+
+## Security Requirements
+
+- TLS is mandatory for production; self-signed certificates are evaluation-only
+- NFS must negotiate v4.2 or higher
+- All generated secrets are local and never transmitted
+- EULA acknowledgement is mandatory for runnable output
+- Unknown maturity levels, storage drivers, or renderer values are denied by default
+
+## Platform Support
+
+| Platform | Docker | Podman | Status |
+| --- | --- | --- | --- |
+| Ubuntu 22.04 LTS | Full | Full (rootless) | Production |
+| Ubuntu 24.04 LTS | Full | Full (rootless) | Production |
+| Debian 12 | Full | Full (rootless) | Production |
+| RHEL 9 | Full | Full (rootful) | Community Preview |
+| Rocky Linux 9 | Full | Full (rootful) | Community Preview |
+| AlmaLinux 9 | Full | Full (rootful) | Community Preview |
+| CentOS Stream 9 | Full | Full (rootful) | Community Preview |
 
 ## Documentation
 
@@ -27,3 +74,8 @@ Runnable output requires explicit acknowledgement of the pinned ownCloud Infinit
 - [Architecture](docs/ARCHITECTURE.md)
 - [Platform support](docs/PLATFORM_SUPPORT.md)
 - [Launch gates](docs/LAUNCH_GATES.md)
+- [Roadmap](ROADMAP.md)
+- [Ownership and RACI](docs/OWNERSHIP.md)
+- [Sizing contract](docs/SIZING.md)
+- [Ansible contract](docs/ANSIBLE.md)
+- [Kubernetes contract](docs/KUBERNETES.md)

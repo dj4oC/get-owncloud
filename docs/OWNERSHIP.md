@@ -3,6 +3,18 @@
 Named GitHub accounts or teams replace role names only after they accept the responsibility. Until
 then, `@amamus` is the interim accountable CODEOWNER and the relevant launch gate remains open.
 
+## GitHub Team Assignments
+
+| Team | GitHub Handle | Responsibility |
+| --- | --- | --- |
+| ownCloud Infrastructure | @owncloud/infrastructure | DNS, TLS, production hosting |
+| ownCloud Brand | @owncloud/brand | Logo, trademark, brand guidelines |
+| ownCloud Legal | @owncloud/legal | EULA, licensing, compliance |
+| ownCloud Product | @owncloud/product | Product ownership, support statements |
+| ownCloud Documentation | @owncloud/docs | Documentation, contribution guides |
+| ownCloud OSPO | @owncloud/ospo | Open source program office, governance |
+| Project Maintainer (interim) | @amamus | CODEOWNER, security, CI, runtime matrix |
+
 | Area | Responsible | Accountable | Consulted | Informed |
 | --- | --- | --- | --- | --- |
 | oCIS version compatibility | oCIS maintainers | Named ownCloud product owner | Installer and QA maintainers | OSPO/community |

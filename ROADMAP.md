@@ -3,6 +3,22 @@
 All nine RFC areas remain in scope. The phases below sequence dependencies and feedback; they do not
 turn later areas into optional work.
 
+## MVP Scope Definition
+
+The Minimum Viable Product (MVP) is defined as:
+
+- **Single-host Docker deployment** on Ubuntu 22.04/24.04 with production support claim
+- **Single-host Podman deployment** (Community Preview until rootless evidence passes)
+- **Collabora office integration** (bundled or external)
+- **Embedded IDP/IDM** limited to 20 users maximum
+- **Standard storage**: `ocis` driver on POSIX or `s3ng` with POSIX metadata
+- **Backup/restore lifecycle** with health verification
+- **EULA acknowledgement** with explicit No warranties and Limitation of liability acceptance
+- **Version pinning**: oCIS 8.2.0 for Docker/Podman, chart 0.7.0/oCIS 7.1.4 for Kubernetes (Community Preview)
+
+Features explicitly **out of MVP scope**: Kubernetes production, Argo CD production, Ansible production,
+NFSv4.2 verification on bare metal, external OIDC/LDAPS integration, and multi-node topologies.
+
 | RFC | Deliverable | Phase | Complexity | Dependencies | Current blocker | Relative effort |
 | --- | --- | --- | --- | --- | --- | --- |
 | #2 | Governance and Pages shell | 1 | Medium | Brand/legal reviewers | Approved logo asset | 1 unit |
