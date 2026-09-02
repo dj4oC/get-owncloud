@@ -4,9 +4,10 @@
  * Epic #13: Private deployment repositories and proprietary updater
  */
 
-import { mkdir, readFile, writeFile, readdir, stat, rm } from "node:fs/promises";
+import { mkdir, readFile, writeFile, readdir, stat, rm, mkdtemp, tmpdir } from "node:fs/promises";
 import { join, dirname, basename, relative } from "node:path";
 import { createHash } from "node:crypto";
+import { tmpdir as osTmpdir } from "node:os";
 import { loadCatalog, validateProfile, normalizeProfileWithRules, calculateSizing } from "./core.mjs";
 import { buildSingleHostBundle, requiredTemplatePaths } from "./bundle.mjs";
 import { buildKubernetesBundle, requiredKubernetesTemplatePaths } from "./kubernetes.mjs";
@@ -25,13 +26,13 @@ const SECRET_PATTERNS = [
   // Private keys
   { pattern: /-----BEGIN (RSA |EC |DSA |OPENSSH |PGP |ENCRYPTED )?PRIVATE KEY-----/, weight: 10 },
   // Certificate patterns (might be allowed in some contexts, but flag for review)
-  { pattern: /-----BEGIN CERTIFICATE-----/, weight: 5 },
+  { pattern: /-----BEGIN [A-Z]+-----/, weight: 5 },
   // Database connection strings
   { pattern: /(mysql|postgres|postgresql|mongodb|redis|amqp|sqlserver):\/\/[^\s]+:[^\s]+@[^\s]+/gi, weight: 10 },
   // AWS credentials
   { pattern: /(AKIA|ABIA|ACCA|ASIA)[A-Z0-9]{16}/gi, weight: 10 },
   // Generic high-entropy base64 strings
-  { pattern: /['"`][A-Za-z0-9+/=]{40,}['"`]/g, weight: 3 },
+  { pattern: /['"]`][A-Za-z0-9+/=]{40,}['"]`/g, weight: 3 },
   // Bearer tokens
   { pattern: /Bearer\s+[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+/gi, weight: 10 },
   // Docker registry credentials
@@ -75,7 +76,7 @@ const ALLOWED_SECRET_REFERENCE_PATTERNS = [
   /\/run\/secrets\//,                        // Docker/Kubernetes secret mounts
   /\/var\/run\/secrets\//,                   // Kubernetes secret mounts
   /\/etc\/secrets\//,                        // Common secrets directory
-  /ref:\s*[a-zA-Z0-9-_]+/,                     // Generic reference pattern
+  /ref:\s*[a-zA-Z0-9-_]+/                     // Generic reference pattern
 ];
 
 /**
@@ -127,7 +128,7 @@ async function hashFile(filePath) {
  */
 function scanForSecrets(content, filePath) {
   const findings = [];
-  
+
   for (const { pattern, weight } of SECRET_PATTERNS) {
     const matches = [...content.matchAll(pattern)];
     for (const match of matches) {
@@ -136,7 +137,7 @@ function scanForSecrets(content, filePath) {
       const isSecretReference = ALLOWED_SECRET_REFERENCE_PATTERNS.some(
         refPattern => refPattern.test(matchedText)
       );
-      
+
       if (!isSecretReference) {
         findings.push({
           file: filePath,
@@ -149,7 +150,7 @@ function scanForSecrets(content, filePath) {
       }
     }
   }
-  
+
   return findings;
 }
 
@@ -180,179 +181,13 @@ function isSecretReferenceFile(filePath) {
 async function validateNoSecrets(filePath) {
   const content = await readFile(filePath, "utf8");
   const findings = scanForSecrets(content, filePath);
-  
+
   // Filter out findings that are in secret reference files
   const filteredFindings = findings.filter(f => !isSecretReferenceFile(f.file));
-  
+
   return {
     valid: filteredFindings.length === 0,
     findings: filteredFindings
-  };
-}
-
-/**
- * Export profile to a Git repository structure
- */
-export async function exportToRepository(profile, outputDirectory, options = {}) {
-  const checked = await validateProfile(profile);
-  if (!checked.valid) {
-    throw new Error(`Invalid profile: ${checked.errors.join(", ")}`);
-  }
-  
-  const sizing = await calculateSizing(checked.profile);
-  const catalog = await loadCatalog("sources.lock");
-  const legal = await loadCatalog("legal");
-  
-  // Create output directory
-  await mkdir(outputDirectory, { recursive: true, mode: 0o700 });
-  
-  // Calculate profile hash
-  const profileHash = await sha256Hash(JSON.stringify(checked.profile, null, 2));
-  
-  // Create metadata
-  const metadata = createRepositoryMetadata(checked.profile, {
-    configuratorVersion: "v1.0.0",
-    catalogueVersion: catalog.version,
-    deploymentId: options.deploymentId,
-    customerId: options.customerId,
-    profileHash,
-    migrations: options.migrations || [
-      {
-        id: "initial-export",
-        appliedAt: new Date().toISOString(),
-        fromVersion: null,
-        toVersion: REPOSITORY_FORMAT_VERSION,
-        description: "Initial repository export from configurator"
-      }
-    ]
-  });
-  
-  // Create .get-owncloud directory
-  const metaDir = join(outputDirectory, ".get-owncloud");
-  await mkdir(metaDir, { recursive: true, mode: 0o700 });
-  await mkdir(join(metaDir, "migrations"), { recursive: true, mode: 0o700 });
-  
-  // Write metadata
-  await writeFile(
-    join(metaDir, "metadata.json"),
-    JSON.stringify(metadata, null, 2) + "\n",
-    { mode: 0o644 }
-  );
-  
-  // Write migration record
-  await writeFile(
-    join(metaDir, "migrations", "initial-export.json"),
-    JSON.stringify(metadata.migrations[0], null, 2) + "\n",
-    { mode: 0o644 }
-  );
-  
-  // Write owncloud.yaml (user-owned intent)
-  const yamlContent = profileToYaml(checked.profile);
-  await writeFile(
-    join(outputDirectory, "owncloud.yaml"),
-    yamlContent,
-    { mode: 0o644 }
-  );
-  
-  // Load templates
-  const templatePaths = checked.profile.target.runtime === "kubernetes"
-    ? requiredKubernetesTemplatePaths()
-    : requiredTemplatePaths(checked.profile);
-  
-  const templates = {};
-  for (const path of templatePaths) {
-    templates[path] = await readFile(new URL(path, ROOT), "utf8");
-  }
-  
-  // Generate lock file
-  const lock = await generateLockFile(checked.profile, sizing, catalog, legal, {
-    profileHash,
-    configuratorVersion: "v1.0.0",
-    rendererVersion: "1.0.0"
-  });
-  
-  await writeFile(
-    join(outputDirectory, "owncloud.lock.json"),
-    JSON.stringify(lock, null, 2) + "\n",
-    { mode: 0o644 }
-  );
-  
-  // Generate output files
-  const inputs = {
-    profile: checked.profile,
-    sizing,
-    templates,
-    legal,
-    sources: catalog,
-    acceptance: options.acceptance || {
-      acceptedAt: new Date().toISOString(),
-      acceptedBy: "export-user"
-    },
-    secrets: options.secrets || {}
-  };
-  
-  const files = checked.profile.target.runtime === "kubernetes"
-    ? await buildKubernetesBundle(inputs)
-    : await buildSingleHostBundle(inputs);
-  
-  // Create generated directory
-  const generatedDir = join(outputDirectory, "generated");
-  await mkdir(generatedDir, { recursive: true, mode: 0o700 });
-  
-  // Write generated files with hash headers
-  for (const [filePath, content] of Object.entries(files)) {
-    const destination = join(generatedDir, filePath);
-    await mkdir(dirname(destination), { recursive: true, mode: 0o700 });
-    
-    // Add hash header comment for drift detection
-    const fileHash = await sha256Hash(content);
-    const fileWithHash = addHashHeader(content, filePath, fileHash);
-    
-    await writeFile(destination, fileWithHash, { mode: 0o644 });
-  }
-  
-  // Create overlays directory (empty for now)
-  const overlaysDir = join(outputDirectory, "overlays");
-  await mkdir(overlaysDir, { recursive: true, mode: 0o700 });
-  
-  // Create .gitignore
-  const gitignoreContent = generateGitIgnore();
-  await writeFile(
-    join(outputDirectory, ".gitignore"),
-    gitignoreContent,
-    { mode: 0o644 }
-  );
-  
-  // Create README.md
-  const readmeContent = generateRepositoryReadme(checked.profile);
-  await writeFile(
-    join(outputDirectory, "README.md"),
-    readmeContent,
-    { mode: 0o644 }
-  );
-  
-  // Scan for secrets in the entire repository
-  const secretScanResults = await scanRepositoryForSecrets(outputDirectory);
-  
-  if (secretScanResults.findings.length > 0) {
-    // This should not happen if we're doing things correctly
-    // But we check anyway for safety
-    throw new Error(
-      `Secret scan failed: ${secretScanResults.findings.length} potential secrets detected. ` +
-      `First finding: ${secretScanResults.findings[0].match} in ${secretScanResults.findings[0].file}`
-    );
-  }
-  
-  return {
-    repositoryPath: outputDirectory,
-    metadata,
-    files: {
-      intent: "owncloud.yaml",
-      lock: "owncloud.lock.json",
-      generated: Object.keys(files).map(f => join("generated", f)),
-      metadata: ".get-owncloud/metadata.json"
-    },
-    secretScan: secretScanResults
   };
 }
 
@@ -361,7 +196,7 @@ export async function exportToRepository(profile, outputDirectory, options = {})
  */
 async function generateLockFile(profile, sizing, catalog, legal, options = {}) {
   const profileHash = options.profileHash || await sha256Hash(JSON.stringify(profile, null, 2));
-  
+
   return {
     version: REPOSITORY_SPEC_VERSION,
     generatedAt: new Date().toISOString(),
@@ -378,21 +213,21 @@ async function generateLockFile(profile, sizing, catalog, legal, options = {}) {
         gitCommit: catalog.sources.ocisCompose.commit,
         image: catalog.sources.ocisCompose.image
       },
-      collabora: profile.office.mode === "collabora" ? {
+      collabora: profile.office?.mode === "collabora" ? {
         version: "latest",
         image: "docker.io/collabora/code:latest"
       } : undefined,
-      clamav: profile.features.clamav ? {
+      clamav: profile.features?.clamav ? {
         version: "latest",
         image: "docker.io/clamav/clamav:latest"
       } : undefined,
-      tika: profile.features.search ? {
+      tika: profile.features?.search ? {
         version: "latest",
         image: "docker.io/apache/tika:latest"
       } : undefined
     },
     policy: {
-      eulaSha256: legal.eula.sha256,
+      eulaSha256: legal.eula?.sha256 || "",
       maturity: profile.maturity || (profile.purpose === "production" ? "production" : "community-preview")
     },
     sizing: {
@@ -400,7 +235,7 @@ async function generateLockFile(profile, sizing, catalog, legal, options = {}) {
       recommended: sizing.recommended,
       headroomPercent: sizing.headroomPercent || 30
     },
-    generatedFiles: {}
+    generatedFiles: options.generatedFiles || {}
   };
 }
 
@@ -418,22 +253,22 @@ function profileToYaml(profile) {
 function convertToYaml(obj, indent = 0) {
   const spaces = "  ".repeat(indent);
   const lines = [];
-  
+
   if (obj === null || obj === undefined) {
     return "null";
   }
-  
+
   if (typeof obj === "boolean") {
     return obj ? "true" : "false";
   }
-  
+
   if (typeof obj === "number") {
     return String(obj);
   }
-  
+
   if (typeof obj === "string") {
     // Check if string needs quoting
-    if (obj === "" || obj.includes(" ") || obj.includes("\n") || 
+    if (obj === "" || obj.includes(" ") || obj.includes("\n") ||
         obj.includes("#") || obj.includes(":") || obj.includes("\"") ||
         obj.startsWith("true") || obj.startsWith("false") || obj.startsWith("null")) {
       // Escape quotes and special characters
@@ -442,7 +277,7 @@ function convertToYaml(obj, indent = 0) {
     }
     return obj;
   }
-  
+
   if (Array.isArray(obj)) {
     if (obj.length === 0) {
       lines.push(spaces + "[]");
@@ -453,7 +288,7 @@ function convertToYaml(obj, indent = 0) {
     }
     return lines.join("\n");
   }
-  
+
   if (typeof obj === "object") {
     const keys = Object.keys(obj).sort();
     if (keys.length === 0) {
@@ -463,11 +298,11 @@ function convertToYaml(obj, indent = 0) {
         const value = obj[key];
         const formattedKey = /^[a-zA-Z][a-zA-Z0-9_]*$/.test(key) ? key : `"${key}"`;
         const formattedValue = convertToYaml(value, indent + 1);
-        
-        if (formattedValue.startsWith("{") || formattedValue.startsWith("[") || 
+
+        if (formattedValue.startsWith("{") || formattedValue.startsWith("[") ||
             formattedValue.split("\n").length > 1) {
           lines.push(spaces + `${formattedKey}:`);
-          lines.push(formattedValue.split("\n").map(line => 
+          lines.push(formattedValue.split("\n").map(line =>
             line ? spaces + "  " + line : line
           ).join("\n"));
         } else {
@@ -477,29 +312,349 @@ function convertToYaml(obj, indent = 0) {
     }
     return lines.join("\n");
   }
-  
+
   return String(obj);
 }
 
 /**
- * Add hash header to generated file for drift detection
+ * Simple YAML parser for deployment profiles
  */
-function addHashHeader(content, filePath, hash) {
-  const header = `# @generated by get-owncloud
-# file: ${filePath}
-# hash: sha256:${hash}
-# Do not edit manually - changes will be overwritten on regeneration
-# To modify, update owncloud.yaml and regenerate
+function parseYaml(content) {
+  const lines = content.split("\n");
+  const result = {};
+  const stack = [{ obj: result, indent: 0, key: null }];
+  let inString = false;
+  let stringBuffer = "";
 
-`;
-  
-  // If the content already has a hash header, replace it
-  const existingHeaderMatch = content.match(/^# @generated by get-owncloud[\s\S]*?\n\n/);
-  if (existingHeaderMatch) {
-    return header + content.substring(existingHeaderMatch[0].length);
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+
+    if (!line || line.startsWith("#")) continue;
+
+    const indent = lines[i].search(/\S/);
+    const trimmed = lines[i].trim();
+
+    // Check if we're in a multi-line string
+    if (inString) {
+      if (trimmed.startsWith("|") || trimmed.startsWith(">")) {
+        // Literal or folded block scalar
+        stringBuffer += trimmed.substring(1).trim() + "\n";
+        continue;
+      } else if (trimmed.startsWith('"') || trimmed.startsWith("'")) {
+        // Continuation of quoted string
+        stringBuffer += trimmed + "\n";
+        if (trimmed.endsWith('"') || trimmed.endsWith("'")) {
+          inString = false;
+          const current = stack[stack.length - 1];
+          if (current.key) {
+            current.obj[current.key] = stringBuffer.trim();
+            current.key = null;
+            stringBuffer = "";
+          }
+        }
+        continue;
+      } else if (indent <= stack[stack.length - 1].indent) {
+        inString = false;
+        const current = stack[stack.length - 1];
+        if (current.key) {
+          current.obj[current.key] = stringBuffer.trim();
+          current.key = null;
+          stringBuffer = "";
+        }
+      } else {
+        stringBuffer += trimmed + "\n";
+        continue;
+      }
+    }
+
+    // Pop stack if we've dedented
+    while (stack.length > 1 && indent < stack[stack.length - 1].indent) {
+      stack.pop();
+    }
+
+    // Push new context if we've indented
+    if (indent > stack[stack.length - 1].indent) {
+      // We're entering a nested structure - create new object
+      const newObj = {};
+      const current = stack[stack.length - 1];
+      if (current.key) {
+        current.obj[current.key] = newObj;
+        stack.push({ obj: newObj, indent, key: null });
+        current.key = null;
+      }
+    }
+
+    if (trimmed.startsWith("-")) {
+      // List item
+      const value = parseYamlValue(trimmed.substring(1).trim());
+      const parent = stack[stack.length - 1].obj;
+      if (Array.isArray(parent)) {
+        parent.push(value);
+      } else {
+        // Create array if this is the first list item under a key
+        const current = stack[stack.length - 1];
+        if (current.key) {
+          parent[current.key] = [value];
+          current.key = null;
+        }
+      }
+    } else if (trimmed.includes(":")) {
+      const [key, ...valueParts] = trimmed.split(":");
+      const keyName = key.trim();
+      const valueStr = valueParts.join(":").trim();
+
+      if (valueStr === "" || valueStr.startsWith("#")) {
+        // Key with no value or comment - create nested object
+        const newObj = {};
+        stack[stack.length - 1].obj[keyName] = newObj;
+        stack.push({ obj: newObj, indent: indent + 2, key: null });
+      } else if (valueStr.startsWith("|") || valueStr.startsWith(">")) {
+        // Multi-line string
+        inString = true;
+        stack[stack.length - 1].key = keyName;
+        stack[stack.length - 1].obj[keyName] = null; // Placeholder
+        stringBuffer = valueStr.substring(1).trim() + "\n";
+      } else if (valueStr.startsWith('"') || valueStr.startsWith("'")) {
+        // Quoted string
+        if (valueStr.endsWith('"') || valueStr.endsWith("'")) {
+          stack[stack.length - 1].obj[keyName] = parseYamlValue(valueStr);
+        } else {
+          inString = true;
+          stack[stack.length - 1].key = keyName;
+          stack[stack.length - 1].obj[keyName] = null; // Placeholder
+          stringBuffer = valueStr + "\n";
+        }
+      } else {
+        const value = parseYamlValue(valueStr);
+        if (value === null && valueStr.includes("\n")) {
+          // Multi-line value
+          inString = true;
+          stack[stack.length - 1].key = keyName;
+          stack[stack.length - 1].obj[keyName] = null; // Placeholder
+          stringBuffer = valueStr + "\n";
+        } else {
+          stack[stack.length - 1].obj[keyName] = value;
+        }
+      }
+    } else if (trimmed === "{}") {
+      const current = stack[stack.length - 1];
+      if (current.key) {
+        current.obj[current.key] = {};
+        current.key = null;
+      }
+    } else if (trimmed === "[]") {
+      const current = stack[stack.length - 1];
+      if (current.key) {
+        current.obj[current.key] = [];
+        current.key = null;
+      }
+    }
   }
-  
-  return header + content;
+
+  return result;
+}
+
+/**
+ * Parse a YAML value
+ */
+function parseYamlValue(value) {
+  if (value === "null" || value === "~" || value === "") return null;
+  if (value === "true") return true;
+  if (value === "false") return false;
+  if (/^-?\d+$/.test(value)) return parseInt(value, 10);
+  if (/^-?\d+\.\d+$/.test(value)) return parseFloat(value);
+
+  // Remove quotes if present
+  const unquoted = value.replace(/^['"](.*)['"]$/, "$1");
+
+  return unquoted;
+}
+
+/**
+ * Convert YAML to JavaScript object (simplified parser)
+ * Note: For production, use js-yaml or similar library
+ */
+function yamlToProfile(yamlContent) {
+  // Remove comments
+  const withoutComments = yamlContent.replace(/#.*$/gm, '');
+
+  // Simple YAML parser for our specific structure
+  return parseYaml(withoutComments);
+}
+
+/**
+ * Export profile to a Git repository structure
+ */
+export async function exportToRepository(profile, outputDirectory, options = {}) {
+  const checked = await validateProfile(profile);
+  if (!checked.valid) {
+    throw new Error(`Invalid profile: ${checked.errors.join(", ")}`);
+  }
+
+  const sizing = await calculateSizing(checked.profile);
+  const catalog = await loadCatalog("sources.lock");
+  const legal = await loadCatalog("legal");
+
+  // Create output directory
+  await mkdir(outputDirectory, { recursive: true, mode: 0o700 });
+
+  // Calculate profile hash
+  const profileHash = await sha256Hash(JSON.stringify(checked.profile, null, 2));
+
+  // Create metadata
+  const metadata = createRepositoryMetadata(checked.profile, {
+    configuratorVersion: "v1.0.0",
+    catalogueVersion: catalog.version,
+    deploymentId: options.deploymentId,
+    customerId: options.customerId,
+    profileHash,
+    migrations: options.migrations || [
+      {
+        id: "initial-export",
+        appliedAt: new Date().toISOString(),
+        fromVersion: null,
+        toVersion: REPOSITORY_FORMAT_VERSION,
+        description: "Initial repository export from configurator"
+      }
+    ]
+  });
+
+  // Create .get-owncloud directory
+  const metaDir = join(outputDirectory, ".get-owncloud");
+  await mkdir(metaDir, { recursive: true, mode: 0o700 });
+  await mkdir(join(metaDir, "migrations"), { recursive: true, mode: 0o700 });
+
+  // Write metadata (will be updated with generated files hashes later)
+  await writeFile(
+    join(metaDir, "metadata.json"),
+    JSON.stringify(metadata, null, 2) + "\n",
+    { mode: 0o644 }
+  );
+
+  // Write migration record
+  await writeFile(
+    join(metaDir, "migrations", "initial-export.json"),
+    JSON.stringify(metadata.migrations[0], null, 2) + "\n",
+    { mode: 0o644 }
+  );
+
+  // Write owncloud.yaml (user-owned intent)
+  const yamlContent = profileToYaml(checked.profile);
+  await writeFile(
+    join(outputDirectory, "owncloud.yaml"),
+    yamlContent,
+    { mode: 0o644 }
+  );
+
+  // Load templates
+  const templatePaths = checked.profile.target.runtime === "kubernetes"
+    ? requiredKubernetesTemplatePaths()
+    : requiredTemplatePaths(checked.profile);
+
+  const templates = {};
+  for (const path of templatePaths) {
+    templates[path] = await readFile(new URL(path, ROOT), "utf8");
+  }
+
+  // Generate lock file
+  const lock = await generateLockFile(checked.profile, sizing, catalog, legal, {
+    profileHash,
+    configuratorVersion: "v1.0.0",
+    rendererVersion: "1.0.0"
+  });
+
+  await writeFile(
+    join(outputDirectory, "owncloud.lock.json"),
+    JSON.stringify(lock, null, 2) + "\n",
+    { mode: 0o644 }
+  );
+
+  // Generate output files
+  const inputs = {
+    profile: checked.profile,
+    sizing,
+    templates,
+    legal,
+    sources: catalog,
+    acceptance: options.acceptance || {
+      acceptedAt: new Date().toISOString(),
+      acceptedBy: "export-user"
+    },
+    secrets: options.secrets || {}
+  };
+
+  const files = checked.profile.target.runtime === "kubernetes"
+    ? await buildKubernetesBundle(inputs)
+    : await buildSingleHostBundle(inputs);
+
+  // Create generated directory
+  const generatedDir = join(outputDirectory, "generated");
+  await mkdir(generatedDir, { recursive: true, mode: 0o700 });
+
+  // Write generated files and track hashes
+  const generatedFilesHashes = {};
+  for (const [filePath, content] of Object.entries(files)) {
+    const destination = join(generatedDir, filePath);
+    await mkdir(dirname(destination), { recursive: true, mode: 0o700 });
+
+    // Store hash for drift detection
+    const fileHash = await sha256Hash(content);
+    generatedFilesHashes[filePath] = { hash: fileHash, algorithm: "sha256" };
+
+    await writeFile(destination, content, { mode: 0o644 });
+  }
+
+  // Update metadata with generated files hashes
+  metadata.generatedFiles = generatedFilesHashes;
+  await writeFile(
+    join(metaDir, "metadata.json"),
+    JSON.stringify(metadata, null, 2) + "\n",
+    { mode: 0o644 }
+  );
+
+  // Create overlays directory (empty for now)
+  const overlaysDir = join(outputDirectory, "overlays");
+  await mkdir(overlaysDir, { recursive: true, mode: 0o700 });
+
+  // Create .gitignore
+  const gitignoreContent = generateGitIgnore();
+  await writeFile(
+    join(outputDirectory, ".gitignore"),
+    gitignoreContent,
+    { mode: 0o644 }
+  );
+
+  // Create README.md
+  const readmeContent = generateRepositoryReadme(checked.profile);
+  await writeFile(
+    join(outputDirectory, "README.md"),
+    readmeContent,
+    { mode: 0o644 }
+  );
+
+  // Scan for secrets in the entire repository
+  const secretScanResults = await scanRepositoryForSecrets(outputDirectory);
+
+  if (secretScanResults.findings.length > 0) {
+    // This should not happen if we're doing things correctly
+    // But we check anyway for safety
+    throw new Error(
+      `Secret scan failed: ${secretScanResults.findings.length} potential secrets detected. ` +
+      `First finding: ${secretScanResults.findings[0].match} in ${secretScanResults.findings[0].file}`
+    );
+  }
+
+  return {
+    repositoryPath: outputDirectory,
+    metadata,
+    files: {
+      intent: "owncloud.yaml",
+      lock: "owncloud.lock.json",
+      generated: Object.keys(files).map(f => join("generated", f)),
+      metadata: ".get-owncloud/metadata.json"
+    },
+    secretScan: secretScanResults
+  };
 }
 
 /**
@@ -574,22 +729,22 @@ function generateRepositoryReadme(profile) {
   const runtime = profile.target.runtime;
   const manager = profile.target.manager;
   const purpose = profile.purpose;
-  
+
   return `# ownCloud Deployment Repository
 
 This is a **private** ownCloud deployment repository generated by [get.ownCloud](https://get.owncloud.com/).
 
-## ⚠️ IMPORTANT SECURITY NOTICE
+## IMPORTANT SECURITY NOTICE
 
 **This repository contains deployment configuration, NOT secrets.**
 
-✅ **SAFE to commit:**
+SAFE to commit:
 - Configuration files (owncloud.yaml, owncloud.lock.json)
 - Generated deployment artifacts (generated/)
 - Custom overlays (overlays/)
 - Documentation (README.md, docs/)
 
-❌ **NEVER commit:**
+NEVER commit:
 - Plaintext passwords or API keys
 - Private keys or certificates
 - Registry credentials
@@ -604,17 +759,14 @@ This is a **private** ownCloud deployment repository generated by [get.ownCloud]
 ## Repository Structure
 
 \`\`\`
-${basename(process.cwd())}/
-├── owncloud.yaml              # Your deployment intent (edit this)
-├── overlays/                 # Your customizations (add files here)
-├── owncloud.lock.json         # Dependency lock (auto-generated)
-├── generated/                # Deployment artifacts (auto-generated)
-│   ${Object.keys(generatedFileExamples(profile)).map(f => `├── ${f}`).join("\n│   ")}
-├── .get-owncloud/            # Repository metadata
-│   ├── metadata.json
-│   └── migrations/
-├── .gitignore
-└── README.md
+${basename(outputDirectory)}/
+owncloud.yaml              # Your deployment intent (edit this)
+overlays/                 # Your customizations (add files here)
+owncloud.lock.json         # Dependency lock (auto-generated)
+generated/                # Deployment artifacts (auto-generated)
+.get-owncloud/            # Repository metadata
+.gitignore
+README.md
 \`\`\`
 
 ## Deployment Profile
@@ -635,73 +787,30 @@ ${basename(process.cwd())}/
 # Initialize Git (if not already done)
 git init
 
-# Add your private remote (examples for different providers)
-
-# GitHub
+# Add your private remote
 git remote add origin git@github.com:your-org/your-repo.git
-
-# GitLab
-git remote add origin git@gitlab.com:your-org/your-repo.git
-
-# Forgejo
-git remote add origin git@forgejo.example.com:your-org/your-repo.git
-
-# Gitea
-git remote add origin git@gitea.example.com:your-org/your-repo.git
-
-# Any Git server
-git remote add origin git@your-git-server.com:path/to/repo.git
-
-# Add all files and commit
 git add .
 git commit -m "Initial ownCloud deployment configuration"
-
-# Push to main branch
 git push -u origin main
 \`\`\`
 
 ### 2. Update Your Deployment
 
-1. Edit \`owncloud.yaml\` to change your configuration
-2. Add customizations to \`overlays/\`
+1. Edit owncloud.yaml to change your configuration
+2. Add customizations to overlays/
 3. Regenerate the deployment artifacts:
    \`\`\`bash
-   # Using the configurator
    get-owncloud render owncloud.yaml . --regenerate
    \`\`\`
-4. Commit and push changes:
-   \`\`\`bash
-   git add .
-   git commit -m "Update deployment configuration"
-   git push
-   \`\`\`
+4. Commit and push changes
 
 ### 3. Deploy
 
-Follow the deployment instructions for your chosen runtime:
-
-#### Docker Compose
-\`\`\`bash
-cd generated
-sh install.sh --accept-eula
-\`\`\`
-
-#### Podman Compose
-\`\`\`bash
-cd generated
-sh install.sh --accept-eula --engine podman
-\`\`\`
-
-#### Kubernetes (Helm)
-\`\`\`bash
-cd generated/helm
-helm install owncloud . --values values.yaml --namespace owncloud --create-namespace
-\`\`\`
+Follow the deployment instructions for your chosen runtime.
 
 ## Updating with the Proprietary Updater
 
 If you have access to the ownCloud proprietary updater:
-
 1. The updater will detect new versions
 2. It will create a pull request with update proposals
 3. Review the changes and migration notes
@@ -718,15 +827,11 @@ If you see a "drift detected" error, it means generated files have been manually
 \`\`\`bash
 # Regenerate all files
 get-owncloud render owncloud.yaml . --regenerate --force
-
-# Or restore from profile
-get-owncloud render owncloud.yaml . --force
 \`\`\`
 
 ### Secrets in Repository
 
 If the secret scanner detects potential secrets:
-
 1. Remove the file containing secrets
 2. Replace plaintext values with secret references
 3. Use your preferred secret management system
@@ -734,13 +839,9 @@ If the secret scanner detects potential secrets:
 ### Importing into Configurator
 
 To import this repository back into the configurator:
-
-1. Zip the repository: \`\`\`bash
-   zip -r deployment.zip . -x "*.git*" "node_modules/*"
-\`\`\`
-2. Upload to get.ownCloud.com
-3. Or use CLI: \`\`\`bash
-   get-owncloud import deployment.zip
+\`\`\`bash
+zip -r deployment.zip . -x "*.git*" "node_modules/*"
+get-owncloud import deployment.zip
 \`\`\`
 
 ## Support
@@ -791,7 +892,7 @@ export async function importFromRepository(repositoryPath, options = {}) {
     errors: [],
     secretsFound: []
   };
-  
+
   // Check required files exist
   const requiredFiles = ["owncloud.yaml"];
   for (const file of requiredFiles) {
@@ -808,12 +909,12 @@ export async function importFromRepository(repositoryPath, options = {}) {
       return results;
     }
   }
-  
+
   // Load and validate owncloud.yaml
   try {
     const yamlContent = await readFile(join(repositoryPath, "owncloud.yaml"), "utf8");
     results.profile = yamlToProfile(yamlContent);
-    
+
     const validated = await validateProfile(results.profile);
     if (!validated.valid) {
       results.valid = false;
@@ -831,7 +932,7 @@ export async function importFromRepository(repositoryPath, options = {}) {
       severity: "blocking"
     });
   }
-  
+
   // Load lock file if exists
   try {
     const lockPath = join(repositoryPath, "owncloud.lock.json");
@@ -845,14 +946,14 @@ export async function importFromRepository(repositoryPath, options = {}) {
       severity: "warning"
     });
   }
-  
+
   // Load metadata
   try {
     const metadataPath = join(repositoryPath, ".get-owncloud", "metadata.json");
     await stat(metadataPath);
     const metadataContent = await readFile(metadataPath, "utf8");
     results.metadata = JSON.parse(metadataContent);
-    
+
     // Validate repository format version
     if (results.metadata.repositoryFormatVersion !== REPOSITORY_FORMAT_VERSION) {
       results.warnings.push({
@@ -868,11 +969,11 @@ export async function importFromRepository(repositoryPath, options = {}) {
       severity: "warning"
     });
   }
-  
-  // Scan for secrets
+
+  // Scan for secrets - scan ALL files including forbidden types
   const secretScan = await scanRepositoryForSecrets(repositoryPath);
   results.secretsFound = secretScan.findings;
-  
+
   if (secretScan.findings.length > 0) {
     results.valid = false;
     results.errors.push(...secretScan.findings.map(f => ({
@@ -882,8 +983,8 @@ export async function importFromRepository(repositoryPath, options = {}) {
       severity: f.severity
     })));
   }
-  
-  // Check for forbidden files
+
+  // Check for forbidden files (warn but don't block)
   const allFiles = await listAllFiles(repositoryPath);
   for (const file of allFiles) {
     if (isForbiddenFile(file) && !isSecretReferenceFile(file)) {
@@ -894,7 +995,7 @@ export async function importFromRepository(repositoryPath, options = {}) {
       });
     }
   }
-  
+
   // Check drift if we have both profile and lock
   if (results.profile && results.lock) {
     const drift = await checkDrift(repositoryPath, results.profile, results.lock);
@@ -906,7 +1007,7 @@ export async function importFromRepository(repositoryPath, options = {}) {
       })));
     }
   }
-  
+
   return results;
 }
 
@@ -916,21 +1017,21 @@ export async function importFromRepository(repositoryPath, options = {}) {
 async function scanRepositoryForSecrets(repositoryPath) {
   const allFiles = await listAllFiles(repositoryPath);
   const findings = [];
-  
+
   for (const filePath of allFiles) {
-    // Skip binary files and forbidden files
-    if (isForbiddenFile(filePath)) continue;
+    // Only skip binary files (detected by read errors)
+    // Forbidden files like .env, .pem, .key SHOULD be scanned for secrets
     if (isSecretReferenceFile(filePath)) continue;
-    
+
     try {
       const content = await readFile(filePath, "utf8");
       const fileFindings = scanForSecrets(content, filePath);
       findings.push(...fileFindings);
     } catch {
-      // Skip files that can't be read as text
+      // Skip files that can't be read as text (binary files)
     }
   }
-  
+
   return {
     scannedFiles: allFiles.length,
     findings: findings.sort((a, b) => b.severity.localeCompare(a.severity))
@@ -940,21 +1041,21 @@ async function scanRepositoryForSecrets(repositoryPath) {
 /**
  * List all files in a directory recursively
  */
-async function listAllFiles(directory) {
+async function listAllFiles(directory, baseDir = directory) {
   const files = [];
   const entries = await readdir(directory, { withFileTypes: true });
-  
+
   for (const entry of entries) {
     const fullPath = join(directory, entry.name);
     if (entry.isDirectory()) {
       // Skip .git directory
       if (entry.name === ".git") continue;
-      files.push(...await listAllFiles(fullPath));
+      files.push(...await listAllFiles(fullPath, baseDir));
     } else if (entry.isFile()) {
-      files.push(relative(directory, fullPath));
+      files.push(relative(baseDir, fullPath));
     }
   }
-  
+
   return files;
 }
 
@@ -964,31 +1065,37 @@ async function listAllFiles(directory) {
 async function checkDrift(repositoryPath, profile, lock) {
   const drifts = [];
   const generatedDir = join(repositoryPath, "generated");
-  
+
   try {
     const generatedFiles = await listAllFiles(generatedDir);
-    
+
+    // Get hashes from metadata if available
+    const metadataPath = join(repositoryPath, ".get-owncloud", "metadata.json");
+    let expectedHashes = {};
+    try {
+      const metadataContent = await readFile(metadataPath, "utf8");
+      const metadata = JSON.parse(metadataContent);
+      expectedHashes = metadata.generatedFiles || {};
+    } catch {
+      // No metadata or no hashes
+    }
+
     for (const filePath of generatedFiles) {
       const fullPath = join(generatedDir, filePath);
       const content = await readFile(fullPath, "utf8");
-      
-      // Extract hash from header if present
-      const hashMatch = content.match(/^# @generated by get-owncloud[\s\S]*?# hash: sha256:([a-f0-9]{64})/);
-      
-      if (hashMatch) {
-        const expectedHash = hashMatch[1];
+
+      // Get expected hash
+      const expectedHash = expectedHashes[filePath]?.hash;
+
+      if (expectedHash) {
         const actualHash = await sha256Hash(content);
-        
-        // Remove the header for hash comparison
-        const contentWithoutHeader = content.replace(/^# @generated by get-owncloud[\s\S]*?\n\n/, '');
-        const actualContentHash = await sha256Hash(contentWithoutHeader);
-        
-        if (actualContentHash !== expectedHash) {
+
+        if (actualHash !== expectedHash) {
           drifts.push({
             file: join("generated", filePath),
             message: "Content hash mismatch - file has been modified",
             expectedHash,
-            actualHash: actualContentHash,
+            actualHash,
             severity: "warning"
           });
         }
@@ -997,156 +1104,14 @@ async function checkDrift(repositoryPath, profile, lock) {
   } catch {
     // generated directory doesn't exist or is empty
   }
-  
+
   return drifts;
-}
-
-/**
- * Convert YAML to JavaScript object (simplified parser)
- * Note: For production, use js-yaml or similar library
- */
-function yamlToProfile(yamlContent) {
-  // Remove comments
-  const withoutComments = yamlContent.replace(/#.*$/gm, '');
-  
-  // Simple YAML parser for our specific structure
-  return parseYaml(withoutComments);
-}
-
-/**
- * Simple YAML parser for deployment profiles
- */
-function parseYaml(content) {
-  const lines = content.split("\n");
-  const result = {};
-  const stack = [{ obj: result, indent: 0 }];
-  let currentKey = null;
-  let currentValue = null;
-  let inString = false;
-  let stringBuffer = "";
-  
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim();
-    
-    if (!line || line.startsWith("#")) continue;
-    
-    const indent = lines[i].search(/\S/);
-    const trimmed = lines[i].trim();
-    
-    // Check if we're in a multi-line string
-    if (inString) {
-      if (trimmed.startsWith("|") || trimmed.startsWith(">")) {
-        // Literal or folded block scalar
-        stringBuffer += trimmed.substring(1).trim() + "\n";
-        continue;
-      } else if (trimmed.startsWith('"') || trimmed.startsWith("'")) {
-        // Continuation of quoted string
-        stringBuffer += trimmed + "\n";
-        if (trimmed.endsWith('"') || trimmed.endsWith("'")) {
-          inString = false;
-          if (currentKey) {
-            stack[stack.length - 1].obj[currentKey] = stringBuffer.trim();
-            currentKey = null;
-            stringBuffer = "";
-          }
-        }
-        continue;
-      } else if (indent <= stack[stack.length - 1].indent) {
-        inString = false;
-        if (currentKey) {
-          stack[stack.length - 1].obj[currentKey] = stringBuffer.trim();
-          currentKey = null;
-          stringBuffer = "";
-        }
-      } else {
-        stringBuffer += trimmed + "\n";
-        continue;
-      }
-    }
-    
-    // Pop stack if we've dedented
-    while (stack.length > 1 && indent < stack[stack.length - 1].indent) {
-      stack.pop();
-    }
-    
-    if (trimmed.startsWith("-")) {
-      // List item
-      const value = parseYamlValue(trimmed.substring(1).trim());
-      const parent = stack[stack.length - 1].obj;
-      if (Array.isArray(parent)) {
-        parent.push(value);
-      }
-    } else if (trimmed.includes(":")) {
-      const [key, ...valueParts] = trimmed.split(":");
-      const keyName = key.trim();
-      const valueStr = valueParts.join(":").trim();
-      
-      if (valueStr === "" || valueStr.startsWith("#")) {
-        // Key with no value or comment
-        stack[stack.length - 1].obj[keyName] = null;
-        currentKey = keyName;
-      } else if (valueStr.startsWith("|") || valueStr.startsWith(">")) {
-        // Multi-line string
-        inString = true;
-        currentKey = keyName;
-        stringBuffer = valueStr.substring(1).trim() + "\n";
-      } else if (valueStr.startsWith('"') || valueStr.startsWith("'")) {
-        // Quoted string
-        if (valueStr.endsWith('"') || valueStr.endsWith("'")) {
-          stack[stack.length - 1].obj[keyName] = parseYamlValue(valueStr);
-        } else {
-          inString = true;
-          currentKey = keyName;
-          stringBuffer = valueStr + "\n";
-        }
-      } else {
-        const value = parseYamlValue(valueStr);
-        if (value === null && valueStr.includes("\n")) {
-          // Multi-line value
-          inString = true;
-          currentKey = keyName;
-          stringBuffer = valueStr + "\n";
-        } else {
-          stack[stack.length - 1].obj[keyName] = value;
-        }
-      }
-    } else if (trimmed === "{}") {
-      stack[stack.length - 1].obj[currentKey] = {};
-      currentKey = null;
-    } else if (trimmed === "[]") {
-      stack[stack.length - 1].obj[currentKey] = [];
-      currentKey = null;
-    }
-  }
-  
-  return result;
-}
-
-/**
- * Parse a YAML value
- */
-function parseYamlValue(value) {
-  if (value === "null" || value === "~" || value === "") return null;
-  if (value === "true") return true;
-  if (value === "false") return false;
-  if (/^-?\d+$/.test(value)) return parseInt(value, 10);
-  if (/^-?\d+\.\d+$/.test(value)) return parseFloat(value);
-  
-  // Remove quotes if present
-  const unquoted = value.replace(/^['"](.*)['"]$/, "$1");
-  
-  return unquoted;
 }
 
 /**
  * Import from a legacy ZIP bundle
  */
 export async function importFromLegacyBundle(zipPath, outputDirectory, options = {}) {
-  const tempDir = await mkdir(outputDirectory, { recursive: true, mode: 0o700 });
-  
-  // For now, we'll simulate the import by extracting and converting
-  // In a real implementation, this would use a ZIP extraction library
-  
   throw new Error("Legacy bundle import not yet implemented - use exportToRepository for new deployments");
 }
 
@@ -1155,20 +1120,16 @@ export async function importFromLegacyBundle(zipPath, outputDirectory, options =
  */
 export async function exportToZip(profile, outputPath, options = {}) {
   // Create a temporary repository
-  const tempDir = await mkdir(
-    await fs.promises.mkdtemp(join(await os.tmpdir(), "get-owncloud-")),
-    { recursive: true, mode: 0o700 }
-  );
-  
+  const tempDir = await mkdtemp(join(await tmpdir(), "get-owncloud-"));
+
   try {
     // Export to repository format
     const result = await exportToRepository(profile, tempDir, options);
-    
-    // Create ZIP (simplified - in real implementation use archiver or similar)
-    // For now, just copy the files
+
+    // For now, just copy the files (real ZIP implementation would use archiver)
     const zipDir = dirname(outputPath);
     await mkdir(zipDir, { recursive: true, mode: 0o700 });
-    
+
     // Copy all files to a ZIP-compatible structure
     const files = await listAllFiles(tempDir);
     for (const file of files) {
@@ -1178,7 +1139,7 @@ export async function exportToZip(profile, outputPath, options = {}) {
       await mkdir(dirname(dest), { recursive: true, mode: 0o700 });
       await writeFile(dest, content, { mode: 0o644 });
     }
-    
+
     return result;
   } finally {
     await rm(tempDir, { recursive: true, force: true });
