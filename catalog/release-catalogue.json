@@ -1,0 +1,520 @@
+{
+  "catalogueVersion": "1.0.0",
+  "generatedAt": "2026-01-01T00:00:00Z",
+  "expiresAt": "2026-07-01T00:00:00Z",
+  "signature": {
+    "algorithm": "ed25519",
+    "value": "BASE64_ENCODED_SIGNATURE_PLACEHOLDER",
+    "signingKeyId": "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2",
+    "signedBy": "ownCloud Release Signing Service",
+    "signedAt": "2026-01-01T00:00:00Z",
+    "certificateChain": [],
+    "keyRotation": {
+      "currentKeyId": "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2",
+      "previousKeyIds": [
+        "f6e5d4c3b2a1f6e5d4c3b2a1f6e5d4c3b2a1f6e5d4c3b2a1f6e5d4c3b2a1f6e5"
+      ],
+      "rotationSchedule": "quarterly",
+      "nextRotationAt": "2026-04-01T00:00:00Z"
+    }
+  },
+  "checksums": {
+    "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "sha512": "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "releases": [
+    {
+      "version": "1.0.0",
+      "channel": "stable",
+      "releaseDate": "2026-01-01T00:00:00Z",
+      "components": {
+        "ocis": {
+          "version": "8.2.0",
+          "gitCommit": "42f7fdcfee2714cb14eedb36509f74ef205703f9",
+          "imageDigest": "sha256:8c053ea63fc15b9788d55725b5d3abd9632dd89abfcb8a127e0c85acdd4ec2b4",
+          "imageRegistry": "docker.io",
+          "imageTag": "8.2.0"
+        },
+        "configurator": {
+          "version": "v1.0.0",
+          "gitCommit": "fc1f2df8c1e8a7b6c5d4e3f2a1b9c8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b1",
+          "checksum": "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2"
+        },
+        "collabora": {
+          "version": "23.05.0",
+          "imageDigest": "sha256:abc123def456ghi789jkl012mno345pqr678stu901vwx234yz567",
+          "imageRegistry": "docker.io",
+          "imageTag": "23.05.0"
+        },
+        "helmChart": {
+          "version": "0.7.0",
+          "appVersion": "7.1.4",
+          "checksum": "abc123def456ghi789jkl012mno345pqr678stu901vwx234yz567889",
+          "repository": "https://github.com/owncloud/ocis-charts"
+        },
+        "ansible": {
+          "version": "v1.0.0",
+          "checksum": "def456ghi789jkl012mno345pqr678stu901vwx234yz567889abc123"
+        }
+      },
+      "classification": {
+        "type": "major",
+        "severity": "medium",
+        "urgency": "normal",
+        "breakingChanges": false,
+        "breakingChangeDetails": []
+      },
+      "maturity": "production",
+      "support": {
+        "status": "fully-supported",
+        "supportedUntil": "2027-01-01",
+        "eolDate": "2027-07-01"
+      },
+      "requirements": {
+        "updaterMinVersion": "v1.0.0",
+        "updaterMaxVersion": "v2.0.0",
+        "repositoryFormatMinVersion": "1.0.0"
+      },
+      "backupRequirements": {
+        "required": true,
+        "method": "config-only",
+        "preUpdateScript": "scripts/pre-update-backup.sh",
+        "postUpdateScript": "scripts/post-update-verify.sh"
+      },
+      "rollback": {
+        "supported": true,
+        "previousVersion": "0.9.0",
+        "rollbackScript": "scripts/rollback.sh",
+        "dataMigrationRequired": false
+      },
+      "observation": {
+        "healthCheckDelay": 60,
+        "metricsToWatch": [
+          "ocis_health_status",
+          "ocis_storage_available",
+          "collabora_health"
+        ],
+        "successCriteria": [
+          "All containers running",
+          "Health checks passing",
+          "WebDAV accessible"
+        ]
+      },
+      "releaseNotes": "# ownCloud Deployment Hub v1.0.0\n\n## What's New\n\n- Initial production release of the deployment hub\n- Support for Docker and Podman single-host deployments\n- Kubernetes (Helm) support at chart 0.7.0 / oCIS 7.1.4 (Community Preview)\n- Ansible wrapper for Docker and Podman\n- Complete sizing calculator with headroom\n- EULA acknowledgement with explicit No warranties and Limitation of liability\n\n## Known Limitations\n\n- Kubernetes/Helm is Community Preview only (issue #6)\n- Podman is Community Preview until rootless evidence passes\n- K3s is evaluation-only\n\n## Upgrade Notes\n\nThis is the first production release. No upgrade path from previous versions.",
+      "releaseNotesUrl": "https://get.owncloud.com/releases/v1.0.0",
+      "artifacts": [
+        {
+          "name": "ocis",
+          "type": "container",
+          "digest": "sha256:8c053ea63fc15b9788d55725b5d3abd9632dd89abfcb8a127e0c85acdd4ec2b4",
+          "size": 1234567890,
+          "registry": "docker.io",
+          "repository": "owncloud/ocis",
+          "tag": "8.2.0"
+        },
+        {
+          "name": "collabora",
+          "type": "container",
+          "digest": "sha256:abc123def456ghi789jkl012mno345pqr678stu901vwx234yz567",
+          "size": 9876543210,
+          "registry": "docker.io",
+          "repository": "collabora/code",
+          "tag": "23.05.0"
+        },
+        {
+          "name": "helm-chart",
+          "type": "helm-chart",
+          "digest": "sha256:abc123def456ghi789jkl012mno345pqr678stu901vwx234yz567889",
+          "size": 123456,
+          "repository": "https://github.com/owncloud/ocis-charts",
+          "tag": "0.7.0"
+        }
+      ]
+    },
+    {
+      "version": "0.9.0",
+      "channel": "rc",
+      "releaseDate": "2025-12-01T00:00:00Z",
+      "components": {
+        "ocis": {
+          "version": "8.2.0",
+          "gitCommit": "42f7fdcfee2714cb14eedb36509f74ef205703f9",
+          "imageDigest": "sha256:8c053ea63fc15b9788d55725b5d3abd9632dd89abfcb8a127e0c85acdd4ec2b4",
+          "imageRegistry": "docker.io",
+          "imageTag": "8.2.0"
+        },
+        "configurator": {
+          "version": "v0.9.0",
+          "gitCommit": "abc123def456ghi789jkl012mno345pqr678stu901",
+          "checksum": "def456ghi789jkl012mno345pqr678stu901vwx234"
+        },
+        "collabora": {
+          "version": "23.05.0",
+          "imageDigest": "sha256:abc123def456ghi789jkl012mno345pqr678stu901vwx234yz567",
+          "imageRegistry": "docker.io",
+          "imageTag": "23.05.0"
+        }
+      },
+      "classification": {
+        "type": "feature",
+        "severity": "low",
+        "urgency": "normal",
+        "breakingChanges": false,
+        "breakingChangeDetails": []
+      },
+      "maturity": "community-preview",
+      "support": {
+        "status": "best-effort",
+        "supportedUntil": "2026-01-01"
+      },
+      "requirements": {
+        "updaterMinVersion": "v0.9.0",
+        "updaterMaxVersion": "v1.0.0",
+        "repositoryFormatMinVersion": "0.9.0"
+      },
+      "backupRequirements": {
+        "required": false,
+        "method": "none"
+      },
+      "rollback": {
+        "supported": true,
+        "previousVersion": "0.8.0",
+        "dataMigrationRequired": false
+      },
+      "observation": {
+        "healthCheckDelay": 30,
+        "metricsToWatch": [
+          "ocis_health_status"
+        ]
+      },
+      "releaseNotes": "# ownCloud Deployment Hub v0.9.0\n\n## What's New\n\n- Release candidate for v1.0.0\n- Final validation of production readiness\n- Complete documentation\n\n## Known Issues\n\n- Kubernetes support is Community Preview only",
+      "releaseNotesUrl": "https://get.owncloud.com/releases/v0.9.0"
+    },
+    {
+      "version": "0.8.0",
+      "channel": "development",
+      "releaseDate": "2025-11-01T00:00:00Z",
+      "components": {
+        "ocis": {
+          "version": "8.2.0",
+          "gitCommit": "42f7fdcfee2714cb14eedb36509f74ef205703f9",
+          "imageDigest": "sha256:8c053ea63fc15b9788d55725b5d3abd9632dd89abfcb8a127e0c85acdd4ec2b4",
+          "imageRegistry": "docker.io",
+          "imageTag": "8.2.0"
+        },
+        "configurator": {
+          "version": "v0.8.0",
+          "gitCommit": "def456ghi789jkl012mno345pqr678stu901",
+          "checksum": "ghi789jkl012mno345pqr678stu901vwx234"
+        }
+      },
+      "classification": {
+        "type": "feature",
+        "severity": "low",
+        "urgency": "normal",
+        "breakingChanges": false,
+        "breakingChangeDetails": []
+      },
+      "maturity": "experimental",
+      "support": {
+        "status": "best-effort",
+        "supportedUntil": "2025-12-01"
+      },
+      "requirements": {
+        "updaterMinVersion": "v0.8.0",
+        "updaterMaxVersion": "v0.9.0",
+        "repositoryFormatMinVersion": "0.8.0"
+      },
+      "backupRequirements": {
+        "required": false,
+        "method": "none"
+      },
+      "rollback": {
+        "supported": true,
+        "previousVersion": "0.7.0"
+      },
+      "observation": {
+        "healthCheckDelay": 30
+      },
+      "releaseNotes": "# ownCloud Deployment Hub v0.8.0\n\n## What's New\n\n- Development preview\n- Basic functionality validated"
+    }
+  ],
+  "migrations": [
+    {
+      "id": "migration-001",
+      "version": "1.0.0",
+      "description": "Initial repository format migration",
+      "classification": {
+        "type": "schema",
+        "risk": "low",
+        "automatic": true,
+        "userActionRequired": false
+      },
+      "appliesTo": {
+        "repositoryFormatVersions": ["0.9.0", "0.8.0"],
+        "configuratorVersions": ["v0.8.0", "v0.9.0"],
+        "runtime": ["docker", "podman", "kubernetes"],
+        "manager": ["direct", "ansible", "argocd"]
+      },
+      "dependencies": [],
+      "transformations": [
+        {
+          "type": "add-field",
+          "target": "$.metadata.repositoryFormatVersion",
+          "value": "1.0.0"
+        },
+        {
+          "type": "add-field",
+          "target": "$.metadata.repositorySpecVersion",
+          "value": "1.0"
+        },
+        {
+          "type": "rename-field",
+          "from": "$.apiVersion",
+          "target": "$.metadata.apiVersion"
+        }
+      ],
+      "validation": {
+        "schema": "https://get.owncloud.com/schema/deployment.schema.json",
+        "requiredFields": [
+          "metadata",
+          "metadata.repositoryFormatVersion",
+          "metadata.repositorySpecVersion"
+        ],
+        "forbiddenFields": []
+      },
+      "rollback": {
+        "supported": true,
+        "inverseMigrationId": "migration-rollback-001"
+      }
+    },
+    {
+      "id": "migration-002",
+      "version": "1.0.0",
+      "description": "Add security classification to storage configuration",
+      "classification": {
+        "type": "security",
+        "risk": "low",
+        "automatic": true,
+        "userActionRequired": false
+      },
+      "appliesTo": {
+        "repositoryFormatVersions": ["0.9.0"],
+        "runtime": ["docker", "podman"]
+      },
+      "dependencies": [],
+      "transformations": [
+        {
+          "type": "set-value",
+          "target": "$.storage.nfsVersion",
+          "value": "4.2",
+          "condition": "$.storage.filesystem === 'nfs'"
+        }
+      ],
+      "validation": {
+        "requiredFields": ["$.storage.nfsVersion"],
+        "forbiddenFields": []
+      },
+      "rollback": {
+        "supported": true
+      }
+    },
+    {
+      "id": "migration-003",
+      "version": "1.0.0",
+      "description": "Kubernetes storage class migration",
+      "classification": {
+        "type": "schema",
+        "risk": "medium",
+        "automatic": true,
+        "userActionRequired": false
+      },
+      "appliesTo": {
+        "repositoryFormatVersions": ["0.9.0"],
+        "runtime": ["kubernetes"],
+        "manager": ["direct", "argocd"]
+      },
+      "dependencies": [],
+      "transformations": [
+        {
+          "type": "add-field",
+          "target": "$.storage.storageClassName",
+          "value": "owncloud-storage",
+          "condition": "$.storage.filesystem === 'nfs'"
+        }
+      ],
+      "validation": {
+        "requiredFields": ["$.storage.storageClassName"]
+      },
+      "rollback": {
+        "supported": true
+      }
+    },
+    {
+      "id": "migration-004",
+      "version": "1.0.0",
+      "description": "Identity configuration normalization",
+      "classification": {
+        "type": "policy",
+        "risk": "medium",
+        "automatic": true,
+        "userActionRequired": false
+      },
+      "appliesTo": {
+        "repositoryFormatVersions": ["0.8.0", "0.9.0"],
+        "runtime": ["docker", "podman", "kubernetes"]
+      },
+      "dependencies": [],
+      "transformations": [
+        {
+          "type": "set-value",
+          "target": "$.identity.userClaim",
+          "value": "preferred_username",
+          "default": "preferred_username"
+        },
+        {
+          "type": "set-value",
+          "target": "$.identity.cs3Claim",
+          "value": "username",
+          "default": "username"
+        }
+      ],
+      "validation": {
+        "requiredFields": [
+          "$.identity.userClaim",
+          "$.identity.cs3Claim"
+        ]
+      },
+      "rollback": {
+        "supported": true
+      }
+    },
+    {
+      "id": "migration-rollback-001",
+      "version": "0.9.0",
+      "description": "Rollback migration for migration-001",
+      "classification": {
+        "type": "schema",
+        "risk": "low",
+        "automatic": true,
+        "userActionRequired": false
+      },
+      "appliesTo": {
+        "repositoryFormatVersions": ["1.0.0"]
+      },
+      "dependencies": [],
+      "transformations": [
+        {
+          "type": "remove-field",
+          "target": "$.metadata.repositorySpecVersion"
+        },
+        {
+          "type": "rename-field",
+          "from": "$.metadata.apiVersion",
+          "target": "$.apiVersion"
+        }
+      ],
+      "validation": {
+        "requiredFields": ["$.apiVersion"],
+        "forbiddenFields": ["$.metadata.repositorySpecVersion"]
+      },
+      "rollback": {
+        "supported": true,
+        "inverseMigrationId": "migration-001"
+      }
+    }
+  ],
+  "channels": {
+    "stable": {
+      "description": "Production-ready releases with full support",
+      "default": true,
+      "updatePolicy": {
+        "autoUpdate": false,
+        "updateWindow": "0 0 * * 0",
+        "delayAfterRelease": 72
+      },
+      "currentVersion": "1.0.0",
+      "supportedVersions": ["1.0.0", "0.9.0"]
+    },
+    "rc": {
+      "description": "Release candidates for testing",
+      "default": false,
+      "updatePolicy": {
+        "autoUpdate": false,
+        "updateWindow": "0 0 * * *",
+        "delayAfterRelease": 24
+      },
+      "currentVersion": "0.9.0"
+    },
+    "development": {
+      "description": "Development builds for testing new features",
+      "default": false,
+      "updatePolicy": {
+        "autoUpdate": true,
+        "updateWindow": "0 * * * *",
+        "delayAfterRelease": 0
+      },
+      "currentVersion": "0.8.0"
+    }
+  },
+  "security": {
+    "keyRotation": {
+      "enabled": true,
+      "schedule": "quarterly",
+      "gracePeriod": 90,
+      "nextRotationAt": "2026-04-01T00:00:00Z"
+    },
+    "revocation": {
+      "revokedKeys": [],
+      "checkRevocation": true,
+      "revocationListUrl": "https://signing.owncloud.com/revocation-list.json"
+    },
+    "verification": {
+      "requireSignature": true,
+      "trustedKeys": [
+        "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2",
+        "f6e5d4c3b2a1f6e5d4c3b2a1f6e5d4c3b2a1f6e5d4c3b2a1f6e5d4c3b2a1f6e5"
+      ],
+      "allowUnsigned": false
+    },
+    "audit": {
+      "logVerificationAttempts": true,
+      "logFailures": true,
+      "auditTrail": true
+    }
+  },
+  "distribution": {
+    "ociRegistry": "registry.owncloud.com",
+    "httpsMirror": "https://mirror.owncloud.com/catalogue",
+    "authentication": {
+      "required": true,
+      "method": "bearer-token",
+      "scopes": ["pull", "push"]
+    }
+  },
+  "upstreamDrift": {
+    "enabled": true,
+    "checkInterval": "daily",
+    "sources": [
+      {
+        "name": "ocis",
+        "url": "https://github.com/owncloud/ocis",
+        "type": "git",
+        "watch": ["tags", "releases"]
+      },
+      {
+        "name": "ocis-charts",
+        "url": "https://github.com/owncloud/ocis-charts",
+        "type": "git",
+        "watch": ["tags", "releases"]
+      },
+      {
+        "name": "owncloud-docker",
+        "url": "docker.io/owncloud/ocis",
+        "type": "docker-hub",
+        "watch": ["tags"]
+      }
+    ],
+    "driftThreshold": 5
+  }
+}
