@@ -828,8 +828,10 @@ If you see a "drift detected" error, it means generated files have been manually
 
 **Solution:**
 \`\`\`bash
-# Regenerate all files
-get-owncloud render owncloud.yaml . --regenerate --force
+# Convert YAML to JSON and regenerate
+node -e "const fs = require('fs'); const yaml = fs.readFileSync('owncloud.yaml', 'utf8'); fs.writeFileSync('profile.json', JSON.stringify(require('js-yaml').load(yaml), null, 2))"
+get-owncloud render profile.json . --accept-eula --force
+rm profile.json
 \`\`\`
 
 ### Secrets in Repository
