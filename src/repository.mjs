@@ -800,7 +800,10 @@ git push -u origin main
 2. Add customizations to overlays/
 3. Regenerate the deployment artifacts:
    \`\`\`bash
-   get-owncloud render owncloud.yaml . --regenerate
+   # Convert YAML to JSON and render
+   node -e "const fs = require('fs'); const yaml = fs.readFileSync('owncloud.yaml', 'utf8'); fs.writeFileSync('profile.json', JSON.stringify(require('js-yaml').load(yaml), null, 2))"
+   get-owncloud render profile.json . --accept-eula
+   rm profile.json
    \`\`\`
 4. Commit and push changes
 
