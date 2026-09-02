@@ -83,6 +83,22 @@ issue; it never changes a deployment pin automatically.
 The repository structure, ownership and delivery sequence are described in [ROADMAP.md](ROADMAP.md).
 Architecture and policy details are under [docs/](docs/ARCHITECTURE.md).
 
+## Version Pinning Strategy
+
+All deployment artifacts use explicit, reproducible version pins:
+
+| Component | Pinned Version | Purpose |
+| --- | --- | --- |
+| oCIS (Docker/Podman) | 8.2.0 | Production-gated single-host deployment |
+| oCIS (Kubernetes) | 7.1.4 | Community Preview via Helm chart 0.7.0 |
+| Helm chart | 0.7.0 | Community Preview boundary; promotion gated by issue #6 |
+| Collabora | Latest stable from official registry | Office integration (bundled or external) |
+
+Pins are recorded in `catalog/sources.lock.json` and `catalog/compatibility.json`. The generator
+rejects any profile that would select a non-pinned or incompatible version. Scheduled upstream discovery
+records drift in a review issue; **it never changes a pin automatically**. Version promotions require
+explicit maintainer approval and are gated by the corresponding launch gate.
+
 ## Status
 
 Docker output is production-gated code, not a blanket production certification. Today’s live runtime

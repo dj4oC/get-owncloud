@@ -1,5 +1,23 @@
 # Launch gates
 
+## Ownership Matrix
+
+| Gate | Class | Owner | Accountable | Evidence |
+| --- | --- | --- | --- | --- |
+| `get.owncloud.com` DNS/TLS | Blocking | @owncloud/infrastructure | ownCloud infra lead | DNS/TLS verification |
+| Brand/logo use | Blocking | @owncloud/brand | ownCloud brand approver | Vendored asset + explicit approval |
+| EULA wording | Blocking | @owncloud/legal | Joint legal approver | Approved copy/hash/version |
+| Production support statement | Blocking | @owncloud/product | Product owner | Signed support/maturity record |
+| Bootstrap/SBOM/attestation | Blocking | @amamus | Named security owner | Verifiable release evidence |
+| Security review | Blocking | @amamus | Security owner | Review record |
+| Runtime matrix | Blocking | @amamus | Target maintainer | CI/runtime report |
+| Accessibility | Blocking | @amamus | Web/UX maintainer | axe-core clean WCAG 2.1 AA |
+| Support docs | Advisory | @owncloud/docs | Product/support | Published matrix |
+| Troubleshooting | Advisory | @amamus | Maintainers/support | Link check |
+| Contribution guide | Advisory | @owncloud/ospo | OSPO | Published policy |
+| Additional targets | Advisory | @amamus | Target maintainers | Scheduled test results |
+| Redirect polish | Advisory | @owncloud/docs | Docs/product | Redirect report |
+
 ## Blocking and advisory checklist
 
 | Gate | Class | Owner role | Evidence |

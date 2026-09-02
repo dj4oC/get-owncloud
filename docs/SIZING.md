@@ -47,6 +47,34 @@ The calculator adds stored data and one year of configured growth to service dis
 headroom to the recommendation, and compares entered host CPU/RAM/disk against both the calculated
 minimum and recommendation. Bundled Collabora and ClamAV therefore visibly increase the result.
 
+## Headroom Documentation
+
+The 30% production headroom is a **mandatory minimum** and is composed of:
+
+| Component | Allocation | Rationale |
+| --- | --- | --- |
+| Background indexing | 15% | oCIS background jobs: thumbnail generation, search indexing, metadata extraction |
+| Request spikes | 10% | Peak concurrent user bursts and API request surges |
+| Observability overhead | 5% | Metrics, logging, tracing, and monitoring agent resource usage |
+
+**Important**: This is a transparent planning assumption, **not** an empirical universal constant. Every
+sizing report explicitly states: "Representative production load testing is mandatory." The headroom:
+
+- Is **never waived** for production deployments
+- Can be **increased** by users for specific workload requirements
+- Is **conservative by design** - real workloads may require more
+- Travels with every displayed number and generated report as a visible warning
+
+Headroom is applied **after** all component requirements are summed, ensuring compound resource
+effects (Collabora + ClamAV + Search) are properly accounted for. The formula is:
+
+```
+recommended_resources = (sum_of_component_requirements) * 1.30
+```
+
+If the calculated recommendation exceeds available host resources, the generator emits a
+blocking error with the specific deficit clearly identified.
+
 ## Versioning
 
 Formula versions use `<ocis-line>-sizing-vN` and are recorded in the profile lock/report. A rule change

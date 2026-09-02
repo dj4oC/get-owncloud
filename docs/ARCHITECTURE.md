@@ -50,3 +50,32 @@ Determinism therefore means **byte-identical modulo generated secret values**.
 - Browser values and generated secrets stay local.
 - EULA acceptance is local. CLI audit entries may contain local user/host identity but are never sent.
 - Unknown maturity, storage drivers or renderer values are denied by default.
+
+## Conflict Resolution Strategy
+
+When conflicts arise between components, policies, or maintainers:
+
+1. **Version Pin Conflicts**: The pinned version in `catalog/sources.lock.json` is authoritative. Any
+   proposed change must include evidence from upstream sources and pass all CI gates. The
+   `catalog/compatibility.json` maturity metadata is secondary and must align with the pin.
+
+2. **Policy vs. Profile Conflicts**: The hard policy catalogue (schema, feature flags, maturity gates)
+   always takes precedence over user profile inputs. The generator rejects invalid combinations
+   with explicit error messages referencing the specific policy violation.
+
+3. **Renderer Discrepancies**: If Docker Compose, Helm, or Ansible wrappers produce different outputs
+   for the same profile, the discrepancy is treated as a blocking bug. The CI render-equivalence
+   test must pass before any release. The first failing renderer blocks all outputs.
+
+4. **Maintainer Disagreements**: @amamus (interim CODEOWNER) has final decision authority until
+   explicit team assignments are accepted. For cross-team conflicts (e.g., brand vs. legal), the
+   accountable owner listed in [OWNERSHIP.md](OWNERSHIP.md) or [LAUNCH_GATES.md](LAUNCH_GATES.md)
+   has tie-breaking authority within their domain.
+
+5. **Upstream Drift**: When upstream sources (oCIS, chart, Collabora) release new versions,
+   automated discovery opens a review issue but **never auto-updates pins**. The maintainer for
+   that component must explicitly approve the promotion, and all launch gates must pass.
+
+6. **Security vs. Feature Conflicts**: Security requirements (NFSv4.2 verification, TLS,
+   EULA acknowledgement) are non-negotiable. If a feature cannot meet security requirements,
+   it is either disabled or removed from the supported matrix.

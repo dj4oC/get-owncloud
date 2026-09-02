@@ -1,16 +1,25 @@
 # Interim accountable owner. Replace or add verified users/teams before public launch.
 * @amamus
+* @owncloud/infrastructure
+* @owncloud/brand
+* @owncloud/legal
+* @owncloud/product
+* @owncloud/docs
+* @owncloud/ospo
 
-# Path-based review routing. @amamus is the only verified repository owner today.
-/deploy/compose/ @amamus
+# Path-based review routing
+# Primary maintainer: @amamus
+# ownCloud teams for specific domains
+
+/deploy/compose/ @amamus @owncloud/product
 /scripts/ @amamus
 /src/ @amamus
-/catalog/ @amamus
-/schema/ @amamus
-/deploy/helm/ @amamus
-/argocd/ @amamus
-/ansible/ @amamus
-/site/ @amamus
-/assets/ @amamus
-/docs/ @amamus
-/.github/ @amamus
+/catalog/ @amamus @owncloud/product
+/schema/ @amamus @owncloud/product
+/deploy/helm/ @amamus @owncloud/product
+/argocd/ @amamus @owncloud/product
+/ansible/ @amamus @owncloud/product
+/site/ @amamus @owncloud/brand @owncloud/docs
+/assets/ @amamus @owncloud/brand
+/docs/ @amamus @owncloud/docs @owncloud/legal @owncloud/ospo
+/.github/ @amamus @owncloud/infrastructure @owncloud/legal
