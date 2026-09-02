@@ -211,7 +211,7 @@ async function generateLockFile(profile, sizing, catalog, legal, options = {}) {
       ocis: {
         version: profile.ocisVersion || (profile.target.runtime === "kubernetes" ? "7.1.4" : "8.2.0"),
         gitCommit: catalog.sources.ocisCompose.commit,
-        image: catalog.sources.ocisCompose.image
+        image: `docker.io/owncloud/ocis:${profile.ocisVersion || (profile.target.runtime === "kubernetes" ? "7.1.4" : "8.2.0")}`
       },
       collabora: profile.office?.mode === "collabora" ? {
         version: "latest",
