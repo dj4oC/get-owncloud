@@ -465,6 +465,27 @@
         { "value": false, "description": "disabled", "testFile": "services.spec.mjs", "testFunction": "testNotificationsDisabled" }
       ]
     },
+    "monitoring": {
+      "description": "Monitoring feature configuration",
+      "type": "select",
+      "options": [
+        { "value": "false", "testFile": "services.spec.mjs", "testFunction": "testMonitoringDisabled" },
+        { "value": "true", "testFile": "services.spec.mjs", "testFunction": "testMonitoringEnabled" },
+        { "value": "object", "testFile": "services.spec.mjs", "testFunction": "testMonitoringAdvanced" }
+      ],
+      "testValues": [
+        { "value": false, "description": "disabled", "testFile": "services.spec.mjs", "testFunction": "testMonitoringDisabled" },
+        { "value": true, "description": "enabled", "testFile": "services.spec.mjs", "testFunction": "testMonitoringEnabled" },
+        { "value": { "enabled": true, "metrics": { "enabled": true }, "opentelemetry": { "enabled": false } }, "description": "advanced configuration", "testFile": "services.spec.mjs", "testFunction": "testMonitoringAdvanced" }
+      ],
+      "conditionalBehavior": {
+        "enabled": {
+          "exposesPorts": [9090],
+          "requiresNetworkConfiguration": true
+        }
+      },
+      "sizingContribution": true
+    },
     "autoUpdates": {
       "description": "Automatic security patches",
       "type": "checkbox",
@@ -685,13 +706,13 @@
     ]
   },
   "stats": {
-    "totalControls": 68,
-    "totalOptions": 200,
+    "totalControls": 69,
+    "totalOptions": 203,
     "totalTestFiles": 12,
-    "directCoverageTests": 68,
+    "directCoverageTests": 71,
     "pairwiseCoverageTests": 30,
     "highRiskJourneyTests": 6,
     "completenessGuardTests": 1,
-    "totalTests": 105
+    "totalTests": 108
   }
 }

@@ -22,6 +22,13 @@ function composeFiles(profile) {
   }
   if (profile.features.clamav) files.push("clamav.yml");
   if (profile.identity.mode === "external-oidc") files.push("external-oidc.yml");
+  
+  // Handle monitoring configuration - can be boolean or object
+  const monitoring = profile.features.monitoring;
+  if (monitoring === true || (typeof monitoring === 'object' && monitoring.enabled)) {
+    files.push("monitoring.yml");
+  }
+  
   return files;
 }
 
@@ -107,6 +114,47 @@ function makeEnv(profile, sizing, secrets, selected) {
     ["GET_OWNCLOUD_BACKUP_RECIPIENT", profile.updates.backupRecipient ?? ""],
     ["GET_OWNCLOUD_RUNTIME", profile.target.runtime]
   ];
+  
+  // Handle monitoring environment variables
+  const monitoringConfig = profile.features.monitoring;
+  if (monitoringConfig === true) {
+    values.push(
+      ["MONITORING_ENABLED", "true"],
+      ["METRICS_ENABLED", "true"],
+      ["METRICS_ENDPOINT", ""],
+      ["METRICS_AUTHENTICATION", "false"],
+      ["TRACING_ENABLED", "false"],
+      ["TRACING_ENDPOINT", ""],
+      ["TRACING_PROTOCOL", "grpc"],
+      ["TRACING_TLS", "true"],
+      ["TRACING_CA_SECRET_REF", ""]
+    );
+  } else if (typeof monitoringConfig === 'object' && monitoringConfig.enabled) {
+    values.push(
+      ["MONITORING_ENABLED", "true"],
+      ["METRICS_ENABLED", monitoringConfig.metrics?.enabled ? "true" : "false"],
+      ["METRICS_ENDPOINT", monitoringConfig.metrics?.endpoint ?? ""],
+      ["METRICS_AUTHENTICATION", monitoringConfig.metrics?.authentication ? "true" : "false"],
+      ["TRACING_ENABLED", monitoringConfig.opentelemetry?.enabled ? "true" : "false"],
+      ["TRACING_ENDPOINT", monitoringConfig.opentelemetry?.endpoint ?? ""],
+      ["TRACING_PROTOCOL", monitoringConfig.opentelemetry?.protocol ?? "grpc"],
+      ["TRACING_TLS", monitoringConfig.opentelemetry?.tls ? "true" : "false"],
+      ["TRACING_CA_SECRET_REF", monitoringConfig.opentelemetry?.caSecretRef ?? ""]
+    );
+  } else {
+    values.push(
+      ["MONITORING_ENABLED", "false"],
+      ["METRICS_ENABLED", "false"],
+      ["METRICS_ENDPOINT", ""],
+      ["METRICS_AUTHENTICATION", "false"],
+      ["TRACING_ENABLED", "false"],
+      ["TRACING_ENDPOINT", ""],
+      ["TRACING_PROTOCOL", "grpc"],
+      ["TRACING_TLS", "true"],
+      ["TRACING_CA_SECRET_REF", ""]
+    );
+  }
+  
   return values.map(([name, value]) => env(name, value)).join("\n") + "\n";
 }
 
@@ -142,6 +190,13 @@ export function requiredTemplatePaths(profile) {
   for (const name of ["install.sh", "runtime-common.sh", "healthcheck.sh", "backup.sh", "restore.sh", "update-service.sh"]) {
     paths.push("scripts/" + name);
   }
+  
+  // Add monitoring template if monitoring might be enabled
+  const monitoring = profile.features.monitoring;
+  if (monitoring === true || (typeof monitoring === 'object' && monitoring.enabled)) {
+    paths.push("deploy/compose/template/monitoring.yml");
+  }
+  
   if (profile.target.manager === "ansible") {
     paths.push(
       "ansible/playbook.yml",
@@ -203,7 +258,8 @@ export async function buildSingleHostBundle({ profile, sizing, templates, secret
       traefik: "docker.io/library/traefik@sha256:c549d482c55d7a797398562064f35428cc53e748d84d7190997930e7b31bcc32",
       collabora: profile.office.deployment === "bundled" ? "docker.io/collabora/code@sha256:0011be3edac909b390e6f297093bb82f61f9f3ce5476a3bdd4f3ce6b12f74ec3" : null,
       tika: profile.features.search ? "docker.io/apache/tika@sha256:21d8052de04e491ccf66e8680ade4da6f3d453a56d59f740b4167e54167219b7" : null,
-      clamav: profile.features.clamav ? "docker.io/clamav/clamav@sha256:75fb5fd95fcbe1d7e6d240c369c1572b686ee2c95949d1042b5148de8eddebb4" : null
+      clamav: profile.features.clamav ? "docker.io/clamav/clamav@sha256:75fb5fd95fcbe1d7e6d240c369c1572b686ee2c95949d1042b5148de8eddebb4" : null,
+      monitoring: (profile.features.monitoring === true || (typeof profile.features.monitoring === 'object' && profile.features.monitoring.enabled)) ? "ocis-metrics-enabled" : null
     },
     selectedComposeFiles: selected,
     maturity: profile.target.runtime === "podman" ? "community-preview" : "production"

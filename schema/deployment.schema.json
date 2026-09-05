@@ -118,7 +118,38 @@
         "clamav": { "type": "boolean" },
         "search": { "type": "boolean" },
         "notifications": { "type": "boolean" },
-        "monitoring": { "type": "boolean" }
+        "monitoring": {
+          "oneOf": [
+            { "type": "boolean" },
+            { 
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "enabled": { "type": "boolean" },
+                "metrics": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "enabled": { "type": "boolean" },
+                    "endpoint": { "type": "string", "format": "uri" },
+                    "authentication": { "type": "boolean" }
+                  }
+                },
+                "opentelemetry": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "enabled": { "type": "boolean" },
+                    "endpoint": { "type": "string", "format": "uri" },
+                    "protocol": { "enum": ["grpc", "http"] },
+                    "tls": { "type": "boolean" },
+                    "caSecretRef": { "type": "string" }
+                  }
+                }
+              }
+            }
+          ]
+        }
       }
     },
     "security": {

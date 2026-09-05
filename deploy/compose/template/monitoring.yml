@@ -1,0 +1,16 @@
+---
+services:
+  ocis:
+    environment:
+      # Monitoring and metrics configuration
+      OCIS_MONITORING_ENABLED: "${MONITORING_ENABLED:-false}"
+      OCIS_METRICS_ENDPOINT: "${METRICS_ENDPOINT:-}"
+      OCIS_METRICS_AUTHENTICATION: "${METRICS_AUTHENTICATION:-false}"
+      # OpenTelemetry tracing configuration
+      OCIS_TRACING_ENABLED: "${TRACING_ENABLED:-false}"
+      OCIS_TRACING_ENDPOINT: "${TRACING_ENDPOINT:-}"
+      OCIS_TRACING_PROTOCOL: "${TRACING_PROTOCOL:-grpc}"
+      OCIS_TRACING_TLS: "${TRACING_TLS:-true}"
+      OCIS_TRACING_CA_SECRET_REF: "${TRACING_CA_SECRET_REF:-}"
+    ports:
+      - "${METRICS_PORT:-9090}:9090"  # Metrics endpoint

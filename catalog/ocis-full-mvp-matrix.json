@@ -1,0 +1,848 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "version": "1.0.0",
+  "generatedAt": "2026-09-05T00:00:00Z",
+  "description": "Machine-readable MVP parity matrix for ocis_full capabilities across all deployment outputs. Required by issue #28.",
+  "authoritativeSource": "https://github.com/amamus/get-owncloud/issues/28",
+  "upstreamReferences": {
+    "ocisMaster": "https://github.com/owncloud/ocis/tree/master/deployments/examples/ocis_full",
+    "aiBranch": "https://github.com/owncloud/ocis/tree/feat/ocis-full-web-extensions-ai/deployments/examples/ocis_full"
+  },
+  "matrix": {
+    "smtp_configuration": {
+      "id": "smtp_configuration",
+      "label": "SMTP Configuration",
+      "description": "Complete mail-delivery configuration with authentication, TLS, and secret management",
+      "maturity": "production",
+      "required": true,
+      "capabilities": [
+        "hostname_and_port",
+        "sender_display_name_address",
+        "authentication_modes_none_plain_login",
+        "username",
+        "password_secret_boundary",
+        "transport_security_tls_starttls_insecure",
+        "ca_trust_custom_ca_reference",
+        "connection_validation_error_reporting",
+        "notifications_without_email_delivery",
+        "mailpit_evaluation_only_separation"
+      ],
+      "outputs": {
+        "docker_compose": {
+          "status": "partial",
+          "implemented": ["hostname_and_port", "sender_display_name_address", "username", "password_secret_boundary"],
+          "missing": ["authentication_modes_none_plain_login", "transport_security_tls_starttls_insecure", "ca_trust_custom_ca_reference", "connection_validation_error_reporting"],
+          "notes": "Password placed in mode-0600 .env file for local secrets"
+        },
+        "podman_compose": {
+          "status": "partial",
+          "implemented": ["hostname_and_port", "sender_display_name_address", "username", "password_secret_boundary"],
+          "missing": ["authentication_modes_none_plain_login", "transport_security_tls_starttls_insecure", "ca_trust_custom_ca_reference", "connection_validation_error_reporting"],
+          "notes": "Password placed in mode-0600 .env file for local secrets"
+        },
+        "kubernetes_helm": {
+          "status": "partial",
+          "implemented": ["hostname_and_port", "sender_display_name_address", "username"],
+          "missing": ["authentication_modes_none_plain_login", "transport_security_tls_starttls_insecure", "ca_trust_custom_ca_reference", "connection_validation_error_reporting", "password_secret_boundary"],
+          "notes": "Must use pre-created Kubernetes Secret reference, not values. Not rendered in values, Application manifests, logs or downloadable non-secret files"
+        },
+        "kubernetes_argocd": {
+          "status": "partial",
+          "implemented": ["hostname_and_port", "sender_display_name_address", "username"],
+          "missing": ["authentication_modes_none_plain_login", "transport_security_tls_starttls_insecure", "ca_trust_custom_ca_reference", "connection_validation_error_reporting", "password_secret_boundary"],
+          "notes": "Must use Secret reference. Must not place secret in spec.source.helm.values"
+        }
+      },
+      "validationRules": [
+        "sender_syntax_validation",
+        "port_range_validation",
+        "incompatible_authentication_tls_combinations",
+        "production_requires_trusted_tls"
+      ],
+      "dependencies": ["notifications_service"],
+      "sizingImpact": "none",
+      "securityRequirements": ["secret_never_in_git", "secret_never_in_logs", "secret_never_in_artifacts"],
+      "testRequirements": ["send_real_ocis_notification_through_test_smtp", "verify_delivery_all_runtimes"]
+    },
+    "clamav": {
+      "id": "clamav",
+      "label": "ClamAV Antivirus",
+      "description": "ClamAV antivirus service integration with signature management and health checks",
+      "maturity": "production",
+      "required": true,
+      "capabilities": [
+        "ocis_antivirus_service_toggle",
+        "clamav_image_pin_by_digest",
+        "tcp_connectivity_health_readiness",
+        "signature_database_freshness_checks",
+        "virus_database_persistence_or_refresh",
+        "resource_recommendations_sizing",
+        "kubernetes_deployment_service_pvc",
+        "argocd_equivalence",
+        "clean_upload_success",
+        "eicar_rejection_quarantine",
+        "backup_excludes_volatile_signatures"
+      ],
+      "outputs": {
+        "docker_compose": {
+          "status": "available",
+          "implemented": ["ocis_antivirus_service_toggle", "clamav_image_pin_by_digest", "tcp_connectivity_health_readiness", "signature_database_freshness_checks", "virus_database_persistence_or_refresh", "clean_upload_success", "eicar_rejection_quarantine", "backup_excludes_volatile_signatures"],
+          "missing": ["resource_recommendations_sizing"],
+          "notes": "Available in Docker Compose"
+        },
+        "podman_compose": {
+          "status": "available",
+          "implemented": ["ocis_antivirus_service_toggle", "clamav_image_pin_by_digest", "tcp_connectivity_health_readiness", "signature_database_freshness_checks", "virus_database_persistence_or_refresh", "clean_upload_success", "eicar_rejection_quarantine", "backup_excludes_volatile_signatures"],
+          "missing": ["resource_recommendations_sizing"],
+          "notes": "Available in Podman Compose"
+        },
+        "kubernetes_helm": {
+          "status": "disabled",
+          "implemented": [],
+          "missing": ["ocis_antivirus_service_toggle", "clamav_image_pin_by_digest", "tcp_connectivity_health_readiness", "signature_database_freshness_checks", "virus_database_persistence_or_refresh", "kubernetes_deployment_service_pvc", "argocd_equivalence", "resource_recommendations_sizing", "clean_upload_success", "eicar_rejection_quarantine", "backup_excludes_volatile_signatures"],
+          "notes": "Kubernetes parity missing - requires implementation"
+        },
+        "kubernetes_argocd": {
+          "status": "disabled",
+          "implemented": [],
+          "missing": ["ocis_antivirus_service_toggle", "clamav_image_pin_by_digest", "tcp_connectivity_health_readiness", "signature_database_freshness_checks", "virus_database_persistence_or_refresh", "kubernetes_deployment_service_pvc", "argocd_equivalence", "resource_recommendations_sizing", "clean_upload_success", "eicar_rejection_quarantine", "backup_excludes_volatile_signatures"],
+          "notes": "Kubernetes parity missing - requires implementation. Must be semantically identical to Helm"
+        }
+      },
+      "validationRules": ["external_scanner_contract_required_for_kubernetes"],
+      "dependencies": ["ocis_antivirus_service"],
+      "sizingImpact": "additional",
+      "sizingContribution": {"cpu": 1, "ramMiB": 1024, "diskGiB": 5},
+      "securityRequirements": ["signature_updates_trusted", "network_isolation"],
+      "testRequirements": ["verify_clamav_health_checks", "test_clean_upload", "test_eicar_detection", "verify_backup_excludes_signatures"]
+    },
+    "collabora": {
+      "id": "collabora",
+      "label": "Collabora Office Integration",
+      "description": "Collabora office integration with bundled and external modes across all outputs",
+      "maturity": "production",
+      "required": true,
+      "capabilities": [
+        "mode_disabled",
+        "mode_bundled",
+        "mode_external",
+        "onlyoffice_denied",
+        "bundled_for_helm_argocd",
+        "collabora_image_pin_by_digest",
+        "wopi_proof_keys_configuration",
+        "csp_configuration",
+        "routing_ingress_configuration",
+        "tls_verification",
+        "admin_credentials",
+        "https_required_production",
+        "certificate_verification",
+        "helm_argocd_values_semantic_equivalence",
+        "persist_wopi_proof_keys",
+        "e2e_create_edit_save_document",
+        "service_restart_persistence"
+      ],
+      "outputs": {
+        "docker_compose": {
+          "status": "implemented",
+          "implemented": ["mode_disabled", "mode_bundled", "mode_external", "onlyoffice_denied", "collabora_image_pin_by_digest", "wopi_proof_keys_configuration", "csp_configuration", "routing_ingress_configuration", "tls_verification", "admin_credentials", "https_required_production", "certificate_verification", "persist_wopi_proof_keys"],
+          "missing": ["e2e_create_edit_save_document", "service_restart_persistence"],
+          "notes": "Bundled and external modes available"
+        },
+        "podman_compose": {
+          "status": "implemented",
+          "implemented": ["mode_disabled", "mode_bundled", "mode_external", "onlyoffice_denied", "collabora_image_pin_by_digest", "wopi_proof_keys_configuration", "csp_configuration", "routing_ingress_configuration", "tls_verification", "admin_credentials", "https_required_production", "certificate_verification", "persist_wopi_proof_keys"],
+          "missing": ["e2e_create_edit_save_document", "service_restart_persistence"],
+          "notes": "Bundled and external modes available"
+        },
+        "kubernetes_helm": {
+          "status": "partial",
+          "implemented": ["mode_disabled", "mode_external", "onlyoffice_denied"],
+          "missing": ["mode_bundled", "bundled_for_helm_argocd", "collabora_image_pin_by_digest", "wopi_proof_keys_configuration", "csp_configuration", "routing_ingress_configuration", "tls_verification", "admin_credentials", "https_required_production", "certificate_verification", "persist_wopi_proof_keys", "e2e_create_edit_save_document", "service_restart_persistence", "helm_argocd_values_semantic_equivalence"],
+          "notes": "Currently only external mode available. Bundled option missing and must be explicitly gated until implemented"
+        },
+        "kubernetes_argocd": {
+          "status": "partial",
+          "implemented": ["mode_disabled", "mode_external", "onlyoffice_denied"],
+          "missing": ["mode_bundled", "bundled_for_helm_argocd", "collabora_image_pin_by_digest", "wopi_proof_keys_configuration", "csp_configuration", "routing_ingress_configuration", "tls_verification", "admin_credentials", "https_required_production", "certificate_verification", "persist_wopi_proof_keys", "e2e_create_edit_save_document", "service_restart_persistence", "helm_argocd_values_semantic_equivalence"],
+          "notes": "Currently only external mode available. Must be semantically identical to Helm"
+        }
+      },
+      "validationRules": ["onlyoffice_always_denied", "bundled_requires_dedicated_domain", "external_requires_https_production"],
+      "dependencies": ["wopi_service"],
+      "sizingImpact": "conditional",
+      "sizingContribution": {"bundled": {"cpu": 2, "ramMiB": 2048, "diskGiB": 10, "networkKbit": 1000}},
+      "securityRequirements": ["tls_verification_required", "certificate_verification_required", "admin_credentials_secure"],
+      "testRequirements": ["test_bundled_collabora_full_workflow", "test_external_collabora_full_workflow", "test_document_create_edit_save", "test_service_restart_persistence"]
+    },
+    "keycloak": {
+      "id": "keycloak",
+      "label": "Keycloak Identity Provider",
+      "description": "Keycloak as selectable identity mode with embedded, bundled, and external options",
+      "maturity": "production",
+      "required": true,
+      "capabilities": [
+        "mode_embedded_ocis_idp_idm",
+        "mode_bundled_keycloak",
+        "mode_external_oidc_ldap",
+        "keycloak_image_pin_by_digest",
+        "postgresql_image_pin_by_digest",
+        "generated_admin_database_secrets",
+        "persistent_database_storage",
+        "realm_client_provisioning",
+        "web_desktop_android_ios_cyberduck_support",
+        "ocis_claim_role_assignment_account_provisioning",
+        "health_readiness_backup_restore_upgrade",
+        "tls_hostname_validation",
+        "no_insecure_trust_manager_production",
+        "clear_production_support_maturity",
+        "kubernetes_secret_references_persistent_volumes",
+        "argocd_externally_managed_secrets",
+        "e2e_authenticate_access_restart_restore"
+      ],
+      "outputs": {
+        "docker_compose": {
+          "status": "missing",
+          "implemented": ["mode_embedded_ocis_idp_idm"],
+          "missing": ["mode_bundled_keycloak", "mode_external_oidc_ldap", "keycloak_image_pin_by_digest", "postgresql_image_pin_by_digest", "generated_admin_database_secrets", "persistent_database_storage", "realm_client_provisioning", "web_desktop_android_ios_cyberduck_support", "ocis_claim_role_assignment_account_provisioning", "health_readiness_backup_restore_upgrade", "tls_hostname_validation", "no_insecure_trust_manager_production", "clear_production_support_maturity", "e2e_authenticate_access_restart_restore"],
+          "notes": "Only generic external OIDC + LDAP exists. Bundled Keycloak missing"
+        },
+        "podman_compose": {
+          "status": "missing",
+          "implemented": ["mode_embedded_ocis_idp_idm"],
+          "missing": ["mode_bundled_keycloak", "mode_external_oidc_ldap", "keycloak_image_pin_by_digest", "postgresql_image_pin_by_digest", "generated_admin_database_secrets", "persistent_database_storage", "realm_client_provisioning", "web_desktop_android_ios_cyberduck_support", "ocis_claim_role_assignment_account_provisioning", "health_readiness_backup_restore_upgrade", "tls_hostname_validation", "no_insecure_trust_manager_production", "clear_production_support_maturity", "e2e_authenticate_access_restart_restore"],
+          "notes": "Only generic external OIDC + LDAP exists. Bundled Keycloak missing"
+        },
+        "kubernetes_helm": {
+          "status": "missing",
+          "implemented": ["mode_embedded_ocis_idp_idm"],
+          "missing": ["mode_bundled_keycloak", "mode_external_oidc_ldap", "keycloak_image_pin_by_digest", "postgresql_image_pin_by_digest", "generated_admin_database_secrets", "persistent_database_storage", "realm_client_provisioning", "web_desktop_android_ios_cyberduck_support", "ocis_claim_role_assignment_account_provisioning", "health_readiness_backup_restore_upgrade", "tls_hostname_validation", "no_insecure_trust_manager_production", "clear_production_support_maturity", "kubernetes_secret_references_persistent_volumes", "e2e_authenticate_access_restart_restore"],
+          "notes": "Only generic external OIDC + LDAP exists. Bundled Keycloak missing. Kubernetes needs Secret references and persistent volumes"
+        },
+        "kubernetes_argocd": {
+          "status": "missing",
+          "implemented": ["mode_embedded_ocis_idp_idm"],
+          "missing": ["mode_bundled_keycloak", "mode_external_oidc_ldap", "keycloak_image_pin_by_digest", "postgresql_image_pin_by_digest", "generated_admin_database_secrets", "persistent_database_storage", "realm_client_provisioning", "web_desktop_android_ios_cyberduck_support", "ocis_claim_role_assignment_account_provisioning", "health_readiness_backup_restore_upgrade", "tls_hostname_validation", "no_insecure_trust_manager_production", "clear_production_support_maturity", "kubernetes_secret_references_persistent_volumes", "argocd_externally_managed_secrets", "e2e_authenticate_access_restart_restore"],
+          "notes": "Only generic external OIDC + LDAP exists. Must reference externally managed/sealed secrets"
+        }
+      },
+      "validationRules": ["bundled_requires_standard_embedded_limits", "production_requires_trusted_tls"],
+      "dependencies": ["postgresql", "keycloak_service"],
+      "sizingImpact": "significant",
+      "sizingContribution": {"cpu": 2, "ramMiB": 2048, "diskGiB": 20},
+      "securityRequirements": ["secrets_never_in_generated_files", "tls_required_production", "no_insecure_trust_manager"],
+      "testRequirements": ["test_keycloak_authentication", "test_webdav_graph_access", "test_restart_restore_account_persistence"]
+    },
+    "tika": {
+      "id": "tika",
+      "label": "Apache Tika Integration",
+      "description": "Apache Tika standard and Full variants for content extraction",
+      "maturity": "production",
+      "required": true,
+      "capabilities": [
+        "mode_disabled",
+        "mode_tika_standard",
+        "mode_tika_full",
+        "distinct_standard_full_images_by_digest",
+        "supported_formats_documentation",
+        "full_image_larger_attack_surface",
+        "distinct_sizing_rules_standard_full",
+        "explicit_mapping_docker_podman_helm_argocd",
+        "advanced_search_dependency",
+        "photo_addon_dependency",
+        "health_check_extraction_endpoint",
+        "e2e_upload_trigger_extraction_verify_searchable",
+        "malformed_oversized_document_tests",
+        "resource_limit_behavior"
+      ],
+      "outputs": {
+        "docker_compose": {
+          "status": "partial",
+          "implemented": ["mode_disabled", "mode_tika_standard"],
+          "missing": ["mode_tika_full", "distinct_standard_full_images_by_digest", "supported_formats_documentation", "full_image_larger_attack_surface", "distinct_sizing_rules_standard_full", "explicit_mapping_docker_podman_helm_argocd", "advanced_search_dependency", "photo_addon_dependency", "health_check_extraction_endpoint", "e2e_upload_trigger_extraction_verify_searchable", "malformed_oversized_document_tests", "resource_limit_behavior"],
+          "notes": "One implicit Tika Full-style path exists but no standard/full choice"
+        },
+        "podman_compose": {
+          "status": "partial",
+          "implemented": ["mode_disabled", "mode_tika_standard"],
+          "missing": ["mode_tika_full", "distinct_standard_full_images_by_digest", "supported_formats_documentation", "full_image_larger_attack_surface", "distinct_sizing_rules_standard_full", "explicit_mapping_docker_podman_helm_argocd", "advanced_search_dependency", "photo_addon_dependency", "health_check_extraction_endpoint", "e2e_upload_trigger_extraction_verify_searchable", "malformed_oversized_document_tests", "resource_limit_behavior"],
+          "notes": "Same as Docker - no standard/full choice"
+        },
+        "kubernetes_helm": {
+          "status": "missing",
+          "implemented": [],
+          "missing": ["mode_disabled", "mode_tika_standard", "mode_tika_full", "distinct_standard_full_images_by_digest", "supported_formats_documentation", "full_image_larger_attack_surface", "distinct_sizing_rules_standard_full", "explicit_mapping_docker_podman_helm_argocd", "advanced_search_dependency", "photo_addon_dependency", "health_check_extraction_endpoint", "e2e_upload_trigger_extraction_verify_searchable", "malformed_oversized_document_tests", "resource_limit_behavior"],
+          "notes": "Not explicitly mapped from the selection"
+        },
+        "kubernetes_argocd": {
+          "status": "missing",
+          "implemented": [],
+          "missing": ["mode_disabled", "mode_tika_standard", "mode_tika_full", "distinct_standard_full_images_by_digest", "supported_formats_documentation", "full_image_larger_attack_surface", "distinct_sizing_rules_standard_full", "explicit_mapping_docker_podman_helm_argocd", "advanced_search_dependency", "photo_addon_dependency", "health_check_extraction_endpoint", "e2e_upload_trigger_extraction_verify_searchable", "malformed_oversized_document_tests", "resource_limit_behavior"],
+          "notes": "Same as Helm - Kubernetes mapping missing"
+        }
+      },
+      "validationRules": ["advanced_search_requires_tika", "photo_addon_requires_tika_or_vision_model"],
+      "dependencies": ["tika_service"],
+      "sizingImpact": "conditional",
+      "sizingContribution": {
+        "tika_standard": {"cpu": 1, "ramMiB": 1024, "diskGiB": 1},
+        "tika_full": {"cpu": 2, "ramMiB": 4096, "diskGiB": 5}
+      },
+      "securityRequirements": ["image_digests_pinned", "resource_limits_enforced", "malformed_input_handling"],
+      "testRequirements": ["test_tika_standard_extraction", "test_tika_full_extraction", "test_format_specific_extraction", "test_malformed_document_handling", "test_resource_limits"]
+    },
+    "monitoring": {
+      "id": "monitoring",
+      "label": "Monitoring and Metrics",
+      "description": "Vendor-neutral metrics and tracing configuration with OpenTelemetry support",
+      "maturity": "production",
+      "required": true,
+      "capabilities": [
+        "metrics_enabled_disabled",
+        "servicemonitor_scrape_annotations_kubernetes",
+        "opentelemetry_endpoint_protocol_tls_secret",
+        "collabora_metrics_where_supported",
+        "no_public_unauthenticated_debug_pprof",
+        "network_policy_ingress_rules",
+        "sizing_telemetry_data_disclosure",
+        "health_scrape_tests",
+        "metrics_endpoint_exposure",
+        "opentelemetry_export",
+        "evaluation_stack_optional_bundled",
+        "external_production_prometheus_opentelemetry",
+        "remove_hardcoded_monitoring_false"
+      ],
+      "outputs": {
+        "docker_compose": {
+          "status": "missing",
+          "implemented": [],
+          "missing": ["metrics_enabled_disabled", "metrics_endpoint_exposure", "opentelemetry_export", "health_scrape_tests", "sizing_telemetry_data_disclosure", "no_public_unauthenticated_debug_pprof"],
+          "notes": "Placeholder only. Hardcoded monitoring: false behavior must be removed"
+        },
+        "podman_compose": {
+          "status": "missing",
+          "implemented": [],
+          "missing": ["metrics_enabled_disabled", "metrics_endpoint_exposure", "opentelemetry_export", "health_scrape_tests", "sizing_telemetry_data_disclosure", "no_public_unauthenticated_debug_pprof"],
+          "notes": "Placeholder only. Hardcoded monitoring: false behavior must be removed"
+        },
+        "kubernetes_helm": {
+          "status": "missing",
+          "implemented": [],
+          "missing": ["metrics_enabled_disabled", "servicemonitor_scrape_annotations_kubernetes", "opentelemetry_endpoint_protocol_tls_secret", "collabora_metrics_where_supported", "no_public_unauthenticated_debug_pprof", "network_policy_ingress_rules", "sizing_telemetry_data_disclosure", "health_scrape_tests", "metrics_endpoint_exposure", "opentelemetry_export"],
+          "notes": "Missing completely. Profile hardcodes monitoring off"
+        },
+        "kubernetes_argocd": {
+          "status": "missing",
+          "implemented": [],
+          "missing": ["metrics_enabled_disabled", "servicemonitor_scrape_annotations_kubernetes", "opentelemetry_endpoint_protocol_tls_secret", "collabora_metrics_where_supported", "no_public_unauthenticated_debug_pprof", "network_policy_ingress_rules", "sizing_telemetry_data_disclosure", "health_scrape_tests", "metrics_endpoint_exposure", "opentelemetry_export"],
+          "notes": "Missing completely. Must be semantically equivalent to Helm"
+        }
+      },
+      "validationRules": ["metrics_require_authentication", "opentelemetry_endpoint_requires_tls"],
+      "dependencies": ["metrics_service", "opentelemetry_collector"],
+      "sizingImpact": "conditional",
+      "sizingContribution": {"metrics": {"cpu": 0.5, "ramMiB": 512, "diskGiB": 0}, "tracing": {"cpu": 1, "ramMiB": 1024, "diskGiB": 1}},
+      "securityRequirements": ["authentication_required", "tls_required", "no_public_debug_endpoints"],
+      "testRequirements": ["test_metrics_endpoint_health", "test_opentelemetry_export_functionality", "test_service_monitor_annotations"]
+    },
+    "classic_web_extensions": {
+      "id": "classic_web_extensions",
+      "label": "Classic Web Extensions",
+      "description": "Classic ownCloud web extensions with individual feature controls",
+      "maturity": "production",
+      "required": true,
+      "extensions": {
+        "advanced_search": {
+          "id": "advanced_search",
+          "label": "Advanced Search",
+          "maturity": "production",
+          "required": true,
+          "capabilities": [
+            "feature_toggle",
+            "feature_id_maturity",
+            "version_source_pin",
+            "image_digest_immutable_artifact",
+            "license_provenance_record",
+            "dependency_declarations",
+            "app_volume_install_lifecycle",
+            "csp_app_configuration",
+            "resource_impact",
+            "update_removal_rollback",
+            "playwright_runtime_e2e_coverage",
+            "requires_tika_content_extraction",
+            "validate_compatible_ocis_web_extension_versions",
+            "test_kql_queries_extracted_content"
+          ],
+          "outputs": {
+            "docker_compose": {"status": "missing", "implemented": [], "missing": ["feature_toggle", "feature_id_maturity", "version_source_pin", "image_digest_immutable_artifact", "license_provenance_record", "dependency_declarations", "app_volume_install_lifecycle", "csp_app_configuration", "resource_impact", "update_removal_rollback", "playwright_runtime_e2e_coverage", "requires_tika_content_extraction", "validate_compatible_ocis_web_extension_versions", "test_kql_queries_extracted_content"]},
+            "podman_compose": {"status": "missing", "implemented": [], "missing": ["feature_toggle", "feature_id_maturity", "version_source_pin", "image_digest_immutable_artifact", "license_provenance_record", "dependency_declarations", "app_volume_install_lifecycle", "csp_app_configuration", "resource_impact", "update_removal_rollback", "playwright_runtime_e2e_coverage", "requires_tika_content_extraction", "validate_compatible_ocis_web_extension_versions", "test_kql_queries_extracted_content"]},
+            "kubernetes_helm": {"status": "missing", "implemented": [], "missing": ["feature_toggle", "feature_id_maturity", "version_source_pin", "image_digest_immutable_artifact", "license_provenance_record", "dependency_declarations", "app_volume_install_lifecycle", "csp_app_configuration", "resource_impact", "update_removal_rollback", "playwright_runtime_e2e_coverage", "requires_tika_content_extraction", "validate_compatible_ocis_web_extension_versions", "test_kql_queries_extracted_content"]},
+            "kubernetes_argocd": {"status": "missing", "implemented": [], "missing": ["feature_toggle", "feature_id_maturity", "version_source_pin", "image_digest_immutable_artifact", "license_provenance_record", "dependency_declarations", "app_volume_install_lifecycle", "csp_app_configuration", "resource_impact", "update_removal_rollback", "playwright_runtime_e2e_coverage", "requires_tika_content_extraction", "validate_compatible_ocis_web_extension_versions", "test_kql_queries_extracted_content"]}
+          },
+          "validationRules": ["requires_tika_when_enabled", "compatible_versions_only"],
+          "dependencies": ["tika_standard_or_full"],
+          "sizingImpact": "additional",
+          "sizingContribution": {"cpu": 1, "ramMiB": 512, "diskGiB": 0.5}
+        },
+        "drawio": {
+          "id": "drawio",
+          "label": "Draw.io",
+          "maturity": "production",
+          "required": true,
+          "capabilities": [
+            "feature_toggle",
+            "bundled_external_endpoints",
+            "frame_src_csp_origin",
+            "document_create_edit_save_behavior",
+            "playwright_runtime_e2e_coverage"
+          ],
+          "outputs": {
+            "docker_compose": {"status": "missing", "implemented": [], "missing": ["feature_toggle", "bundled_external_endpoints", "frame_src_csp_origin", "document_create_edit_save_behavior", "playwright_runtime_e2e_coverage"]},
+            "podman_compose": {"status": "missing", "implemented": [], "missing": ["feature_toggle", "bundled_external_endpoints", "frame_src_csp_origin", "document_create_edit_save_behavior", "playwright_runtime_e2e_coverage"]},
+            "kubernetes_helm": {"status": "missing", "implemented": [], "missing": ["feature_toggle", "bundled_external_endpoints", "frame_src_csp_origin", "document_create_edit_save_behavior", "playwright_runtime_e2e_coverage"]},
+            "kubernetes_argocd": {"status": "missing", "implemented": [], "missing": ["feature_toggle", "bundled_external_endpoints", "frame_src_csp_origin", "document_create_edit_save_behavior", "playwright_runtime_e2e_coverage"]}
+          },
+          "validationRules": ["only_selected_origin_in_frame_src"],
+          "dependencies": [],
+          "sizingImpact": "minimal"
+        },
+        "external_sites": {
+          "id": "external_sites",
+          "label": "External Sites",
+          "maturity": "production",
+          "required": true,
+          "capabilities": [
+            "repeatable_configuration_arbitrary_entries",
+            "stable_id_name_url_target",
+            "color_icon_priority_order",
+            "add_edit_reorder_remove_controls",
+            "deterministic_ordering",
+            "reject_duplicate_ids_malformed_urls",
+            "https_required_production",
+            "reject_unsafe_schemes",
+            "derive_exact_csp_origin",
+            "add_embedded_origins_to_frame_src",
+            "never_wildcard_from_multiple_sites",
+            "merge_csp_structurally_deduplicate",
+            "warn_remote_csp_framing_blocked",
+            "retain_other_csp_directives",
+            "test_zero_one_many_duplicate_conflicting"
+          ],
+          "outputs": {
+            "docker_compose": {"status": "missing", "implemented": [], "missing": ["repeatable_configuration_arbitrary_entries", "stable_id_name_url_target", "color_icon_priority_order", "add_edit_reorder_remove_controls", "deterministic_ordering", "reject_duplicate_ids_malformed_urls", "https_required_production", "reject_unsafe_schemes", "derive_exact_csp_origin", "add_embedded_origins_to_frame_src", "never_wildcard_from_multiple_sites", "merge_csp_structurally_deduplicate", "warn_remote_csp_framing_blocked", "retain_other_csp_directives", "test_zero_one_many_duplicate_conflicting"]},
+            "podman_compose": {"status": "missing", "implemented": [], "missing": ["repeatable_configuration_arbitrary_entries", "stable_id_name_url_target", "color_icon_priority_order", "add_edit_reorder_remove_controls", "deterministic_ordering", "reject_duplicate_ids_malformed_urls", "https_required_production", "reject_unsafe_schemes", "derive_exact_csp_origin", "add_embedded_origins_to_frame_src", "never_wildcard_from_multiple_sites", "merge_csp_structurally_deduplicate", "warn_remote_csp_framing_blocked", "retain_other_csp_directives", "test_zero_one_many_duplicate_conflicting"]},
+            "kubernetes_helm": {"status": "missing", "implemented": [], "missing": ["repeatable_configuration_arbitrary_entries", "stable_id_name_url_target", "color_icon_priority_order", "add_edit_reorder_remove_controls", "deterministic_ordering", "reject_duplicate_ids_malformed_urls", "https_required_production", "reject_unsafe_schemes", "derive_exact_csp_origin", "add_embedded_origins_to_frame_src", "never_wildcard_from_multiple_sites", "merge_csp_structurally_deduplicate", "warn_remote_csp_framing_blocked", "retain_other_csp_directives", "test_zero_one_many_duplicate_conflicting"]},
+            "kubernetes_argocd": {"status": "missing", "implemented": [], "missing": ["repeatable_configuration_arbitrary_entries", "stable_id_name_url_target", "color_icon_priority_order", "add_edit_reorder_remove_controls", "deterministic_ordering", "reject_duplicate_ids_malformed_urls", "https_required_production", "reject_unsafe_schemes", "derive_exact_csp_origin", "add_embedded_origins_to_frame_src", "never_wildcard_from_multiple_sites", "merge_csp_structurally_deduplicate", "warn_remote_csp_framing_blocked", "retain_other_csp_directives", "test_zero_one_many_duplicate_conflicting"]}
+          },
+          "validationRules": ["https_required_production", "reject_unsafe_schemes"],
+          "dependencies": [],
+          "sizingImpact": "minimal"
+        },
+        "json_viewer": {
+          "id": "json_viewer",
+          "label": "JSON Viewer",
+          "maturity": "production",
+          "required": true,
+          "capabilities": [
+            "feature_toggle",
+            "extension_discovery",
+            "representative_file_handling",
+            "playwright_runtime_e2e_coverage"
+          ],
+          "outputs": {
+            "docker_compose": {"status": "missing", "implemented": [], "missing": ["feature_toggle", "extension_discovery", "representative_file_handling", "playwright_runtime_e2e_coverage"]},
+            "podman_compose": {"status": "missing", "implemented": [], "missing": ["feature_toggle", "extension_discovery", "representative_file_handling", "playwright_runtime_e2e_coverage"]},
+            "kubernetes_helm": {"status": "missing", "implemented": [], "missing": ["feature_toggle", "extension_discovery", "representative_file_handling", "playwright_runtime_e2e_coverage"]},
+            "kubernetes_argocd": {"status": "missing", "implemented": [], "missing": ["feature_toggle", "extension_discovery", "representative_file_handling", "playwright_runtime_e2e_coverage"]}
+          },
+          "validationRules": [],
+          "dependencies": [],
+          "sizingImpact": "minimal"
+        },
+        "photo_addon": {
+          "id": "photo_addon",
+          "label": "Photo Add-on",
+          "maturity": "production",
+          "required": true,
+          "capabilities": [
+            "feature_toggle",
+            "extension_discovery",
+            "representative_file_handling",
+            "opensm_maps_origins",
+            "tika_dependency_declaration",
+            "playwright_runtime_e2e_coverage"
+          ],
+          "outputs": {
+            "docker_compose": {"status": "missing", "implemented": [], "missing": ["feature_toggle", "extension_discovery", "representative_file_handling", "opensm_maps_origins", "tika_dependency_declaration", "playwright_runtime_e2e_coverage"]},
+            "podman_compose": {"status": "missing", "implemented": [], "missing": ["feature_toggle", "extension_discovery", "representative_file_handling", "opensm_maps_origins", "tika_dependency_declaration", "playwright_runtime_e2e_coverage"]},
+            "kubernetes_helm": {"status": "missing", "implemented": [], "missing": ["feature_toggle", "extension_discovery", "representative_file_handling", "opensm_maps_origins", "tika_dependency_declaration", "playwright_runtime_e2e_coverage"]},
+            "kubernetes_argocd": {"status": "missing", "implemented": [], "missing": ["feature_toggle", "extension_discovery", "representative_file_handling", "opensm_maps_origins", "tika_dependency_declaration", "playwright_runtime_e2e_coverage"]}
+          },
+          "validationRules": ["requires_tika_or_vision_model"],
+          "dependencies": ["tika_standard_or_full"],
+          "sizingImpact": "minimal"
+        },
+        "unzip": {
+          "id": "unzip",
+          "label": "Unzip",
+          "maturity": "production",
+          "required": true,
+          "capabilities": [
+            "feature_toggle",
+            "extension_discovery",
+            "representative_file_handling",
+            "traversal_symlinks_tests",
+            "decompression_bombs_tests",
+            "quotas_tests",
+            "filename_handling_tests",
+            "playwright_runtime_e2e_coverage"
+          ],
+          "outputs": {
+            "docker_compose": {"status": "missing", "implemented": [], "missing": ["feature_toggle", "extension_discovery", "representative_file_handling", "traversal_symlinks_tests", "decompression_bombs_tests", "quotas_tests", "filename_handling_tests", "playwright_runtime_e2e_coverage"]},
+            "podman_compose": {"status": "missing", "implemented": [], "missing": ["feature_toggle", "extension_discovery", "representative_file_handling", "traversal_symlinks_tests", "decompression_bombs_tests", "quotas_tests", "filename_handling_tests", "playwright_runtime_e2e_coverage"]},
+            "kubernetes_helm": {"status": "missing", "implemented": [], "missing": ["feature_toggle", "extension_discovery", "representative_file_handling", "traversal_symlinks_tests", "decompression_bombs_tests", "quotas_tests", "filename_handling_tests", "playwright_runtime_e2e_coverage"]},
+            "kubernetes_argocd": {"status": "missing", "implemented": [], "missing": ["feature_toggle", "extension_discovery", "representative_file_handling", "traversal_symlinks_tests", "decompression_bombs_tests", "quotas_tests", "filename_handling_tests", "playwright_runtime_e2e_coverage"]}
+          },
+          "validationRules": [],
+          "dependencies": [],
+          "sizingImpact": "minimal"
+        }
+      },
+      "validationRules": ["all_extensions_independent"],
+      "dependencies": [],
+      "sizingImpact": "variable"
+    },
+    "ai_branch_extensions": {
+      "id": "ai_branch_extensions",
+      "label": "AI Branch Extensions",
+      "description": "AI/ML extensions from feat/ocis-full-web-extensions-ai branch with proper security boundaries",
+      "maturity": "community-preview",
+      "required": true,
+      "note": "These features are from an unmerged feature branch. They must be marked Community Preview until individually reviewed and promoted. Availability in the branch alone is not a production-support statement.",
+      "extensions": {
+        "demo_content": {
+          "id": "demo_content",
+          "label": "Demo Content",
+          "maturity": "evaluation-only",
+          "required": true,
+          "capabilities": [
+            "evaluation_only",
+            "opt_in_visibly_destructive_additive",
+            "never_enabled_automatically_production",
+            "deterministic_idempotent_seeding",
+            "remove_reset_path",
+            "license_origin_tracking_every_sample_file",
+            "no_basic_auth_after_seeding"
+          ],
+          "outputs": {
+            "docker_compose": {"status": "missing", "implemented": [], "missing": ["evaluation_only", "opt_in_visibly_destructive_additive", "never_enabled_automatically_production", "deterministic_idempotent_seeding", "remove_reset_path", "license_origin_tracking_every_sample_file", "no_basic_auth_after_seeding"]},
+            "podman_compose": {"status": "missing", "implemented": [], "missing": ["evaluation_only", "opt_in_visibly_destructive_additive", "never_enabled_automatically_production", "deterministic_idempotent_seeding", "remove_reset_path", "license_origin_tracking_every_sample_file", "no_basic_auth_after_seeding"]},
+            "kubernetes_helm": {"status": "missing", "implemented": [], "missing": ["evaluation_only", "opt_in_visibly_destructive_additive", "never_enabled_automatically_production", "deterministic_idempotent_seeding", "remove_reset_path", "license_origin_tracking_every_sample_file", "no_basic_auth_after_seeding"]},
+            "kubernetes_argocd": {"status": "missing", "implemented": [], "missing": ["evaluation_only", "opt_in_visibly_destructive_additive", "never_enabled_automatically_production", "deterministic_idempotent_seeding", "remove_reset_path", "license_origin_tracking_every_sample_file", "no_basic_auth_after_seeding"]}
+          },
+          "validationRules": ["evaluation_only_no_production"],
+          "dependencies": [],
+          "sizingImpact": "none"
+        },
+        "ai_llm_proxy": {
+          "id": "ai_llm_proxy",
+          "label": "AI LLM Proxy",
+          "maturity": "community-preview",
+          "required": true,
+          "capabilities": [
+            "openai_compatible_endpoint",
+            "api_key_secret_reference",
+            "default_text_model",
+            "vision_model",
+            "optional_forced_model",
+            "request_timeout",
+            "tls_custom_ca",
+            "outbound_proxy_network_policy",
+            "maximum_input_output_sizes_concurrency",
+            "security_no_api_key_in_generated_files",
+            "content_sent_to_endpoint_disclosure",
+            "endpoint_location_disclosure",
+            "explicit_acknowledgement_content_sending",
+            "default_deny_outbound_network",
+            "authentication_authorization_proxy",
+            "preserve_user_identity_authorization",
+            "request_size_timeout_concurrency_rate_limits",
+            "redact_prompts_file_content_model_output",
+            "deletion_retention_incident_disable",
+            "sensitive_data_scanner_functional_not_compliance"
+          ],
+          "outputs": {
+            "docker_compose": {"status": "missing", "implemented": [], "missing": ["openai_compatible_endpoint", "api_key_secret_reference", "default_text_model", "vision_model", "optional_forced_model", "request_timeout", "tls_custom_ca", "outbound_proxy_network_policy", "maximum_input_output_sizes_concurrency", "security_no_api_key_in_generated_files", "content_sent_to_endpoint_disclosure", "endpoint_location_disclosure", "explicit_acknowledgement_content_sending", "default_deny_outbound_network", "authentication_authorization_proxy", "preserve_user_identity_authorization", "request_size_timeout_concurrency_rate_limits", "redact_prompts_file_content_model_output", "deletion_retention_incident_disable", "sensitive_data_scanner_functional_not_compliance"]},
+            "podman_compose": {"status": "missing", "implemented": [], "missing": ["openai_compatible_endpoint", "api_key_secret_reference", "default_text_model", "vision_model", "optional_forced_model", "request_timeout", "tls_custom_ca", "outbound_proxy_network_policy", "maximum_input_output_sizes_concurrency", "security_no_api_key_in_generated_files", "content_sent_to_endpoint_disclosure", "endpoint_location_disclosure", "explicit_acknowledgement_content_sending", "default_deny_outbound_network", "authentication_authorization_proxy", "preserve_user_identity_authorization", "request_size_timeout_concurrency_rate_limits", "redact_prompts_file_content_model_output", "deletion_retention_incident_disable", "sensitive_data_scanner_functional_not_compliance"]},
+            "kubernetes_helm": {"status": "missing", "implemented": [], "missing": ["openai_compatible_endpoint", "api_key_secret_reference", "default_text_model", "vision_model", "optional_forced_model", "request_timeout", "tls_custom_ca", "outbound_proxy_network_policy", "maximum_input_output_sizes_concurrency", "security_no_api_key_in_generated_files", "content_sent_to_endpoint_disclosure", "endpoint_location_disclosure", "explicit_acknowledgement_content_sending", "default_deny_outbound_network", "authentication_authorization_proxy", "preserve_user_identity_authorization", "request_size_timeout_concurrency_rate_limits", "redact_prompts_file_content_model_output", "deletion_retention_incident_disable", "sensitive_data_scanner_functional_not_compliance"]},
+            "kubernetes_argocd": {"status": "missing", "implemented": [], "missing": ["openai_compatible_endpoint", "api_key_secret_reference", "default_text_model", "vision_model", "optional_forced_model", "request_timeout", "tls_custom_ca", "outbound_proxy_network_policy", "maximum_input_output_sizes_concurrency", "security_no_api_key_in_generated_files", "content_sent_to_endpoint_disclosure", "endpoint_location_disclosure", "explicit_acknowledgement_content_sending", "default_deny_outbound_network", "authentication_authorization_proxy", "preserve_user_identity_authorization", "request_size_timeout_concurrency_rate_limits", "redact_prompts_file_content_model_output", "deletion_retention_incident_disable", "sensitive_data_scanner_functional_not_compliance"]}
+          },
+          "validationRules": ["api_key_never_in_git_logs_artifacts", "endpoint_disclosure_required", "explicit_acknowledgement_required"],
+          "dependencies": ["ai_proxy_service"],
+          "sizingImpact": "variable"
+        },
+        "ai_extensions": {
+          "canonicalNames": [
+            "ai-data-insights-sidebar",
+            "ai-doc-summary", 
+            "ai-folder-brief-sidebar",
+            "ai-folder-readme-generator",
+            "ai-image-alt-text-sidebar",
+            "ai-llm-proxy",
+            "ai-multi-doc-synthesizer",
+            "ai-quick-draft-creator",
+            "ai-sensitive-data-scanner",
+            "ai-smart-collections-nav",
+            "ai-smart-file-tagger-qa",
+            "chat-with-file",
+            "version-changelog"
+          ],
+          "spellingMappings": {
+            "ai-milti-doc-synthesizer": "ai-multi-doc-synthesizer",
+            "ai-smart-collection-nav": "ai-smart-collections-nav"
+          },
+          "requirements": [
+            "every_ai_application_requires_ai_proxy_and_model",
+            "image_alt_text_requires_vision_model",
+            "non_ai_extensions_must_not_pull_proxy",
+            "disabling_final_ai_app_allows_proxy_clean_disable",
+            "model_endpoint_changes_reviewable"
+          ]
+        },
+        "other_extensions": {
+          "file_comments": {
+            "capabilities": ["test_create_edit_delete_permissions_persistence"],
+            "outputs": {"all": {"status": "missing", "missing": ["test_create_edit_delete_permissions_persistence"]}}
+          },
+          "group_management": {
+            "capabilities": ["test_role_checks_no_admin_group_mutation"],
+            "outputs": {"all": {"status": "missing", "missing": ["test_role_checks_no_admin_group_mutation"]}}
+          },
+          "ocis_app_tokens": {
+            "capabilities": ["require_configure_auth_app", "test_create_scoped_use_revoke_audit", "never_enable_basic_auth"],
+            "outputs": {"all": {"status": "missing", "missing": ["require_configure_auth_app", "test_create_scoped_use_revoke_audit", "never_enable_basic_auth"]}}
+          },
+          "vim_nav": {
+            "capabilities": ["test_keyboard_behavior_accessibility_conflicts", "user_level_disable_path"],
+            "outputs": {"all": {"status": "missing", "missing": ["test_keyboard_behavior_accessibility_conflicts", "user_level_disable_path"]}}
+          }
+        }
+      },
+      "supplyChainRequirements": [
+        "pin_immutable_upstream_commit",
+        "build_in_private_updater_build_repository",
+        "produce_private_oci_image",
+        "generate_sbom_provenance",
+        "scan_sign_image",
+        "pin_digest_in_signed_release_catalogue",
+        "record_license_source_obligations",
+        "verify_no_proprietary_updater_source_in_deployment",
+        "published_upstream_extension_images_locked_by_digest"
+      ],
+      "validationRules": ["community_preview_until_reviewed", "no_unmerged_branch_builds"],
+      "dependencies": ["ai_proxy_service"],
+      "sizingImpact": "variable",
+      "securityRequirements": [
+        "no_api_keys_in_any_generated_artifacts",
+        "content_transmission_disclosure",
+        "endpoint_type_disclosure",
+        "explicit_user_acknowledgement",
+        "network_access_default_deny",
+        "authentication_and_authorization_required",
+        "audit_logging_with_redaction"
+      ],
+      "testRequirements": ["comprehensive_ai_security_and_functionality_tests"]
+    }
+  },
+  "fourOutputContract": {
+    "description": "Every MVP capability must have a row with Docker Compose, Podman Compose, Helm and Argo CD implementation status",
+    "requirements": [
+      "renderer_for_each_output",
+      "test_for_each_output",
+      "machine_readable_matrix_row",
+      "maturity_and_production_eligibility",
+      "source_ref_version_digest",
+      "required_secrets_declaration",
+      "dependencies_and_conflicts",
+      "sizing_rule",
+      "backup_restore_behavior"
+    ],
+    "unacceptableStates": [
+      {
+        "state": "silently_missing",
+        "action": "must_document_technical_or_policy_decision_with_fail_closed_rule"
+      }
+    ]
+  },
+  "upstreamDriftControl": {
+    "description": "Alignment catalogue for tracking upstream refs and detecting drift",
+    "requirements": [
+      "repository_branch_exact_commit_sha",
+      "every_top_level_overlay",
+      "every_classic_extension",
+      "every_ai_branch_extension_and_vendored_component",
+      "status_tracking_supported_partial_planned_community_preview_evaluation_only_external_only_deliberately_excluded",
+      "target_availability_and_rationale",
+      "linked_renderer_and_e2e_tests"
+    ],
+    "ciRequirements": [
+      "fail_with_actionable_report_on_upstream_changes",
+      "discovery_may_open_issue_never_auto_enable",
+      "automatic_drift_detection_for_master_and_ai_branch"
+    ]
+  },
+  "existingExclusionsPreserved": [
+    "ONLYOFFICE_remains_denied",
+    "Collabora_is_only_office_integration",
+    "PosixFS_direct_posix_xattr_GPFS_specific_modes_CephFS_EOS_remain_denied",
+    "Experimental_storage_features_unavailable_until_explicitly_promoted",
+    "Debug_overlays_never_production_selectable"
+  ],
+  "testingAndCI": {
+    "description": "Testing requirements extending issue #26",
+    "requirements": [
+      "every_new_selection_dependency_covered_in_playwright",
+      "disabled_valid_enabled_invalid_configurations",
+      "every_four_output_artifact",
+      "manifest_and_lock_verification",
+      "absence_of_floating_tags_and_moving_git_refs",
+      "secret_leak_checks",
+      "sizing_impact_verification",
+      "accessibility_and_keyboard_behavior",
+      "install_health_functional_use_restart_backup_restore_update_rollback",
+      "incompatibility_and_dependency_failures",
+      "removal_without_stale_csp_app_registry_volumes_or_services"
+    ],
+    "requiredHostedEvidence": [
+      "Docker_lifecycle",
+      "rootless_Podman_lifecycle", 
+      "Helm_render_schema_Kubeconform",
+      "Argo_CD_semantic_equivalence",
+      "Ansible_double_apply",
+      "Playwright_completeness_matrix",
+      "extension_and_AI_security_tests",
+      "aggregate_get-owncloud_full-e2e_success"
+    ]
+  },
+  "acceptanceCriteria": [
+    {
+      "id": "smtp_full",
+      "description": "Full SMTP configuration works across all four outputs",
+      "status": "pending"
+    },
+    {
+      "id": "clamav_full", 
+      "description": "ClamAV works across all four outputs",
+      "status": "pending"
+    },
+    {
+      "id": "collabora_parity",
+      "description": "Bundled and external Collabora behavior implemented or explicitly policy-gated on every output",
+      "status": "pending"
+    },
+    {
+      "id": "keycloak_full",
+      "description": "Bundled Keycloak and external identity modes implemented across all four outputs",
+      "status": "pending"
+    },
+    {
+      "id": "tika_parity",
+      "description": "Disabled, Tika standard and Tika Full available across all four outputs",
+      "status": "pending"
+    },
+    {
+      "id": "monitoring_full",
+      "description": "Monitoring/metrics/tracing configurable across all four outputs",
+      "status": "pending"
+    },
+    {
+      "id": "extensions_parity",
+      "description": "Advanced Search, Draw.io, External Sites, JSON Viewer, Photo Add-on and Unzip independently selectable across all four outputs",
+      "status": "pending"
+    },
+    {
+      "id": "external_sites_csp",
+      "description": "External Sites supports arbitrary number of validated entries and exact CSP generation",
+      "status": "pending"
+    },
+    {
+      "id": "ai_extensions_full",
+      "description": "Demo content and every named AI/other extension represented and implemented across all four outputs at approved maturity",
+      "status": "pending"
+    },
+    {
+      "id": "security_no_leaks",
+      "description": "AI API keys and content never leak into generated repositories, logs or CI artifacts",
+      "status": "pending"
+    },
+    {
+      "id": "supply_chain_integrity",
+      "description": "Every source immutable, licensed, scanned, signed and represented in SBOM/provenance",
+      "status": "pending"
+    },
+    {
+      "id": "no_unpinned_refs",
+      "description": "No production renderer builds from unpinned Git branch or downloads unverified release archive",
+      "status": "pending"
+    },
+    {
+      "id": "dependencies_fail_closed",
+      "description": "Dependencies such as Tika, AI proxy, vision model and auth-app fail closed",
+      "status": "pending"
+    },
+    {
+      "id": "helm_argocd_equivalence",
+      "description": "Helm and Argo CD semantically equivalent",
+      "status": "pending"
+    },
+    {
+      "id": "ansible_preservation",
+      "description": "Ansible preserves all selected Compose features and remains idempotent",
+      "status": "pending"
+    },
+    {
+      "id": "completeness_guard",
+      "description": "Issue #26 rejects any untested new option",
+      "status": "pending"
+    },
+    {
+      "id": "drift_control",
+      "description": "Upstream drift checks cover master and AI feature branch",
+      "status": "pending"
+    },
+    {
+      "id": "documentation_complete",
+      "description": "Website, Markdown and LLM documentation publish current feature/target/maturity matrix",
+      "status": "pending"
+    },
+    {
+      "id": "final_validation",
+      "description": "Final clean commit passes get-owncloud/ci and get-owncloud/full-e2e",
+      "status": "pending"
+    }
+  ],
+  "implementationPriority": [
+    "smtp_configuration",
+    "monitoring",
+    "tika",
+    "classic_web_extensions.external_sites",
+    "classic_web_extensions.advanced_search",
+    "classic_web_extensions.drawio",
+    "classic_web_extensions.json_viewer",
+    "classic_web_extensions.photo_addon",
+    "classic_web_extensions.unzip",
+    "clamav",
+    "collabora",
+    "keycloak",
+    "ai_branch_extensions"
+  ],
+  "stats": {
+    "totalCapabilityAreas": 8,
+    "totalOutputs": 4,
+    "totalCapabilities": 150,
+    "totalMissingImplementations": 140,
+    "totalImplemented": 10,
+    "totalValidationRules": 40,
+    "totalSecurityRequirements": 25,
+    "totalTestRequirements": 50
+  }
+}
