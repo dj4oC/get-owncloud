@@ -1,0 +1,697 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "version": "1.0.0",
+  "generatedAt": "2026-09-05T00:00:00Z",
+  "description": "Machine-readable Playwright E2E coverage catalogue for get-ownCloud configurator. This catalogue must be kept in sync with all UI options and enum values.",
+  "coverageRequirements": {
+    "directCoverage": "Every individual control value must have at least one direct test",
+    "pairwiseCoverage": "Valid interacting options must have pairwise tests",
+    "highRiskJourneys": "High-risk combinations must have focused multi-option tests",
+    "completenessGuard": "Adding an option without E2E coverage must fail CI"
+  },
+  "controls": {
+    "bootstrapCommandPicker": {
+      "description": "Bootstrap command selection",
+      "type": "select",
+      "options": [
+        { "value": "docker", "testFile": "bootstrap.spec.mjs", "testFunction": "testDockerBootstrap" },
+        { "value": "podman", "testFile": "bootstrap.spec.mjs", "testFunction": "testPodmanBootstrap" },
+        { "value": "kubernetes", "testFile": "bootstrap.spec.mjs", "testFunction": "testKubernetesBootstrap" },
+        { "value": "ansible", "testFile": "bootstrap.spec.mjs", "testFunction": "testAnsibleBootstrap" }
+      ],
+      "validCombinations": [
+        ["docker", "direct"],
+        ["podman", "direct"],
+        ["podman", "ansible"],
+        ["kubernetes", "helm"],
+        ["kubernetes", "argocd"]
+      ],
+      "pairwiseCoverageRequired": true
+    },
+    "purpose": {
+      "description": "Deployment purpose",
+      "type": "select",
+      "options": [
+        { "value": "evaluation", "testFile": "deployment-target.spec.mjs", "testFunction": "testPurposeEvaluation" },
+        { "value": "production", "testFile": "deployment-target.spec.mjs", "testFunction": "testPurposeProduction" }
+      ],
+      "pairwiseWith": ["runtime", "manager", "maturity"],
+      "conditionalBehavior": {
+        "production": {
+          "disabledOptions": ["evaluationSelfSignedTls"],
+          "forcedPorts": { "http": 80, "https": 443 },
+          "maturity": "production"
+        },
+        "evaluation": {
+          "maturity": "community-preview",
+          "basicAuth": true
+        }
+      }
+    },
+    "runtime": {
+      "description": "Target runtime",
+      "type": "select",
+      "options": [
+        { "value": "docker", "testFile": "deployment-target.spec.mjs", "testFunction": "testRuntimeDocker" },
+        { "value": "podman", "testFile": "deployment-target.spec.mjs", "testFunction": "testRuntimePodman" },
+        { "value": "kubernetes", "testFile": "deployment-target.spec.mjs", "testFunction": "testRuntimeKubernetes" }
+      ],
+      "pairwiseWith": ["purpose", "manager"],
+      "conditionalBehavior": {
+        "kubernetes": {
+          "forcedManager": ["helm", "argocd"],
+          "ocisVersion": "7.1.4",
+          "forcesExternalCollabora": true
+        },
+        "docker": {
+          "supportedManager": ["direct", "ansible"],
+          "ocisVersion": "8.2.0"
+        },
+        "podman": {
+          "supportedManager": ["direct", "ansible"],
+          "ocisVersion": "8.2.0",
+          "maturityNote": "runnable Community Preview"
+        }
+      }
+    },
+    "manager": {
+      "description": "Configuration manager",
+      "type": "select",
+      "options": [
+        { "value": "direct", "testFile": "deployment-target.spec.mjs", "testFunction": "testManagerDirect" },
+        { "value": "ansible", "testFile": "deployment-target.spec.mjs", "testFunction": "testManagerAnsible" },
+        { "value": "helm", "testFile": "deployment-target.spec.mjs", "testFunction": "testManagerHelm" },
+        { "value": "argocd", "testFile": "deployment-target.spec.mjs", "testFunction": "testManagerArgocd" }
+      ],
+      "pairwiseWith": ["runtime", "purpose"],
+      "validCombinations": [
+        ["docker", "direct"],
+        ["docker", "ansible"],
+        ["podman", "direct"],
+        ["podman", "ansible"],
+        ["kubernetes", "helm"],
+        ["kubernetes", "argocd"]
+      ],
+      "invalidCombinations": [
+        ["kubernetes", "direct"],
+        ["kubernetes", "ansible"],
+        ["docker", "helm"],
+        ["docker", "argocd"],
+        ["podman", "helm"],
+        ["podman", "argocd"]
+      ]
+    },
+    "registeredUsers": {
+      "description": "Number of registered users",
+      "type": "number",
+      "testValues": [
+        { "value": 0, "description": "minimum", "testFile": "workload.spec.mjs", "testFunction": "testRegisteredUsersMinimum" },
+        { "value": 20, "description": "boundary for embedded identity", "testFile": "workload.spec.mjs", "testFunction": "testRegisteredUsers20" },
+        { "value": 21, "description": "boundary invalid for embedded", "testFile": "workload.spec.mjs", "testFunction": "testRegisteredUsers21" },
+        { "value": 100, "description": "representative", "testFile": "workload.spec.mjs", "testFunction": "testRegisteredUsers100" },
+        { "value": 1000, "description": "large", "testFile": "workload.spec.mjs", "testFunction": "testRegisteredUsersLarge" },
+        { "value": "", "description": "invalid/empty", "testFile": "workload.spec.mjs", "testFunction": "testRegisteredUsersInvalid" }
+      ],
+      "conditionalBehavior": {
+        "embedded": {
+          "maxUsers": 20,
+          "autoSwitch": true
+        }
+      }
+    },
+    "storedDataGiB": {
+      "description": "Stored data in GiB",
+      "type": "number",
+      "testValues": [
+        { "value": 0, "description": "zero", "testFile": "workload.spec.mjs", "testFunction": "testStoredDataZero" },
+        { "value": 50, "description": "normal", "testFile": "workload.spec.mjs", "testFunction": "testStoredDataNormal" },
+        { "value": 1000, "description": "large", "testFile": "workload.spec.mjs", "testFunction": "testStoredDataLarge" }
+      ]
+    },
+    "annualGrowthPercent": {
+      "description": "Annual growth percentage",
+      "type": "number",
+      "testValues": [
+        { "value": 0, "description": "zero", "testFile": "workload.spec.mjs", "testFunction": "testAnnualGrowthZero" },
+        { "value": 20, "description": "normal", "testFile": "workload.spec.mjs", "testFunction": "testAnnualGrowthNormal" },
+        { "value": 50, "description": "boundary", "testFile": "workload.spec.mjs", "testFunction": "testAnnualGrowthBoundary" },
+        { "value": "", "description": "invalid", "testFile": "workload.spec.mjs", "testFunction": "testAnnualGrowthInvalid" }
+      ]
+    },
+    "systemCpu": {
+      "description": "System CPU cores",
+      "type": "number",
+      "optional": true,
+      "testValues": [
+        { "value": "", "description": "absent", "testFile": "workload.spec.mjs", "testFunction": "testSystemCpuAbsent" },
+        { "value": 2, "description": "below recommendation", "testFile": "workload.spec.mjs", "testFunction": "testSystemCpuBelow" },
+        { "value": 4, "description": "at recommendation", "testFile": "workload.spec.mjs", "testFunction": "testSystemCpuAtRecommendation" },
+        { "value": 8, "description": "above recommendation", "testFile": "workload.spec.mjs", "testFunction": "testSystemCpuAbove" }
+      ]
+    },
+    "systemRamGiB": {
+      "description": "System RAM in GiB",
+      "type": "number",
+      "optional": true,
+      "testValues": [
+        { "value": "", "description": "absent", "testFile": "workload.spec.mjs", "testFunction": "testSystemRamAbsent" },
+        { "value": 4, "description": "below recommendation", "testFile": "workload.spec.mjs", "testFunction": "testSystemRamBelow" },
+        { "value": 8, "description": "at recommendation", "testFile": "workload.spec.mjs", "testFunction": "testSystemRamAtRecommendation" },
+        { "value": 16, "description": "above recommendation", "testFile": "workload.spec.mjs", "testFunction": "testSystemRamAbove" }
+      ]
+    },
+    "systemDiskGiB": {
+      "description": "System disk in GiB",
+      "type": "number",
+      "optional": true,
+      "testValues": [
+        { "value": "", "description": "absent", "testFile": "workload.spec.mjs", "testFunction": "testSystemDiskAbsent" },
+        { "value": 10, "description": "below recommendation", "testFile": "workload.spec.mjs", "testFunction": "testSystemDiskBelow" },
+        { "value": 50, "description": "at recommendation", "testFile": "workload.spec.mjs", "testFunction": "testSystemDiskAtRecommendation" },
+        { "value": 100, "description": "above recommendation", "testFile": "workload.spec.mjs", "testFunction": "testSystemDiskAbove" }
+      ]
+    },
+    "identityMode": {
+      "description": "Identity provider mode",
+      "type": "select",
+      "options": [
+        { "value": "embedded", "testFile": "identity.spec.mjs", "testFunction": "testIdentityEmbedded" },
+        { "value": "external-oidc", "testFile": "identity.spec.mjs", "testFunction": "testIdentityExternalOidc" }
+      ],
+      "conditionalBehavior": {
+        "embedded": {
+          "maxUsers": 20,
+          "autoSwitchToExternalOidc": true
+        },
+        "external-oidc": {
+          "requiresFields": ["oidcIssuer", "oidcClientId", "ldapUri", "ldapBindDn", "ldapUserBaseDn", "ldapGroupBaseDn", "ldapBindPassword"]
+        }
+      }
+    },
+    "oidcIssuer": {
+      "description": "OIDC issuer URL",
+      "type": "text",
+      "testValues": [
+        { "value": "https://id.corp.example/realms/owncloud", "description": "valid", "testFile": "identity.spec.mjs", "testFunction": "testOidcIssuerValid" },
+        { "value": "", "description": "missing", "testFile": "identity.spec.mjs", "testFunction": "testOidcIssuerMissing" },
+        { "value": "not-a-url", "description": "malformed", "testFile": "identity.spec.mjs", "testFunction": "testOidcIssuerMalformed" }
+      ],
+      "requiredWhen": "identityMode === external-oidc"
+    },
+    "oidcClientId": {
+      "description": "OIDC client ID",
+      "type": "text",
+      "testValues": [
+        { "value": "owncloud-web", "description": "valid", "testFile": "identity.spec.mjs", "testFunction": "testOidcClientIdValid" },
+        { "value": "", "description": "missing", "testFile": "identity.spec.mjs", "testFunction": "testOidcClientIdMissing" }
+      ],
+      "requiredWhen": "identityMode === external-oidc"
+    },
+    "ldapUri": {
+      "description": "LDAP URI",
+      "type": "text",
+      "testValues": [
+        { "value": "ldaps://ldap.corp.example:636", "description": "valid LDAPS", "testFile": "identity.spec.mjs", "testFunction": "testLdapUriValid" },
+        { "value": "ldap://ldap.corp.example:389", "description": "valid LDAP", "testFile": "identity.spec.mjs", "testFunction": "testLdapUriValidLdap" },
+        { "value": "", "description": "missing", "testFile": "identity.spec.mjs", "testFunction": "testLdapUriMissing" },
+        { "value": "invalid-uri", "description": "malformed", "testFile": "identity.spec.mjs", "testFunction": "testLdapUriMalformed" }
+      ],
+      "requiredWhen": "identityMode === external-oidc"
+    },
+    "ldapBindDn": {
+      "description": "LDAP bind DN",
+      "type": "text",
+      "testValues": [
+        { "value": "uid=ocis,ou=system,dc=corp,dc=example", "description": "valid", "testFile": "identity.spec.mjs", "testFunction": "testLdapBindDnValid" },
+        { "value": "", "description": "missing", "testFile": "identity.spec.mjs", "testFunction": "testLdapBindDnMissing" }
+      ],
+      "requiredWhen": "identityMode === external-oidc"
+    },
+    "ldapUserBaseDn": {
+      "description": "LDAP user base DN",
+      "type": "text",
+      "testValues": [
+        { "value": "ou=users,dc=corp,dc=example", "description": "valid", "testFile": "identity.spec.mjs", "testFunction": "testLdapUserBaseDnValid" },
+        { "value": "", "description": "missing", "testFile": "identity.spec.mjs", "testFunction": "testLdapUserBaseDnMissing" }
+      ],
+      "requiredWhen": "identityMode === external-oidc"
+    },
+    "ldapGroupBaseDn": {
+      "description": "LDAP group base DN",
+      "type": "text",
+      "testValues": [
+        { "value": "ou=groups,dc=corp,dc=example", "description": "valid", "testFile": "identity.spec.mjs", "testFunction": "testLdapGroupBaseDnValid" },
+        { "value": "", "description": "missing", "testFile": "identity.spec.mjs", "testFunction": "testLdapGroupBaseDnMissing" }
+      ],
+      "requiredWhen": "identityMode === external-oidc"
+    },
+    "ldapBindPassword": {
+      "description": "LDAP bind password",
+      "type": "password",
+      "testValues": [
+        { "value": "local-test-bind-password", "description": "valid", "testFile": "identity.spec.mjs", "testFunction": "testLdapBindPasswordValid" },
+        { "value": "", "description": "missing", "testFile": "identity.spec.mjs", "testFunction": "testLdapBindPasswordMissing" }
+      ],
+      "requiredWhen": "identityMode === external-oidc",
+      "securityNote": "Must never appear in page, profile download, console or error messages. Only references allowed."
+    },
+    "storageMode": {
+      "description": "Storage driver",
+      "type": "select",
+      "options": [
+        { "value": "ocis", "testFile": "storage.spec.mjs", "testFunction": "testStorageModeOcis" },
+        { "value": "s3ng", "testFile": "storage.spec.mjs", "testFunction": "testStorageModeS3ng" }
+      ],
+      "forbiddenValues": ["posixfs", "posix", "xattr", "GPFS", "CephFS", "EOS"],
+      "conditionalBehavior": {
+        "s3ng": {
+          "requiresFields": ["s3Endpoint", "s3Region", "s3Bucket", "s3AccessKey", "s3SecretKey"]
+        }
+      }
+    },
+    "filesystem": {
+      "description": "Filesystem type",
+      "type": "select",
+      "options": [
+        { "value": "ext4", "testFile": "storage.spec.mjs", "testFunction": "testFilesystemExt4" },
+        { "value": "xfs", "testFile": "storage.spec.mjs", "testFunction": "testFilesystemXfs" },
+        { "value": "btrfs", "testFile": "storage.spec.mjs", "testFunction": "testFilesystemBtrfs" },
+        { "value": "zfs", "testFile": "storage.spec.mjs", "testFunction": "testFilesystemZfs" },
+        { "value": "nfs", "testFile": "storage.spec.mjs", "testFunction": "testFilesystemNfs" }
+      ],
+      "conditionalBehavior": {
+        "nfs": {
+          "requiresVersion": "4.2",
+          "warning": "NFSv4.2 required"
+        }
+      }
+    },
+    "dataPath": {
+      "description": "Data path",
+      "type": "text",
+      "testValues": [
+        { "value": "./data/data", "description": "default", "testFile": "storage.spec.mjs", "testFunction": "testDataPathDefault" },
+        { "value": "/srv/owncloud/data", "description": "custom", "testFile": "storage.spec.mjs", "testFunction": "testDataPathCustom" }
+      ]
+    },
+    "configPath": {
+      "description": "Configuration path",
+      "type": "text",
+      "testValues": [
+        { "value": "./data/config", "description": "default", "testFile": "storage.spec.mjs", "testFunction": "testConfigPathDefault" },
+        { "value": "/srv/owncloud/config", "description": "custom", "testFile": "storage.spec.mjs", "testFunction": "testConfigPathCustom" }
+      ]
+    },
+    "officeMode": {
+      "description": "Office integration mode",
+      "type": "select",
+      "options": [
+        { "value": "none", "testFile": "collabora.spec.mjs", "testFunction": "testOfficeModeNone" },
+        { "value": "bundled", "testFile": "collabora.spec.mjs", "testFunction": "testOfficeModeBundled" },
+        { "value": "external", "testFile": "collabora.spec.mjs", "testFunction": "testOfficeModeExternal" }
+      ],
+      "forbiddenValues": ["ONLYOFFICE", "unknown"],
+      "conditionalBehavior": {
+        "bundled": {
+          "supportedOn": ["docker", "podman"],
+          "requiresFields": ["bundledDomain", "bundledAdminPassword"]
+        },
+        "external": {
+          "supportedOn": ["docker", "podman", "kubernetes"],
+          "requiresFields": ["externalCollaboraUrl"]
+        },
+        "none": {
+          "supportedOn": ["docker", "podman", "kubernetes"]
+        },
+        "kubernetes": {
+          "forces": "external",
+          "requiresHttps": true
+        }
+      }
+    },
+    "bundledDomain": {
+      "description": "Bundled Collabora domain",
+      "type": "text",
+      "testValues": [
+        { "value": "office.localhost", "description": "valid", "testFile": "collabora.spec.mjs", "testFunction": "testBundledDomainValid" }
+      ],
+      "requiredWhen": "officeMode === bundled"
+    },
+    "bundledAdminPassword": {
+      "description": "Bundled Collabora admin password",
+      "type": "password",
+      "testValues": [
+        { "value": "admin-password-test", "description": "valid", "testFile": "collabora.spec.mjs", "testFunction": "testBundledAdminPasswordValid" }
+      ],
+      "requiredWhen": "officeMode === bundled",
+      "securityNote": "Must be handled securely"
+    },
+    "externalCollaboraUrl": {
+      "description": "External Collabora URL",
+      "type": "text",
+      "testValues": [
+        { "value": "https://office.example.com", "description": "valid HTTPS", "testFile": "collabora.spec.mjs", "testFunction": "testExternalCollaboraUrlValid" },
+        { "value": "http://office.example.com", "description": "invalid HTTP (must be HTTPS)", "testFile": "collabora.spec.mjs", "testFunction": "testExternalCollaboraUrlInvalidHttp" }
+      ],
+      "requiredWhen": "officeMode === external",
+      "validation": "Must be HTTPS"
+    },
+    "collaboraConcurrentUsers": {
+      "description": "Concurrent Collabora users",
+      "type": "number",
+      "testValues": [
+        { "value": "", "description": "default", "testFile": "collabora.spec.mjs", "testFunction": "testCollaboraConcurrentUsersDefault" },
+        { "value": 10, "description": "explicit", "testFile": "collabora.spec.mjs", "testFunction": "testCollaboraConcurrentUsersExplicit" }
+      ]
+    },
+    "tlsMode": {
+      "description": "TLS mode",
+      "type": "select",
+      "options": [
+        { "value": "evaluation-self-signed", "testFile": "networking.spec.mjs", "testFunction": "testTlsModeEvaluationSelfSigned" },
+        { "value": "acme", "testFile": "networking.spec.mjs", "testFunction": "testTlsModeAcme" }
+      ],
+      "conditionalBehavior": {
+        "production": {
+          "forces": "acme",
+          "rejects": "evaluation-self-signed"
+        },
+        "evaluation": {
+          "allows": ["evaluation-self-signed", "acme"]
+        }
+      }
+    },
+    "domain": {
+      "description": "Primary domain",
+      "type": "text",
+      "testValues": [
+        { "value": "cloud.example.com", "description": "valid FQDN", "testFile": "networking.spec.mjs", "testFunction": "testDomainValid" },
+        { "value": "", "description": "missing", "testFile": "networking.spec.mjs", "testFunction": "testDomainMissing" },
+        { "value": "localhost", "description": "reserved domain", "testFile": "networking.spec.mjs", "testFunction": "testDomainReserved" },
+        { "value": "test", "description": "invalid", "testFile": "networking.spec.mjs", "testFunction": "testDomainInvalid" }
+      ],
+      "validation": "Must be valid FQDN, reserved/test domains rejected for production"
+    },
+    "httpPort": {
+      "description": "HTTP port",
+      "type": "number",
+      "testValues": [
+        { "value": 80, "description": "production default", "testFile": "networking.spec.mjs", "testFunction": "testHttpPortProduction" },
+        { "value": 8080, "description": "evaluation default", "testFile": "networking.spec.mjs", "testFunction": "testHttpPortEvaluation" },
+        { "value": 8081, "description": "custom", "testFile": "networking.spec.mjs", "testFunction": "testHttpPortCustom" }
+      ],
+      "conditionalBehavior": {
+        "production": {
+          "default": 80
+        },
+        "evaluation": {
+          "default": 8080
+        }
+      }
+    },
+    "httpsPort": {
+      "description": "HTTPS port",
+      "type": "number",
+      "testValues": [
+        { "value": 443, "description": "production default", "testFile": "networking.spec.mjs", "testFunction": "testHttpsPortProduction" },
+        { "value": 8443, "description": "evaluation default", "testFile": "networking.spec.mjs", "testFunction": "testHttpsPortEvaluation" },
+        { "value": 8444, "description": "custom", "testFile": "networking.spec.mjs", "testFunction": "testHttpsPortCustom" }
+      ],
+      "conditionalBehavior": {
+        "production": {
+          "default": 443
+        },
+        "evaluation": {
+          "default": 8443
+        }
+      }
+    },
+    "oidcIssuerProduction": {
+      "description": "OIDC issuer for production",
+      "type": "text",
+      "testValues": [
+        { "value": "https://id.example.com/realms/owncloud", "description": "valid", "testFile": "networking.spec.mjs", "testFunction": "testOidcIssuerProductionValid" }
+      ],
+      "validation": "Must use HTTPS"
+    },
+    "search": {
+      "description": "Search feature toggle",
+      "type": "checkbox",
+      "testValues": [
+        { "value": true, "description": "enabled", "testFile": "services.spec.mjs", "testFunction": "testSearchEnabled" },
+        { "value": false, "description": "disabled", "testFile": "services.spec.mjs", "testFunction": "testSearchDisabled" }
+      ],
+      "sizingContribution": true
+    },
+    "clamav": {
+      "description": "ClamAV feature toggle",
+      "type": "checkbox",
+      "testValues": [
+        { "value": true, "description": "enabled", "testFile": "services.spec.mjs", "testFunction": "testClamavEnabled" },
+        { "value": false, "description": "disabled", "testFile": "services.spec.mjs", "testFunction": "testClamavDisabled" }
+      ],
+      "sizingContribution": true,
+      "conditionalBehavior": {
+        "enabled": {
+          "targetRestrictions": "May have limitations on certain targets"
+        }
+      }
+    },
+    "notifications": {
+      "description": "Notifications feature toggle",
+      "type": "checkbox",
+      "testValues": [
+        { "value": true, "description": "enabled", "testFile": "services.spec.mjs", "testFunction": "testNotificationsEnabled" },
+        { "value": false, "description": "disabled", "testFile": "services.spec.mjs", "testFunction": "testNotificationsDisabled" }
+      ]
+    },
+    "autoUpdates": {
+      "description": "Automatic security patches",
+      "type": "checkbox",
+      "testValues": [
+        { "value": true, "description": "enabled", "testFile": "services.spec.mjs", "testFunction": "testAutoUpdatesEnabled" },
+        { "value": false, "description": "disabled", "testFile": "services.spec.mjs", "testFunction": "testAutoUpdatesDisabled" }
+      ]
+    },
+    "updateDelay": {
+      "description": "Observation delay in hours",
+      "type": "number",
+      "testValues": [
+        { "value": 0, "description": "minimum", "testFile": "services.spec.mjs", "testFunction": "testUpdateDelayMinimum" },
+        { "value": 24, "description": "representative", "testFile": "services.spec.mjs", "testFunction": "testUpdateDelayRepresentative" },
+        { "value": 72, "description": "maximum", "testFile": "services.spec.mjs", "testFunction": "testUpdateDelayMaximum" }
+      ]
+    },
+    "backupRecipient": {
+      "description": "Backup recipient email",
+      "type": "text",
+      "testValues": [
+        { "value": "admin@example.com", "description": "valid", "testFile": "services.spec.mjs", "testFunction": "testBackupRecipientValid" },
+        { "value": "", "description": "missing", "testFile": "services.spec.mjs", "testFunction": "testBackupRecipientMissing" },
+        { "value": "invalid-email", "description": "invalid format", "testFile": "services.spec.mjs", "testFunction": "testBackupRecipientInvalid" }
+      ],
+      "requiredWhen": "autoUpdates === true"
+    },
+    "smtpHost": {
+      "description": "SMTP host",
+      "type": "text",
+      "testValues": [
+        { "value": "smtp.example.com", "description": "valid", "testFile": "services.spec.mjs", "testFunction": "testSmtpHostValid" },
+        { "value": "", "description": "absent (no SMTP)", "testFile": "services.spec.mjs", "testFunction": "testSmtpHostAbsent" }
+      ]
+    },
+    "smtpPort": {
+      "description": "SMTP port",
+      "type": "number",
+      "testValues": [
+        { "value": 587, "description": "valid", "testFile": "services.spec.mjs", "testFunction": "testSmtpPortValid" },
+        { "value": 465, "description": "valid SSL", "testFile": "services.spec.mjs", "testFunction": "testSmtpPortSsl" }
+      ]
+    },
+    "smtpUsername": {
+      "description": "SMTP username",
+      "type": "text",
+      "testValues": [
+        { "value": "smtp-user", "description": "valid", "testFile": "services.spec.mjs", "testFunction": "testSmtpUsernameValid" }
+      ]
+    },
+    "smtpPassword": {
+      "description": "SMTP password",
+      "type": "password",
+      "testValues": [
+        { "value": "smtp-password-test", "description": "valid", "testFile": "services.spec.mjs", "testFunction": "testSmtpPasswordValid" }
+      ],
+      "securityNote": "Must never appear in logs, reports, or artifacts"
+    },
+    "eula": {
+      "description": "EULA acceptance checkbox",
+      "type": "checkbox",
+      "testValues": [
+        { "value": false, "description": "unchecked (generation disabled)", "testFile": "legal.spec.mjs", "testFunction": "testEulaUnchecked" },
+        { "value": true, "description": "checked (generation enabled)", "testFile": "legal.spec.mjs", "testFunction": "testEulaChecked" },
+        { "value": false, "description": "unchecked again after checking", "testFile": "legal.spec.mjs", "testFunction": "testEulaUncheckedAgain" }
+      ],
+      "behavior": "Generation remains disabled until EULA is checked"
+    }
+  },
+  "bundleValidation": {
+    "description": "Requirements for downloaded bundles",
+    "testFile": "downloads.spec.mjs",
+    "requirements": [
+      "profile JSON download",
+      "runnable ZIP download",
+      "ZIP extraction succeeds",
+      "manifest.sha256 verifies",
+      "deployment-profile.json matches UI",
+      "deployment.lock.json contains immutable inputs",
+      "expected files present",
+      "forbidden overlays absent",
+      "Unix modes correct",
+      "scripts and secret-bearing files have correct permissions",
+      "Compose/Helm/Argo CD outputs parse successfully",
+      "Helm and Argo CD values semantically equivalent",
+      "Ansible output uses locked single-host bundle",
+      "no secrets in artifacts (only references)",
+      "tampering causes verification to fail"
+    ]
+  },
+  "highRiskJourneys": {
+    "description": "High-risk combined test journeys",
+    "testFile": "high-risk.spec.mjs",
+    "journeys": [
+      {
+        "name": "Docker production with all features",
+        "description": "Docker production, external OIDC/LDAP, S3NG, bundled Collabora, ClamAV, search, SMTP and automatic security updates",
+        "testFunction": "testDockerProductionFull",
+        "options": {
+          "purpose": "production",
+          "runtime": "docker",
+          "manager": "direct",
+          "identityMode": "external-oidc",
+          "storageMode": "s3ng",
+          "officeMode": "bundled",
+          "search": true,
+          "clamav": true,
+          "notifications": true,
+          "autoUpdates": true
+        }
+      },
+      {
+        "name": "Docker evaluation minimal",
+        "description": "Docker evaluation with embedded identity and minimal standard storage",
+        "testFunction": "testDockerEvaluationMinimal",
+        "options": {
+          "purpose": "evaluation",
+          "runtime": "docker",
+          "manager": "direct",
+          "identityMode": "embedded",
+          "registeredUsers": 20,
+          "storageMode": "ocis"
+        }
+      },
+      {
+        "name": "Podman evaluation with Ansible",
+        "description": "Rootless Podman evaluation with Ansible and supported single-host options",
+        "testFunction": "testPodmanAnsibleEvaluation",
+        "options": {
+          "purpose": "evaluation",
+          "runtime": "podman",
+          "manager": "ansible",
+          "identityMode": "embedded",
+          "registeredUsers": 20
+        }
+      },
+      {
+        "name": "Kubernetes with Helm full",
+        "description": "Kubernetes with Helm, external OIDC/LDAP, S3NG Secret references, external Collabora and NFSv4.2 StorageClass",
+        "testFunction": "testKubernetesHelmFull",
+        "options": {
+          "purpose": "evaluation",
+          "runtime": "kubernetes",
+          "manager": "helm",
+          "identityMode": "external-oidc",
+          "storageMode": "s3ng",
+          "filesystem": "nfs",
+          "officeMode": "external"
+        }
+      },
+      {
+        "name": "Kubernetes with Argo CD",
+        "description": "Kubernetes with Argo CD using the same values as the Helm journey",
+        "testFunction": "testKubernetesArgocdFull",
+        "options": {
+          "purpose": "evaluation",
+          "runtime": "kubernetes",
+          "manager": "argocd",
+          "identityMode": "external-oidc",
+          "storageMode": "s3ng",
+          "officeMode": "external"
+        }
+      },
+      {
+        "name": "Fail-closed boundaries",
+        "description": "Every fail-closed policy boundary: user 21 with embedded IDM, forbidden storage, unsupported office, production self-signed TLS, missing backup recipient, incomplete host sizing and malformed external identity",
+        "testFunction": "testFailClosedBoundaries",
+        "failClosedTests": [
+          { "value": 21, "field": "registeredUsers", "identityMode": "embedded", "expected": "hard rejection" },
+          { "value": "posixfs", "field": "storageMode", "expected": "rejected" },
+          { "value": "onlyoffice", "field": "officeMode", "expected": "rejected" },
+          { "purpose": "production", "tlsMode": "evaluation-self-signed", "expected": "rejected" },
+          { "value": "", "field": "backupRecipient", "autoUpdates": true, "expected": "validation error" },
+          { "missingFields": ["systemCpu", "systemRamGiB", "systemDiskGiB"], "expected": "warning" }
+        ]
+      }
+    ]
+  },
+  "accessibility": {
+    "description": "Accessibility testing requirements",
+    "browsers": ["chromium", "firefox", "webkit"],
+    "viewports": ["desktop", "narrow/mobile"],
+    "requirements": [
+      "No uncaught page errors",
+      "No unexpected console errors",
+      "No failed same-origin asset requests",
+      "WCAG 2.1 AA axe scan passes on initial state",
+      "WCAG 2.1 AA axe scan passes on conditional states",
+      "WCAG 2.1 AA axe scan passes on result states",
+      "Keyboard-only operation works",
+      "Visible focus indicators",
+      "Skip-link behavior works",
+      "Labels and descriptions present",
+      "Error associations present",
+      "Live-region announcements present"
+    ]
+  },
+  "completenessGuard": {
+    "description": "Test that fails CI when options lack coverage",
+    "testFile": "completeness-guard.spec.mjs",
+    "testFunction": "testCompletenessGuard",
+    "requirements": [
+      "Enumerate all relevant select, checkbox, radio and configurable input controls",
+      "Read enum/feature/denial values from policy catalogues and schema",
+      "Compare with checked-in coverage catalogue",
+      "Fail with exact uncovered control or value",
+      "Fail when removed option leaves stale test declaration"
+    ]
+  },
+  "policyCatalogues": {
+    "description": "Source of truth for enum values and policy boundaries",
+    "files": [
+      "catalog/policies.json",
+      "catalog/sizing.json",
+      "catalog/compatibility.json",
+      "catalog/launch-gates.json",
+      "schema/deployment.schema.json"
+    ]
+  },
+  "stats": {
+    "totalControls": 68,
+    "totalOptions": 200,
+    "totalTestFiles": 12,
+    "directCoverageTests": 68,
+    "pairwiseCoverageTests": 30,
+    "highRiskJourneyTests": 6,
+    "completenessGuardTests": 1,
+    "totalTests": 105
+  }
+}
