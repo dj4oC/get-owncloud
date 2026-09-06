@@ -53,7 +53,7 @@ test.describe("Deployment Target Controls", () => {
     
     // Docker should allow both direct and ansible managers
     const managerOptions = await page.locator("#manager option").allTextContents();
-    expect(managerOptions).toContain("Direct Compose");
+    expect(managerOptions).toContain("Direct");
     expect(managerOptions).toContain("Ansible");
     
     // OCIS version should be 8.2.0 for Docker
@@ -69,7 +69,7 @@ test.describe("Deployment Target Controls", () => {
     
     // Podman should allow both direct and ansible managers
     const managerOptions = await page.locator("#manager option").allTextContents();
-    expect(managerOptions).toContain("Direct Compose");
+    expect(managerOptions).toContain("Direct");
     expect(managerOptions).toContain("Ansible");
     
     // OCIS version should be 8.2.0 for Podman
@@ -172,7 +172,7 @@ test.describe("Deployment Target Controls", () => {
     // Docker should offer direct and ansible
     await page.locator("#runtime").selectOption("docker");
     let managerOptions = await page.locator("#manager option").allTextContents();
-    expect(managerOptions).toContain("Direct Compose");
+    expect(managerOptions).toContain("Direct");
     expect(managerOptions).toContain("Ansible");
     expect(managerOptions).not.toContain("Helm");
     expect(managerOptions).not.toContain("Argo CD");
@@ -180,7 +180,7 @@ test.describe("Deployment Target Controls", () => {
     // Podman should offer direct and ansible
     await page.locator("#runtime").selectOption("podman");
     managerOptions = await page.locator("#manager option").allTextContents();
-    expect(managerOptions).toContain("Direct Compose");
+    expect(managerOptions).toContain("Direct");
     expect(managerOptions).toContain("Ansible");
     expect(managerOptions).not.toContain("Helm");
     expect(managerOptions).not.toContain("Argo CD");
@@ -190,7 +190,7 @@ test.describe("Deployment Target Controls", () => {
     managerOptions = await page.locator("#manager option").allTextContents();
     expect(managerOptions).toContain("Helm");
     expect(managerOptions).toContain("Argo CD");
-    expect(managerOptions).not.toContain("Direct Compose");
+    expect(managerOptions).not.toContain("Direct");
     expect(managerOptions).not.toContain("Ansible");
   });
 
@@ -209,13 +209,17 @@ test.describe("Deployment Target Controls", () => {
     
     // Podman should be disabled for production
     const runtimeOptions = await page.locator("#runtime option").all();
-    const podmanOption = runtimeOptions.find(opt => opt.getAttribute("value") === "podman");
+    const optionsWithValues = await Promise.all(runtimeOptions.map(async opt => ({
+      option: opt,
+      value: await opt.getAttribute("value")
+    })));
+    const podmanOption = optionsWithValues.find(({ value }) => value === "podman")?.option;
     if (podmanOption) {
       await expect(podmanOption).toHaveAttribute("disabled", "");
     }
     
     // Kubernetes should be disabled for production
-    const kubernetesOption = runtimeOptions.find(opt => opt.getAttribute("value") === "kubernetes");
+    const kubernetesOption = optionsWithValues.find(({ value }) => value === "kubernetes")?.option;
     if (kubernetesOption) {
       await expect(kubernetesOption).toHaveAttribute("disabled", "");
     }
