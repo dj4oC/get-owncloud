@@ -69,6 +69,46 @@ test("Collabora external mode requires HTTPS URL", async () => {
   assert.match(invalid.errors.join(" "), /External Collabora must use an HTTPS URL/);
 });
 
+// Keycloak identity mode tests
+test("Keycloak identity mode is supported", async () => {
+  const keycloak = await validateProfile(profile({
+    identity: { mode: "keycloak", clientId: "web" }
+  }));
+  assert.equal(keycloak.valid, true);
+});
+
+test("Keycloak requires clientId", async () => {
+  const invalid = await validateProfile(profile({
+    identity: { mode: "keycloak" }
+  }));
+  assert.equal(invalid.valid, false);
+  assert.match(invalid.errors.join(" "), /Keycloak requires clientId/);
+});
+
+test("Keycloak for Kubernetes requires secret references", async () => {
+  const invalid = await validateProfile(profile({
+    target: { runtime: "kubernetes", manager: "direct" },
+    identity: { mode: "keycloak", clientId: "web" },
+    networking: { domain: "example.com", ingressClassName: "nginx", tlsSecretName: "tls-secret", tls: { mode: "evaluation-self-signed" } }
+  }));
+  assert.equal(invalid.valid, false);
+  assert.match(invalid.errors.join(" "), /Kubernetes Keycloak requires keycloakAdminPasswordSecretRef/);
+});
+
+test("Keycloak for Kubernetes with all secrets is valid", async () => {
+  const valid = await validateProfile(profile({
+    target: { runtime: "kubernetes", manager: "direct" },
+    identity: { 
+      mode: "keycloak", 
+      clientId: "web",
+      keycloakAdminPasswordSecretRef: "keycloak-admin-secret",
+      keycloakDatabasePasswordSecretRef: "keycloak-db-secret"
+    },
+    networking: { domain: "example.com", ingressClassName: "nginx", tlsSecretName: "tls-secret", tls: { mode: "evaluation-self-signed" } }
+  }));
+  assert.equal(valid.valid, true);
+});
+
 test("notifications require a valid SMTP host in evaluation and production", async () => {
   const invalid = await validateProfile(profile({ features: { notifications: true } }));
   assert.equal(invalid.valid, false);
