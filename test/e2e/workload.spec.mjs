@@ -17,6 +17,7 @@ test.describe("Workload Controls", () => {
     await expect(page.locator("#registered-users")).toHaveValue("0");
     
     await page.getByRole("button", { name: "Validate and calculate" }).click();
+    await expect(page.locator("#validation-errors")).toBeHidden();
     await expect(page.locator("#sizing-breakdown")).toContainText("Calculated minimum");
     
     // Should use embedded identity for 0 users
