@@ -233,8 +233,13 @@ export async function buildSingleHostBundle({ profile, sizing, templates, secret
     ]) files[path] = templates[path];
   }
   files[".env"] = makeEnv(profile, sizing, secrets, selected);
-  files["deployment-profile.json"] = JSON.stringify(profile, null, 2) + "\n";
-  files["sizing-report.json"] = JSON.stringify(sizing, null, 2) + "\n";
+  
+  // Cache stringified JSON to avoid redundant serialization
+  const profileJson = JSON.stringify(profile, null, 2) + "\n";
+  const sizingJson = JSON.stringify(sizing, null, 2) + "\n";
+  
+  files["deployment-profile.json"] = profileJson;
+  files["sizing-report.json"] = sizingJson;
   files["eula-acknowledgement.json"] = JSON.stringify({
     accepted: true,
     acceptedAt: acceptance.acceptedAt,
@@ -245,7 +250,7 @@ export async function buildSingleHostBundle({ profile, sizing, templates, secret
     acknowledgedSections: legal.requiredSections,
     runtimeAcceptanceStillRequired: true
   }, null, 2) + "\n";
-  const profileSha256 = await sha256Text(files["deployment-profile.json"]);
+  const profileSha256 = await sha256Text(profileJson);
   files["deployment.lock.json"] = JSON.stringify({
     formatVersion: 1,
     profileSha256,

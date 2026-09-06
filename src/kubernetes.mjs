@@ -275,12 +275,17 @@ spec:
 
 export async function buildKubernetesBundle({ profile, sizing, templates, legal, sources, acceptance }) {
   const values = buildHelmValues(profile, sizing);
+  
+  // Cache stringified JSON to avoid redundant serialization
+  const profileJson = JSON.stringify(profile, null, 2) + "\n";
+  const sizingJson = JSON.stringify(sizing, null, 2) + "\n";
+  
   const files = {
     "values.yaml": values,
     "install.sh": templates["scripts/install.sh"],
     "deploy.sh": templates["scripts/deploy-kubernetes.sh"],
-    "deployment-profile.json": JSON.stringify(profile, null, 2) + "\n",
-    "sizing-report.json": JSON.stringify(sizing, null, 2) + "\n",
+    "deployment-profile.json": profileJson,
+    "sizing-report.json": sizingJson,
     "eula-acknowledgement.json": JSON.stringify({
       accepted: true,
       acceptedAt: acceptance.acceptedAt,
