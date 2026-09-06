@@ -4,7 +4,7 @@
  * Epic #13: Private deployment repositories and proprietary updater
  */
 
-import { mkdir, readFile, writeFile, readdir, stat, rm, mkdtemp, tmpdir } from "node:fs/promises";
+import { mkdir, readFile, writeFile, readdir, stat, rm, mkdtemp } from "node:fs/promises";
 import { join, dirname, basename, relative } from "node:path";
 import { createHash } from "node:crypto";
 import { tmpdir as osTmpdir } from "node:os";
@@ -1045,21 +1045,32 @@ async function scanRepositoryForSecrets(repositoryPath) {
 
 /**
  * List all files in a directory recursively
+ * Uses Node.js 20+ readdir with recursive: true for better performance
  */
 async function listAllFiles(directory, baseDir = directory) {
-  const files = [];
-  const entries = await readdir(directory, { withFileTypes: true });
+  const entries = await readdir(directory, { recursive: true });
 
-  for (const entry of entries) {
-    const fullPath = join(directory, entry.name);
-    if (entry.isDirectory()) {
-      // Skip .git directory
-      if (entry.name === ".git") continue;
-      files.push(...await listAllFiles(fullPath, baseDir));
-    } else if (entry.isFile()) {
-      files.push(relative(baseDir, fullPath));
+  // Filter out .git entries first
+  const filteredEntries = entries.filter(entryPath => 
+    entryPath !== ".git" && !entryPath.startsWith(".git/")
+  );
+
+  // Use parallel stat calls to check which entries are files
+  const statPromises = filteredEntries.map(async entryPath => {
+    const fullPath = join(directory, entryPath);
+    try {
+      const stats = await stat(fullPath);
+      return { entryPath, isFile: stats.isFile() };
+    } catch {
+      return { entryPath, isFile: false };
     }
-  }
+  });
+
+  const results = await Promise.all(statPromises);
+  
+  const files = results
+    .filter(r => r.isFile)
+    .map(r => relative(baseDir, join(directory, r.entryPath)));
 
   return files;
 }
@@ -1163,5 +1174,6 @@ export {
   profileToYaml,
   convertToYaml,
   generateGitIgnore,
-  generateRepositoryReadme
+  generateRepositoryReadme,
+  listAllFiles
 };
