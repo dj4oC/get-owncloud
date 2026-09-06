@@ -1,0 +1,35 @@
+---
+services:
+  ai-proxy:
+    image: docker.io/owncloud/ai-proxy@sha256:PLACEHOLDER_AI_PROXY_DIGEST
+    networks:
+      ocis-net: {}
+    environment:
+      AI_PROXY_ENDPOINT: "${AI_PROXY_ENDPOINT}"
+      AI_PROXY_DEFAULT_TEXT_MODEL: "${AI_PROXY_DEFAULT_TEXT_MODEL:-gpt-4}"
+      AI_PROXY_VISION_MODEL: "${AI_PROXY_VISION_MODEL:-}"
+      AI_PROXY_FORCED_MODEL: "${AI_PROXY_FORCED_MODEL:-}"
+      AI_PROXY_REQUEST_TIMEOUT: "${AI_PROXY_REQUEST_TIMEOUT:-30}"
+      AI_PROXY_MAX_INPUT_SIZE: "${AI_PROXY_MAX_INPUT_SIZE:-1048576}"
+      AI_PROXY_MAX_OUTPUT_SIZE: "${AI_PROXY_MAX_OUTPUT_SIZE:-1048576}"
+      AI_PROXY_MAX_CONCURRENCY: "${AI_PROXY_MAX_CONCURRENCY:-10}"
+      AI_PROXY_TLS_ENABLED: "${AI_PROXY_TLS_ENABLED:-true}"
+      AI_PROXY_TLS_CUSTOM_CA: "${AI_PROXY_TLS_CUSTOM_CA:-false}"
+      AI_PROXY_OUTBOUND_PROXY: "${AI_PROXY_OUTBOUND_PROXY:-}"
+      AI_PROXY_NETWORK_POLICY: "${AI_PROXY_NETWORK_POLICY:-}"
+      OCIS_URL: "${OCIS_URL}"
+    volumes:
+      - ai-proxy-config:/etc/ai-proxy
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: ${LOG_DRIVER:-local}
+    restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+
+volumes:
+  ai-proxy-config:

@@ -73,6 +73,12 @@ try {
     if (checked.profile.target.runtime !== "kubernetes" && checked.profile.identity.mode === "external-oidc" && !supplied.ldapBindPassword) {
       throw new Error("External identity rendering requires ldapBindPassword in --secrets-file");
     }
+    if (checked.profile.aiProxy?.enabled && checked.profile.target.runtime !== "kubernetes" && !supplied.aiProxyApiKey) {
+      throw new Error("AI Proxy rendering requires aiProxyApiKey in --secrets-file for Docker/Podman");
+    }
+    if (checked.profile.aiProxy?.enabled && checked.profile.target.runtime === "kubernetes" && !checked.profile.aiProxy.apiKeySecretRef) {
+      throw new Error("Kubernetes AI Proxy requires apiKeySecretRef in profile");
+    }
     await ensureEmpty(outputDirectory);
     const epoch = process.env.SOURCE_DATE_EPOCH;
     const acceptedAt = epoch ? new Date(Number(epoch) * 1000).toISOString() : new Date().toISOString();
