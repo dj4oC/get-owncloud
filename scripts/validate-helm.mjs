@@ -1,6 +1,7 @@
 import Ajv from "ajv";
 import YAML from "yaml";
 import { readFile } from "node:fs/promises";
+import { deepClone } from "../src/clone.mjs";
 import { calculateSizing, loadCatalog, validateProfile } from "../src/core.mjs";
 import { buildKubernetesBundle, buildHelmValues } from "../src/kubernetes.mjs";
 
@@ -18,11 +19,11 @@ function merge(target, overrides) {
   for (const [key, item] of Object.entries(overrides)) {
     if (item && typeof item === "object" && !Array.isArray(item) && target[key] && typeof target[key] === "object" && !Array.isArray(target[key])) {
       merge(target[key], item);
-    } else target[key] = structuredClone(item);
+    } else target[key] = deepClone(item);
   }
   return target;
 }
-const coalescedValues = merge(structuredClone(defaults), values);
+const coalescedValues = merge(deepClone(defaults), values);
 const ajv = new Ajv({ allErrors: true, strict: false, validateFormats: false });
 const validate = ajv.compile(schema);
 if (!validate(coalescedValues)) throw new Error(ajv.errorsText(validate.errors, { separator: "\n" }));

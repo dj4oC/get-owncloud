@@ -89,8 +89,10 @@ function flattenValues(value, output = []) {
 
 
 
+import { deepClone } from "./clone.mjs";
+
 export function normalizeProfileWithRules(input, sizing) {
-  const profile = structuredClone(input);
+  const profile = deepClone(input);
   profile.ocisVersion ??= profile.target?.runtime === "kubernetes" ? "7.1.4" : "8.2.0";
   profile.maturity ??= profile.purpose === "production" ? "production" : "community-preview";
   profile.workload ??= {};
