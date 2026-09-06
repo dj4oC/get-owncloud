@@ -4,7 +4,7 @@
  * Epic #13: Private deployment repositories and proprietary updater
  */
 
-import { mkdir, readFile, writeFile, readdir, stat, rm, mkdtemp, tmpdir } from "node:fs/promises";
+import { mkdir, readFile, writeFile, readdir, stat, rm, mkdtemp } from "node:fs/promises";
 import { join, dirname, basename, relative } from "node:path";
 import { createHash } from "node:crypto";
 import { tmpdir as osTmpdir } from "node:os";
@@ -24,15 +24,15 @@ const SECRET_PATTERNS = [
   // Password patterns
   { pattern: /(password|passwd|secret|token|api[_-]?key|auth[_-]?token|access[_-]?token|refresh[_-]?token)\s*[:=]\s*['"]?[^\s'""]{8,}['"]?/gi, weight: 10 },
   // Private keys
-  { pattern: /-----BEGIN (RSA |EC |DSA |OPENSSH |PGP |ENCRYPTED )?PRIVATE KEY-----/, weight: 10 },
+  { pattern: /-----BEGIN (RSA |EC |DSA |OPENSSH |PGP |ENCRYPTED )?PRIVATE KEY-----/gi, weight: 10 },
   // Certificate patterns (might be allowed in some contexts, but flag for review)
-  { pattern: /-----BEGIN [A-Z]+-----/, weight: 5 },
+  { pattern: /-----BEGIN [A-Z]+-----/gi, weight: 5 },
   // Database connection strings
   { pattern: /(mysql|postgres|postgresql|mongodb|redis|amqp|sqlserver):\/\/[^\s]+:[^\s]+@[^\s]+/gi, weight: 10 },
   // AWS credentials
   { pattern: /(AKIA|ABIA|ACCA|ASIA)[A-Z0-9]{16}/gi, weight: 10 },
   // Generic high-entropy base64 strings
-  { pattern: /['"]`][A-Za-z0-9+/=]{40,}['"]`/g, weight: 3 },
+  { pattern: /['"]`][A-Za-z0-9+/=]{40,}['"]`/gi, weight: 3 },
   // Bearer tokens
   { pattern: /Bearer\s+[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+/gi, weight: 10 },
   // Docker registry credentials
@@ -128,6 +128,25 @@ async function hashFile(filePath) {
  */
 function scanForSecrets(content, filePath) {
   const findings = [];
+  
+  // Pre-compute newline positions for efficient line number calculation
+  // This replaces the O(n) substring+split operation per match with O(1) lookup
+  const newlinePositions = [];
+  for (let i = 0; i < content.length; i++) {
+    if (content[i] === '\n') {
+      newlinePositions.push(i);
+    }
+  }
+  
+  // Helper function to get line number from character position
+  function getLineNumber(position) {
+    let line = 1;
+    for (const pos of newlinePositions) {
+      if (pos < position) line++;
+      else break;
+    }
+    return line;
+  }
 
   for (const { pattern, weight } of SECRET_PATTERNS) {
     const matches = [...content.matchAll(pattern)];
@@ -141,7 +160,7 @@ function scanForSecrets(content, filePath) {
       if (!isSecretReference) {
         findings.push({
           file: filePath,
-          line: content.substring(0, match.index).split("\n").length,
+          line: getLineNumber(match.index),
           match: matchedText,
           pattern: pattern.toString(),
           weight,
