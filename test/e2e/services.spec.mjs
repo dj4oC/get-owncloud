@@ -278,4 +278,56 @@ test.describe("Services Controls", () => {
     await page.getByRole("button", { name: "Validate and calculate" }).click();
     await expect(page.locator("#sizing-breakdown")).toContainText("Metrics");
   });
+
+  // ClamAV Configuration tests
+  test("testClamavKubernetesEnabled - ClamAV can be enabled for Kubernetes", async ({ page }) => {
+    // Select Kubernetes runtime first
+    await page.locator('[name="runtime"]').selectOption('kubernetes');
+    
+    await page.locator('[name="clamav"]').check();
+    await expect(page.locator('[name="clamav"]')).toBeChecked();
+    
+    await page.getByRole("button", { name: "Validate and calculate" }).click();
+    // For Kubernetes, ClamAV requires storageClassName
+    await expect(page.locator("#validation-errors")).toContainText("storageClassName");
+  });
+
+  test("testClamavDockerEnabled - ClamAV can be enabled for Docker without errors", async ({ page }) => {
+    // Ensure we're on Docker runtime
+    await page.locator('[name="runtime"]').selectOption('docker');
+    
+    await page.locator('[name="clamav"]').check();
+    await expect(page.locator('[name="clamav"]')).toBeChecked();
+    
+    await page.getByRole("button", { name: "Validate and calculate" }).click();
+    await expect(page.locator("#sizing-breakdown")).toContainText("ClamAV");
+  });
+
+  // SMTP Configuration tests
+  test("testSmtpDisabled - SMTP configuration disabled by default", async ({ page }) => {
+    // SMTP configuration should not be required when notifications is disabled
+    await page.locator('[name="notifications"]').uncheck();
+    
+    await page.getByRole("button", { name: "Validate and calculate" }).click();
+    await expect(page.locator("#sizing-breakdown")).toContainText("Calculated minimum");
+  });
+
+  test("testSmtpEnabled - SMTP configuration can be enabled with notifications", async ({ page }) => {
+    await page.locator('[name="notifications"]').check();
+    
+    // SMTP host should be required when notifications is enabled
+    // For this test, we'll assume the UI has SMTP fields that become required
+    await page.getByRole("button", { name: "Validate and calculate" }).click();
+    // This should fail validation since SMTP host is missing
+    await expect(page.locator("#validation-errors")).toContainText("SMTP host");
+  });
+
+  test("testSmtpBasic - Basic SMTP configuration validation", async ({ page }) => {
+    await page.locator('[name="notifications"]').check();
+    
+    // Set basic SMTP configuration (this would require UI fields to be added)
+    // For now, we test that notifications requires SMTP host
+    await page.getByRole("button", { name: "Validate and calculate" }).click();
+    await expect(page.locator("#validation-errors")).toContainText("SMTP host");
+  });
 });

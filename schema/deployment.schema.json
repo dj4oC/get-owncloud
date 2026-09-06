@@ -103,11 +103,16 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "host": { "type": "string" },
+        "host": { "type": "string", "minLength": 1 },
         "port": { "type": "integer", "minimum": 1, "maximum": 65535 },
-        "sender": { "type": "string" },
+        "sender": { "type": "string", "minLength": 1 },
+        "senderDisplayName": { "type": "string" },
         "username": { "type": "string" },
-        "authentication": { "enum": ["none", "plain", "login"] },
+        "authentication": { "enum": ["none", "plain", "login", "cram-md5", "auto"] },
+        "passwordSecretRef": { "type": "string" },
+        "transportSecurity": { "enum": ["tls", "starttls", "insecure"] },
+        "caTrust": { "enum": ["system", "custom"] },
+        "caSecretRef": { "type": "string" },
         "insecure": { "type": "boolean" }
       }
     },
@@ -115,7 +120,23 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "clamav": { "type": "boolean" },
+        "clamav": {
+          "oneOf": [
+            { "type": "boolean" },
+            { 
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "enabled": { "type": "boolean" },
+                "imageDigest": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+                "storageClassName": { "type": "string" },
+                "sizeGiB": { "type": "integer", "minimum": 1 },
+                "cpu": { "type": "number", "minimum": 0.1 },
+                "memoryMiB": { "type": "integer", "minimum": 1024 }
+              }
+            }
+          ]
+        },
         "search": { "type": "boolean" },
         "notifications": { "type": "boolean" },
         "monitoring": {

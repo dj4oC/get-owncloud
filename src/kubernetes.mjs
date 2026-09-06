@@ -45,7 +45,16 @@ export function buildHelmValues(profile, sizing) {
     "features:",
     "  demoUsers: false",
     "  virusscan:",
-    "    enabled: false",
+    `    enabled: ${Boolean(profile.features.clamav)}`,
+    ...(profile.features.clamav ? [
+      "    clamav:",
+      `      enabled: true`,
+      `      image: clamav/clamav@sha256:${profile.features.clamav.imageDigest}`,
+      `      storageClassName: ${q(profile.features.clamav.storageClassName)}`,
+      `      size: ${profile.features.clamav.sizeGiB}Gi`,
+      `      cpu: ${q(profile.features.clamav.cpu)}`,
+      `      memory: ${q(profile.features.clamav.memoryMiB + "Mi")}`
+    ] : []),
     "  emailNotifications:",
     `    enabled: ${Boolean(profile.features.notifications && profile.mail?.host)}`,
     "  monitoring:",
@@ -58,8 +67,14 @@ export function buildHelmValues(profile, sizing) {
       `      host: ${q(profile.mail.host)}`,
       `      port: ${Number(profile.mail.port)}`,
       `      sender: ${q(profile.mail.sender)}`,
+      ...(profile.mail.senderDisplayName ? [`      senderDisplayName: ${q(profile.mail.senderDisplayName)}`] : []),
       `      authentication: ${q(profile.mail.authentication ?? "none")}`,
-      `      encryption: ${q(profile.mail.insecure ? "none" : "starttls")}`
+      ...(profile.mail.username ? [`      username: ${q(profile.mail.username)}`] : []),
+      ...(profile.mail.passwordSecretRef ? [`      passwordSecretRef: ${q(profile.mail.passwordSecretRef)}`] : []),
+      `      transportSecurity: ${q(profile.mail.transportSecurity ?? "starttls")}`,
+      `      caTrust: ${q(profile.mail.caTrust ?? "system")}`,
+      ...(profile.mail.caSecretRef ? [`      caSecretRef: ${q(profile.mail.caSecretRef)}`] : []),
+      `      insecure: ${Boolean(profile.mail.insecure)}`
     );
   }
 
@@ -94,7 +109,6 @@ export function buildHelmValues(profile, sizing) {
         );
       }
     }
-  }
 
   const externalIdentity = profile.identity.mode === "external-oidc";
   values.push("  externalUserManagement:", `    enabled: ${externalIdentity}`);
