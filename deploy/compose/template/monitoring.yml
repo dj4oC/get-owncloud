@@ -13,4 +13,4 @@ services:
       OCIS_TRACING_TLS: "${TRACING_TLS:-true}"
       OCIS_TRACING_CA_SECRET_REF: "${TRACING_CA_SECRET_REF:-}"
     ports:
-      - "${METRICS_PORT:-9090}:9090"  # Metrics endpoint
+      - "127.0.0.1:${METRICS_PORT:-9090}:9090"  # Metrics endpoint - bound to localhost for security
