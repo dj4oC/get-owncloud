@@ -47,7 +47,9 @@ export function buildHelmValues(profile, sizing) {
     "  virusscan:",
     "    enabled: false",
     "  emailNotifications:",
-    `    enabled: ${Boolean(profile.features.notifications && profile.mail?.host)}`
+    `    enabled: ${Boolean(profile.features.notifications && profile.mail?.host)}`,
+    "  monitoring:",
+    `    enabled: ${Boolean(profile.features.monitoring)}`
   ];
 
   if (profile.features.notifications && profile.mail?.host) {
@@ -59,6 +61,40 @@ export function buildHelmValues(profile, sizing) {
       `      authentication: ${q(profile.mail.authentication ?? "none")}`,
       `      encryption: ${q(profile.mail.insecure ? "none" : "starttls")}`
     );
+  }
+
+  // Add monitoring configuration
+  if (profile.features.monitoring) {
+    const monitoring = profile.features.monitoring;
+    const monitoringEnabled = monitoring === true || (typeof monitoring === 'object' && monitoring.enabled);
+    
+    if (monitoringEnabled) {
+      if (typeof monitoring === 'object') {
+        values.push(
+          "    metrics:",
+          `      enabled: ${Boolean(monitoring.metrics?.enabled ?? true)}`,
+          ...(monitoring.metrics?.endpoint ? [`      endpoint: ${q(monitoring.metrics.endpoint)}`] : []),
+          `      authentication: ${Boolean(monitoring.metrics?.authentication ?? false)}`
+        );
+        
+        values.push(
+          "    opentelemetry:",
+          `      enabled: ${Boolean(monitoring.opentelemetry?.enabled ?? false)}`,
+          ...(monitoring.opentelemetry?.endpoint ? [`      endpoint: ${q(monitoring.opentelemetry.endpoint)}`] : []),
+          `      protocol: ${q(monitoring.opentelemetry?.protocol ?? "grpc")}`,
+          `      tls: ${Boolean(monitoring.opentelemetry?.tls ?? true)}`,
+          ...(monitoring.opentelemetry?.caSecretRef ? [`      caSecretRef: ${q(monitoring.opentelemetry.caSecretRef)}`] : [])
+        );
+      } else {
+        // Boolean true case
+        values.push(
+          "    metrics:",
+          "      enabled: true",
+          "    opentelemetry:",
+          "      enabled: false"
+        );
+      }
+    }
   }
 
   const externalIdentity = profile.identity.mode === "external-oidc";
@@ -113,6 +149,17 @@ export function buildHelmValues(profile, sizing) {
   if (externalIdentity) values.push(`  ldapSecretRef: ${q(profile.identity.ldapSecretRef)}`);
   if (profile.storage.mode === "s3ng") values.push(`  s3CredentialsSecretRef: ${q(profile.storage.s3.secretKeyReference)}`);
   if (profile.features.notifications && profile.mail?.username) values.push("  notificationsSmtpSecretRef: owncloud-smtp");
+  
+  // Add monitoring secret references
+  if (profile.features.monitoring && typeof profile.features.monitoring === 'object') {
+    const monitoring = profile.features.monitoring;
+    if (monitoring.metrics?.authentication && monitoring.metrics.endpoint) {
+      values.push("  metricsSecretRef: owncloud-metrics");
+    }
+    if (monitoring.opentelemetry?.caSecretRef) {
+      values.push(`  opentelemetryCaSecretRef: ${q(monitoring.opentelemetry.caSecretRef)}`);
+    }
+  }
 
   values.push("services:", "  storageusers:", "    storageBackend:", `      driver: ${q(profile.storage.mode)}`);
   if (profile.storage.mode === "s3ng") {

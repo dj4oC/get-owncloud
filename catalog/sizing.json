@@ -30,6 +30,10 @@
     "evidence": "Collabora-maintained richdocumentscode requirements plus conservative container-image allowance"
   },
   "clamav": { "cpu": 1, "minimumRamMiB": 3072, "recommendedRamMiB": 4096, "diskGiB": 5 },
+  "monitoring": {
+    "metrics": { "cpu": 0.5, "ramMiB": 512, "diskGiB": 0 },
+    "tracing": { "cpu": 1, "ramMiB": 1024, "diskGiB": 1 }
+  },
   "productionLoadTestRequired": true,
   "sources": [
     "https://doc.owncloud.com/ocis/8.2/admin/prerequisites/prerequisites.html",

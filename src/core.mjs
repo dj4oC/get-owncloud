@@ -22,6 +22,9 @@ const OBJECT_KEYS = {
   tls: new Set(["mode", "email", "caServer"]),
   mail: new Set(["host", "port", "sender", "username", "authentication", "insecure"]),
   features: new Set(["clamav", "search", "notifications", "monitoring"]),
+  monitoring: new Set(["enabled", "metrics", "opentelemetry"]),
+  metrics: new Set(["enabled", "endpoint", "authentication"]),
+  opentelemetry: new Set(["enabled", "endpoint", "protocol", "tls", "caSecretRef"]),
   security: new Set(["basicAuth", "demoUsers"]),
   updates: new Set(["automaticSecurityPatches", "observationDelayHours", "backupRecipient"]),
   system: new Set(["cpu", "ramMiB", "diskGiB"])
@@ -119,9 +122,34 @@ export function normalizeProfileWithRules(input, sizing) {
     clamav: false,
     search: true,
     notifications: false,
-    monitoring: false,
     ...profile.features
   };
+  
+  // Handle monitoring configuration - can be boolean or object
+  if (profile.features?.monitoring === undefined || profile.features?.monitoring === null) {
+    profile.features.monitoring = false;
+  } else if (profile.features?.monitoring === true) {
+    profile.features.monitoring = { enabled: true, metrics: { enabled: true }, opentelemetry: { enabled: false } };
+  } else if (profile.features?.monitoring === false) {
+    profile.features.monitoring = false;
+  } else if (typeof profile.features?.monitoring === 'object') {
+    // Ensure proper defaults for monitoring object
+    profile.features.monitoring = {
+      enabled: profile.features.monitoring.enabled ?? true,
+      metrics: {
+        enabled: profile.features.monitoring.metrics?.enabled ?? true,
+        endpoint: profile.features.monitoring.metrics?.endpoint ?? '',
+        authentication: profile.features.monitoring.metrics?.authentication ?? false
+      },
+      opentelemetry: {
+        enabled: profile.features.monitoring.opentelemetry?.enabled ?? false,
+        endpoint: profile.features.monitoring.opentelemetry?.endpoint ?? '',
+        protocol: profile.features.monitoring.opentelemetry?.protocol ?? 'grpc',
+        tls: profile.features.monitoring.opentelemetry?.tls ?? true,
+        caSecretRef: profile.features.monitoring.opentelemetry?.caSecretRef ?? ''
+      }
+    };
+  }
   profile.security = { basicAuth: false, demoUsers: false, ...profile.security };
   if (profile.identity?.mode === "external-oidc") {
     profile.identity.userClaim ??= "preferred_username";
@@ -269,6 +297,23 @@ export function validateNormalizedProfile(profile, policies, compatibility) {
   if (profile.features.notifications && !profile.mail?.sender) {
     errors.push("SMTP sender is required when notifications are enabled");
   }
+  
+  // Validate monitoring configuration
+  const monitoringConfig = profile.features.monitoring;
+  if (monitoringConfig) {
+    if (typeof monitoringConfig === 'object') {
+      if (monitoringConfig.metrics?.endpoint && !isHttpsUrl(monitoringConfig.metrics.endpoint)) {
+        errors.push("Metrics endpoint must use HTTPS");
+      }
+      if (monitoringConfig.opentelemetry?.endpoint && !isHttpsUrl(monitoringConfig.opentelemetry.endpoint)) {
+        errors.push("OpenTelemetry endpoint must use HTTPS");
+      }
+      if (runtime === "kubernetes" && monitoringConfig.opentelemetry?.caSecretRef && 
+          typeof monitoringConfig.opentelemetry.caSecretRef !== "string") {
+        errors.push("OpenTelemetry CA secret reference must be a string for Kubernetes");
+      }
+    }
+  }
   if (profile.updates?.automaticSecurityPatches) {
     const recipient = profile.updates.backupRecipient;
     if (typeof recipient !== "string" || !(recipient.startsWith("age1") || recipient.startsWith("ssh-ed25519 "))) {
@@ -369,6 +414,23 @@ export function calculateSizingWithRules(profile, rules) {
     ramMiB += rules.clamav.recommendedRamMiB;
     serviceDiskGiB += rules.clamav.diskGiB;
     contributions.push({ component: "ClamAV", cpu: rules.clamav.cpu, ramMiB: rules.clamav.recommendedRamMiB, diskGiB: rules.clamav.diskGiB });
+  }
+  
+  // Handle monitoring sizing contributions
+  const monitoringConfig = profile.features.monitoring;
+  if (monitoringConfig && monitoringConfig.enabled) {
+    if (monitoringConfig.metrics?.enabled) {
+      cpu += rules.monitoring.metrics.cpu;
+      ramMiB += rules.monitoring.metrics.ramMiB;
+      serviceDiskGiB += rules.monitoring.metrics.diskGiB;
+      contributions.push({ component: "Metrics", cpu: rules.monitoring.metrics.cpu, ramMiB: rules.monitoring.metrics.ramMiB, diskGiB: rules.monitoring.metrics.diskGiB });
+    }
+    if (monitoringConfig.opentelemetry?.enabled) {
+      cpu += rules.monitoring.tracing.cpu;
+      ramMiB += rules.monitoring.tracing.ramMiB;
+      serviceDiskGiB += rules.monitoring.tracing.diskGiB;
+      contributions.push({ component: "OpenTelemetry", cpu: rules.monitoring.tracing.cpu, ramMiB: rules.monitoring.tracing.ramMiB, diskGiB: rules.monitoring.tracing.diskGiB });
+    }
   }
 
   const minimum = {

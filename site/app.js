@@ -86,7 +86,7 @@ function profileFromForm() {
       search: checked("search"),
       clamav: checked("clamav"),
       notifications: checked("notifications"),
-      monitoring: false
+      monitoring: checked("monitoring")
     },
     security: { basicAuth: purpose.value === "evaluation", demoUsers: false },
     updates: {
