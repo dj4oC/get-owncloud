@@ -67,8 +67,11 @@ try {
     if (checked.profile.storage.mode === "s3ng" && (!supplied.s3AccessKey || !supplied.s3SecretKey)) {
       throw new Error("s3ng rendering requires s3AccessKey and s3SecretKey in --secrets-file");
     }
-    if (checked.profile.mail?.username && !supplied.smtpPassword) {
-      throw new Error("Authenticated SMTP rendering requires smtpPassword in --secrets-file");
+    if (checked.profile.mail?.username && checked.profile.target.runtime !== "kubernetes" && !supplied.smtpPassword) {
+      throw new Error("Authenticated SMTP rendering requires smtpPassword in --secrets-file for Docker/Podman");
+    }
+    if (checked.profile.mail?.username && checked.profile.target.runtime === "kubernetes" && !checked.profile.mail.passwordSecretRef) {
+      throw new Error("Kubernetes SMTP requires passwordSecretRef in profile");
     }
     if (checked.profile.target.runtime !== "kubernetes" && checked.profile.identity.mode === "external-oidc" && !supplied.ldapBindPassword) {
       throw new Error("External identity rendering requires ldapBindPassword in --secrets-file");

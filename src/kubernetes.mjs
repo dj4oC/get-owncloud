@@ -58,8 +58,14 @@ export function buildHelmValues(profile, sizing) {
       `      host: ${q(profile.mail.host)}`,
       `      port: ${Number(profile.mail.port)}`,
       `      sender: ${q(profile.mail.sender)}`,
+      ...(profile.mail.senderDisplayName ? [`      senderDisplayName: ${q(profile.mail.senderDisplayName)}`] : []),
       `      authentication: ${q(profile.mail.authentication ?? "none")}`,
-      `      encryption: ${q(profile.mail.insecure ? "none" : "starttls")}`
+      ...(profile.mail.username ? [`      username: ${q(profile.mail.username)}`] : []),
+      ...(profile.mail.passwordSecretRef ? [`      passwordSecretRef: ${q(profile.mail.passwordSecretRef)}`] : []),
+      `      transportSecurity: ${q(profile.mail.transportSecurity ?? "starttls")}`,
+      `      caTrust: ${q(profile.mail.caTrust ?? "system")}`,
+      ...(profile.mail.caSecretRef ? [`      caSecretRef: ${q(profile.mail.caSecretRef)}`] : []),
+      `      insecure: ${Boolean(profile.mail.insecure)}`
     );
   }
 

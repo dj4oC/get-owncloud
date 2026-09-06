@@ -39,13 +39,13 @@ test("Collabora is the only office integration", async () => {
   assert.match(other.errors.join(" "), /Collabora|Denied value/);
 });
 
-test("notifications require a valid sender in evaluation and production", async () => {
+test("notifications require a valid SMTP host in evaluation and production", async () => {
   const invalid = await validateProfile(profile({ features: { notifications: true } }));
   assert.equal(invalid.valid, false);
-  assert.match(invalid.errors.join(" "), /SMTP sender is required/);
+  assert.match(invalid.errors.join(" "), /SMTP host is required/);
   const valid = await validateProfile(profile({
     features: { notifications: true },
-    mail: { sender: "ownCloud <noreply@cloud.test>" }
+    mail: { host: "smtp.example.com", sender: "noreply@cloud.test" }
   }));
   assert.equal(valid.valid, true, valid.errors.join(" "));
 });
@@ -160,4 +160,114 @@ test("storage paths reject root, traversal and identical targets", async () => {
     assert.equal(result.valid, false);
     assert.match(result.errors.join(" "), /safe persistent|must be distinct|must not be nested/);
   }
+});
+
+// SMTP Configuration Tests
+test("SMTP configuration validates basic fields", async () => {
+  const valid = await validateProfile(profile({
+    features: { notifications: true },
+    mail: { host: "smtp.example.com", port: 587, sender: "test@example.com" }
+  }));
+  assert.equal(valid.valid, true, valid.errors.join(" "));
+});
+
+test("SMTP configuration requires valid port", async () => {
+  const invalid = await validateProfile(profile({
+    features: { notifications: true },
+    mail: { host: "smtp.example.com", port: 0, sender: "test@example.com" }
+  }));
+  assert.equal(invalid.valid, false);
+  assert.match(invalid.errors.join(" "), /valid port number/);
+});
+
+test("SMTP configuration validates sender email format", async () => {
+  const invalid = await validateProfile(profile({
+    features: { notifications: true },
+    mail: { host: "smtp.example.com", port: 587, sender: "invalid-email" }
+  }));
+  assert.equal(invalid.valid, false);
+  assert.match(invalid.errors.join(" "), /valid email address/);
+});
+
+test("SMTP authentication requires username", async () => {
+  const invalid = await validateProfile(profile({
+    features: { notifications: true },
+    mail: { host: "smtp.example.com", port: 587, sender: "test@example.com", authentication: "plain" }
+  }));
+  assert.equal(invalid.valid, false);
+  assert.match(invalid.errors.join(" "), /requires username/);
+});
+
+test("SMTP username with authentication mode requires valid configuration", async () => {
+  // Username without authentication mode should default to "none" during normalization
+  const valid = await validateProfile(profile({
+    features: { notifications: true },
+    mail: { host: "smtp.example.com", port: 587, sender: "test@example.com", username: "user" }
+  }));
+  assert.equal(valid.valid, true, valid.errors.join(" "));
+  
+  // But authentication mode other than "none" requires username
+  const invalid = await validateProfile(profile({
+    features: { notifications: true },
+    mail: { host: "smtp.example.com", port: 587, sender: "test@example.com", authentication: "plain" }
+  }));
+  assert.equal(invalid.valid, false);
+  assert.match(invalid.errors.join(" "), /requires username/);
+});
+
+test("SMTP insecure mode requires transportSecurity insecure", async () => {
+  const invalid = await validateProfile(profile({
+    features: { notifications: true },
+    mail: { host: "smtp.example.com", port: 25, sender: "test@example.com", insecure: true, transportSecurity: "tls" }
+  }));
+  assert.equal(invalid.valid, false);
+  assert.match(invalid.errors.join(" "), /must have transportSecurity set to 'insecure'/);
+});
+
+test("SMTP transportSecurity insecure requires insecure true", async () => {
+  const invalid = await validateProfile(profile({
+    features: { notifications: true },
+    mail: { host: "smtp.example.com", port: 25, sender: "test@example.com", transportSecurity: "insecure", insecure: false }
+  }));
+  assert.equal(invalid.valid, false);
+  assert.match(invalid.errors.join(" "), /requires insecure: true/);
+});
+
+test("SMTP custom CA trust requires caSecretRef for Kubernetes", async () => {
+  const invalid = await validateProfile({
+    apiVersion: "get.owncloud.com/v1alpha1",
+    purpose: "evaluation",
+    target: { runtime: "kubernetes", manager: "direct" },
+    workload: { registeredUsers: 20, storedDataGiB: 100 },
+    identity: { mode: "embedded" },
+    storage: { mode: "ocis", filesystem: "ext4" },
+    office: { mode: "none" },
+    networking: { domain: "test.example.com", tls: { mode: "evaluation-self-signed" } },
+    features: { notifications: true },
+    mail: { host: "smtp.example.com", port: 587, sender: "test@example.com", caTrust: "custom" }
+  });
+  assert.equal(invalid.valid, false);
+  assert.match(invalid.errors.join(" "), /caSecretRef/);
+});
+
+test("SMTP normalization sets defaults", async () => {
+  const normalized = await normalizeProfile(profile({
+    features: { notifications: true },
+    mail: { host: "smtp.example.com" },
+    networking: { domain: "test.example.com" }
+  }));
+  assert.equal(normalized.mail.port, 587);
+  assert.equal(normalized.mail.sender, "no-reply@test.example.com");
+  assert.equal(normalized.mail.authentication, "none");
+  assert.equal(normalized.mail.transportSecurity, "starttls");
+  assert.equal(normalized.mail.caTrust, "system");
+});
+
+test("SMTP Docker/Podman requires notifications for authenticated SMTP", async () => {
+  const invalid = await validateProfile(profile({
+    features: { notifications: false },
+    mail: { host: "smtp.example.com", port: 587, sender: "test@example.com", username: "user", authentication: "plain" }
+  }));
+  assert.equal(invalid.valid, false);
+  assert.match(invalid.errors.join(" "), /requires notifications to be enabled/);
 });

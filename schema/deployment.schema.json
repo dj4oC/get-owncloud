@@ -103,11 +103,16 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "host": { "type": "string" },
+        "host": { "type": "string", "minLength": 1 },
         "port": { "type": "integer", "minimum": 1, "maximum": 65535 },
-        "sender": { "type": "string" },
+        "sender": { "type": "string", "minLength": 1 },
+        "senderDisplayName": { "type": "string" },
         "username": { "type": "string" },
-        "authentication": { "enum": ["none", "plain", "login"] },
+        "authentication": { "enum": ["none", "plain", "login", "cram-md5", "auto"] },
+        "passwordSecretRef": { "type": "string" },
+        "transportSecurity": { "enum": ["tls", "starttls", "insecure"] },
+        "caTrust": { "enum": ["system", "custom"] },
+        "caSecretRef": { "type": "string" },
         "insecure": { "type": "boolean" }
       }
     },
