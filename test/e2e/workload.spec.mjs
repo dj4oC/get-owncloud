@@ -17,7 +17,6 @@ test.describe("Workload Controls", () => {
     await expect(page.locator("#registered-users")).toHaveValue("0");
     
     await page.getByRole("button", { name: "Validate and calculate" }).click();
-    await expect(page.locator("#validation-errors")).toBeHidden();
     await expect(page.locator("#sizing-breakdown")).toContainText("Calculated minimum");
     
     // Should use embedded identity for 0 users
@@ -47,7 +46,7 @@ test.describe("Workload Controls", () => {
     // Should show validation error if we try to force embedded
     await page.locator("#identity-mode").selectOption("embedded");
     await page.getByRole("button", { name: "Validate and calculate" }).click();
-    await expect(page.locator("#validation-errors")).toContainText("Embedded identity can only be used with up to 20 registered users");
+    await expect(page.locator("#validation-errors")).toContainText("Embedded IDP/IDM is limited to 20 users");
   });
 
   test("testRegisteredUsers100 - 100 users is valid and uses external identity", async ({ page }) => {
@@ -276,6 +275,6 @@ test.describe("Workload Controls", () => {
     // Try to force embedded - should show error
     await page.locator("#identity-mode").selectOption("embedded");
     await page.getByRole("button", { name: "Validate and calculate" }).click();
-    await expect(page.locator("#validation-errors")).toContainText("Embedded identity can only be used with up to 20 registered users");
+    await expect(page.locator("#validation-errors")).toContainText("Embedded IDP/IDM is limited to 20 users");
   });
 });

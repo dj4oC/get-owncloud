@@ -23,6 +23,16 @@ const autoUpdates = document.querySelector("#auto-updates");
 let autoUpdatesTouched = false;
 autoUpdates.addEventListener("change", () => { autoUpdatesTouched = true; });
 
+// Auto-switch identity mode when users > 20
+usersInput.addEventListener("input", () => {
+  const users = Number(usersInput.value);
+  const embeddedOption = [...identityMode.options].find((item) => item.value === "embedded");
+  if (embeddedOption && users > policies.identity.embeddedMaximumUsers && identityMode.value === "embedded") {
+    identityMode.value = "external-oidc";
+    syncUi();
+  }
+});
+
 const catalogUrl = (name) => new URL(`../catalog/${name}.json`, import.meta.url);
 async function fetchJson(name) {
   const response = await fetch(catalogUrl(name));
@@ -259,7 +269,6 @@ function syncUi() {
   const users = Number(usersInput.value);
   const embeddedOption = [...identityMode.options].find((item) => item.value === "embedded");
   embeddedOption.disabled = users > policies.identity.embeddedMaximumUsers;
-  if (embeddedOption.disabled) identityMode.value = "external-oidc";
   document.querySelector("#external-identity").hidden = identityMode.value !== "external-oidc";
 
   const s3 = value("storageMode") === "s3ng";

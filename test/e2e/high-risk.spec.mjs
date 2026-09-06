@@ -186,7 +186,7 @@ test.describe("High-Risk Journeys", () => {
     await page.locator("#registered-users").fill("21");
     await page.locator("#identity-mode").selectOption("embedded");
     await page.getByRole("button", { name: "Validate and calculate" }).click();
-    await expect(page.locator("#validation-errors")).toContainText("Embedded identity can only be used with up to 20 registered users");
+    await expect(page.locator("#validation-errors")).toContainText("Embedded IDP/IDM is limited to 20 users");
     
     // Test 2: forbidden storage mode (this will test that posixfs is not available)
     // Since posixfs is not in the UI, this is already enforced

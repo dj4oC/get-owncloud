@@ -259,7 +259,7 @@ test.describe("Identity Controls", () => {
     await page.locator("#identity-mode").selectOption("embedded");
     
     await page.getByRole("button", { name: "Validate and calculate" }).click();
-    await expect(page.locator("#validation-errors")).toContainText("Embedded identity can only be used with up to 20 registered users");
+    await expect(page.locator("#validation-errors")).toContainText("Embedded IDP/IDM is limited to 20 users");
     
     // Reduce to 20 users - should work
     await page.locator("#registered-users").fill("20");
