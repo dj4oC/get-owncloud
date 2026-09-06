@@ -4,23 +4,21 @@
   "expiresAt": "2026-07-01T00:00:00Z",
   "signature": {
     "algorithm": "ed25519",
-    "value": "BASE64_ENCODED_SIGNATURE_PLACEHOLDER",
-    "signingKeyId": "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2",
-    "signedBy": "ownCloud Release Signing Service",
-    "signedAt": "2026-01-01T00:00:00Z",
+    "value": "DEVELOPMENT_SIGNATURE_PLACEHOLDER_REPLACE_WITH_REAL_SIGNATURE_IN_PRODUCTION",
+    "signingKeyId": "dev-key-001",
+    "signedBy": "ownCloud Development Signing Service",
+    "signedAt": "2026-09-06T00:00:00Z",
     "certificateChain": [],
     "keyRotation": {
-      "currentKeyId": "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2",
-      "previousKeyIds": [
-        "f6e5d4c3b2a1f6e5d4c3b2a1f6e5d4c3b2a1f6e5d4c3b2a1f6e5d4c3b2a1f6e5"
-      ],
+      "currentKeyId": "dev-key-001",
+      "previousKeyIds": [],
       "rotationSchedule": "quarterly",
-      "nextRotationAt": "2026-04-01T00:00:00Z"
+      "nextRotationAt": "2026-12-01T00:00:00Z"
     }
   },
   "checksums": {
-    "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
-    "sha512": "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+    "sha256": "17be735ef7751c47f4d3c05e858a28e5335e9e5d53673d219487a6ec821f2abb",
+    "sha512": "f5464faf2d75a9c77c2e1b662291c5f22ac3c24028405a53548ea64ee556dfb6e3174e64d89bfe9f4f2e3ab92bdc2bf804105fd3176f23b7dd9f7a5ec9cb309b"
   },
   "releases": [
     {
