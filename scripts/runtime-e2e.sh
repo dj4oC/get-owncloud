@@ -38,6 +38,8 @@ cleanup() {
   fi
   if [ -f "$BUNDLE_DIR/.env" ] && [ -n "${GET_OWNCLOUD_COMPOSE_ENGINE:-}" ]; then (cd "$BUNDLE_DIR" && get_owncloud_compose down -v --remove-orphans) >/dev/null 2>&1 || true; fi
   if [ "$MANAGED_WORK_DIR" = true ] && [ "$ENGINE" = docker ]; then sudo chown -R "$(id -u):$(id -g)" "$WORK_DIR" || true; fi
+  # Securely clean up .netrc file if it exists
+  [ -f "$WORK_DIR/.netrc" ] && shred -u "$WORK_DIR/.netrc" 2>/dev/null || rm -f "$WORK_DIR/.netrc"
   [ -n "${GET_OWNCLOUD_E2E_KEEP:-}" ] || rm -rf "$WORK_DIR"
   exit "$status"
 }
@@ -67,27 +69,32 @@ grep -qi 'owncloud' "$WORK_DIR/web-response.html" || die "ownCloud web response 
 ADMIN_PASSWORD=$(node -e "const f=require(process.argv[1]); process.stdout.write(f.adminPassword)" "$ROOT_DIR/test/fixtures/e2e-secrets.json")
 printf '%s\n' "get-owncloud persistence and restore e2e" >"$WORK_DIR/payload.txt"
 WEBDAV_URL="https://$DOMAIN:$PORT/remote.php/dav/files/admin/get-owncloud-e2e.txt"
-service_curl -fsS --insecure --resolve "$DOMAIN:$PORT:127.0.0.1" -u "admin:$ADMIN_PASSWORD" -T "$WORK_DIR/payload.txt" "$WEBDAV_URL"
-service_curl -fsS --insecure --resolve "$DOMAIN:$PORT:127.0.0.1" -u "admin:$ADMIN_PASSWORD" "$WEBDAV_URL" -o "$WORK_DIR/download.txt"
+
+# Use .netrc for credentials to avoid exposing password in process listings
+NETRC_FILE="$WORK_DIR/.netrc"
+printf 'machine %s\nlogin admin\npassword %s\n' "$DOMAIN" "$ADMIN_PASSWORD" > "$NETRC_FILE"
+chmod 600 "$NETRC_FILE"
+service_curl -fsS --insecure --resolve "$DOMAIN:$PORT:127.0.0.1" --netrc-file "$NETRC_FILE" -T "$WORK_DIR/payload.txt" "$WEBDAV_URL"
+service_curl -fsS --insecure --resolve "$DOMAIN:$PORT:127.0.0.1" --netrc-file "$NETRC_FILE" "$WEBDAV_URL" -o "$WORK_DIR/download.txt"
 cmp "$WORK_DIR/payload.txt" "$WORK_DIR/download.txt" || die "WebDAV upload/download mismatch"
 
 (cd "$BUNDLE_DIR" && get_owncloud_compose restart)
 sh "$BUNDLE_DIR/scripts/healthcheck.sh" --url "https://$DOMAIN:$PORT/healthz" --domain "$DOMAIN" --port "$PORT" --evaluation-insecure --timeout 180
-service_curl -fsS --insecure --resolve "$DOMAIN:$PORT:127.0.0.1" -u "admin:$ADMIN_PASSWORD" "$WEBDAV_URL" -o "$WORK_DIR/restarted.txt"
+service_curl -fsS --insecure --resolve "$DOMAIN:$PORT:127.0.0.1" --netrc-file "$NETRC_FILE" "$WEBDAV_URL" -o "$WORK_DIR/restarted.txt"
 cmp "$WORK_DIR/payload.txt" "$WORK_DIR/restarted.txt" || die "Persistence failed after restart"
 
 # shellcheck disable=SC2086
 sh "$BUNDLE_DIR/scripts/backup.sh" --bundle-dir "$BUNDLE_DIR" --output "$BACKUP" --allow-unencrypted-evaluation $PRIVILEGE_ARGS
 sh "$BUNDLE_DIR/scripts/healthcheck.sh" --url "https://$DOMAIN:$PORT/healthz" --domain "$DOMAIN" --port "$PORT" --evaluation-insecure --timeout 180
-curl -fsS --insecure --resolve "$DOMAIN:$PORT:127.0.0.1" -u "admin:$ADMIN_PASSWORD" -X DELETE "$WEBDAV_URL"
-if curl -fsS --insecure --resolve "$DOMAIN:$PORT:127.0.0.1" -u "admin:$ADMIN_PASSWORD" "$WEBDAV_URL" >/dev/null 2>&1; then
+curl -fsS --insecure --resolve "$DOMAIN:$PORT:127.0.0.1" --netrc-file "$NETRC_FILE" -X DELETE "$WEBDAV_URL"
+if curl -fsS --insecure --resolve "$DOMAIN:$PORT:127.0.0.1" --netrc-file "$NETRC_FILE" "$WEBDAV_URL" >/dev/null 2>&1; then
   die "WebDAV delete did not remove the recovery fixture"
 fi
 
 # shellcheck disable=SC2086
 sh "$BUNDLE_DIR/scripts/restore.sh" --bundle-dir "$BUNDLE_DIR" --archive "$BACKUP" --start $PRIVILEGE_ARGS
 sh "$BUNDLE_DIR/scripts/healthcheck.sh" --url "https://$DOMAIN:$PORT/healthz" --domain "$DOMAIN" --port "$PORT" --evaluation-insecure --timeout 180
-service_curl -fsS --insecure --resolve "$DOMAIN:$PORT:127.0.0.1" -u "admin:$ADMIN_PASSWORD" "$WEBDAV_URL" -o "$WORK_DIR/restored.txt"
+service_curl -fsS --insecure --resolve "$DOMAIN:$PORT:127.0.0.1" --netrc-file "$NETRC_FILE" "$WEBDAV_URL" -o "$WORK_DIR/restored.txt"
 cmp "$WORK_DIR/payload.txt" "$WORK_DIR/restored.txt" || die "Backup/restore recovery mismatch"
 
 test -s "$BUNDLE_DIR/.get-owncloud/eula-acceptance.log" || die "Local EULA audit evidence is missing"
