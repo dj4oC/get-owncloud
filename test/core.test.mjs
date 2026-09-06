@@ -161,3 +161,144 @@ test("storage paths reject root, traversal and identical targets", async () => {
     assert.match(result.errors.join(" "), /safe persistent|must be distinct|must not be nested/);
   }
 });
+
+// AI Proxy Configuration Tests
+test("AI Proxy can be enabled as boolean", async () => {
+  const result = await validateProfile(profile({ aiProxy: true }));
+  assert.equal(result.valid, true, result.errors.join(" "));
+});
+
+test("AI Proxy can be enabled as object with custom configuration", async () => {
+  const result = await validateProfile(profile({
+    aiProxy: {
+      enabled: true,
+      endpoint: "https://ai-proxy.example.com",
+      apiKeySecretRef: "ai-proxy-api-key",
+      defaultTextModel: "gpt-4",
+      visionModel: "gpt-4-vision",
+      requestTimeout: 60,
+      tls: { enabled: true, customCA: true, caSecretRef: "ai-proxy-ca" },
+      maxInputSize: 2097152,
+      maxOutputSize: 2097152,
+      maxConcurrency: 20
+    }
+  }));
+  assert.equal(result.valid, true, result.errors.join(" "));
+});
+
+test("AI Proxy requires HTTPS endpoint", async () => {
+  const invalid = await validateProfile(profile({
+    aiProxy: {
+      enabled: true,
+      endpoint: "http://ai-proxy.example.com"
+    }
+  }));
+  assert.equal(invalid.valid, false);
+  assert.match(invalid.errors.join(" "), /HTTPS/);
+});
+
+test("AI Proxy enabled requires endpoint", async () => {
+  const invalid = await validateProfile(profile({
+    aiProxy: {
+      enabled: true
+      // No endpoint
+    }
+  }));
+  assert.equal(invalid.valid, false);
+  assert.match(invalid.errors.join(" "), /endpoint/);
+});
+
+test("AI Proxy normalization sets defaults", async () => {
+  const normalized = await normalizeProfile(profile({ aiProxy: true }));
+  assert.equal(normalized.aiProxy.enabled, true);
+  assert.equal(normalized.aiProxy.endpoint, "");
+  assert.equal(normalized.aiProxy.defaultTextModel, "gpt-4");
+  assert.equal(normalized.aiProxy.requestTimeout, 30);
+  assert.equal(normalized.aiProxy.maxInputSize, 1048576);
+});
+
+test("AI Proxy disabled by default", async () => {
+  const normalized = await normalizeProfile(profile({}));
+  assert.equal(normalized.aiProxy, false);
+});
+
+// Demo Content Configuration Tests
+test("Demo Content can be enabled", async () => {
+  const result = await validateProfile(profile({
+    demoContent: {
+      enabled: true,
+      optInRequired: true,
+      destructiveWarning: true,
+      licenses: ["MIT", "Apache-2.0"],
+      sampleFiles: [],
+      resetPath: "/reset-demo"
+    }
+  }));
+  assert.equal(result.valid, true, result.errors.join(" "));
+});
+
+test("Demo Content requires destructive warning", async () => {
+  const invalid = await validateProfile(profile({
+    demoContent: {
+      enabled: true,
+      destructiveWarning: false
+    }
+  }));
+  assert.equal(invalid.valid, false);
+  assert.match(invalid.errors.join(" "), /destructive warning/);
+});
+
+// AI Application Dependency Tests
+test("AI applications require AI Proxy to be enabled", async () => {
+  const invalid = await validateProfile(profile({
+    features: { aiDataInsightsSidebar: true }
+    // No AI proxy enabled
+  }));
+  assert.equal(invalid.valid, false);
+  assert.match(invalid.errors.join(" "), /AI applications require aiProxy/);
+});
+
+test("Image Alt Text requires vision model", async () => {
+  const invalid = await validateProfile(profile({
+    aiProxy: { enabled: true, endpoint: "https://ai-proxy.example.com" },
+    features: { aiImageAltTextSidebar: true }
+    // No vision model
+  }));
+  assert.equal(invalid.valid, false);
+  assert.match(invalid.errors.join(" "), /vision-capable model/);
+});
+
+// AI Application Sizing Tests
+test("AI Proxy contributes to sizing calculation", async () => {
+  const withAiProxy = await calculateSizing(profile({
+    aiProxy: { enabled: true, endpoint: "https://ai-proxy.example.com" }
+  }));
+  const withoutAiProxy = await calculateSizing(profile({ aiProxy: false }));
+  
+  assert.ok(withAiProxy.minimum.cpu > withoutAiProxy.minimum.cpu);
+  assert.ok(withAiProxy.minimum.ramMiB > withoutAiProxy.minimum.ramMiB);
+  
+  const aiProxyContribution = withAiProxy.contributions.find(c => c.component === "AI Proxy");
+  assert.ok(aiProxyContribution);
+  assert.equal(aiProxyContribution.cpu, 2);
+  assert.equal(aiProxyContribution.ramMiB, 4096);
+});
+
+test("AI Data Insights Sidebar contributes to sizing calculation", async () => {
+  const withAi = await calculateSizing(profile({
+    aiProxy: { enabled: true, endpoint: "https://ai-proxy.example.com" },
+    features: { aiDataInsightsSidebar: true }
+  }));
+  const withoutAi = await calculateSizing(profile({
+    aiProxy: { enabled: true, endpoint: "https://ai-proxy.example.com" },
+    features: { aiDataInsightsSidebar: false }
+  }));
+  
+  assert.ok(withAi.minimum.cpu > withoutAi.minimum.cpu);
+  assert.ok(withAi.minimum.ramMiB > withoutAi.minimum.ramMiB);
+  
+  const aiContribution = withAi.contributions.find(c => c.component === "AI Data Insights Sidebar");
+  assert.ok(aiContribution);
+  assert.equal(aiContribution.cpu, 0.5);
+  assert.equal(aiContribution.ramMiB, 512);
+});
