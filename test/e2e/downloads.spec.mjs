@@ -38,8 +38,11 @@ test.describe("Bundle Download and Verification", () => {
     // Verify ZIP is valid
     execFileSync("unzip", ["-t", zip], { stdio: "pipe" });
     
+    // Extract the ZIP to verify contents
+    execFileSync("unzip", ["-o", "-q", zip, "-d", directory], { stdio: "pipe" });
+    
     // Check for expected files
-    const listing = execFileSync("unzip", ["-Z1", zip], { encoding: "utf8" });
+    const listing = execFileSync("ls", [directory], { encoding: "utf8" });
     for (const required of [".env", "docker-compose.yml", "ocis.yml", "install.sh", "deployment.lock.json", "manifest.sha256"]) {
       expect(listing).toContain(required);
     }
@@ -221,10 +224,20 @@ test.describe("Bundle Download and Verification", () => {
 
   // Test that no secrets appear in artifacts
   test("testNoSecretsInArtifacts - Generated bundles contain only secret references, not actual secrets", async ({ page }) => {
-    // Configure with secrets
+    // Configure with secrets and required fields
     await page.locator("#identity-mode").selectOption("external-oidc");
+    await page.locator('[name="oidcIssuer"]').fill("https://id.test.example/realms/owncloud");
+    await page.locator('[name="oidcClientId"]').fill("web");
+    await page.locator('[name="ldapUri"]').fill("ldaps://ldap.test.example:636");
+    await page.locator('[name="ldapBindDn"]').fill("uid=ocis,ou=system,dc=test,dc=example");
+    await page.locator('[name="ldapUserBaseDn"]').fill("ou=users,dc=test,dc=example");
+    await page.locator('[name="ldapGroupBaseDn"]').fill("ou=groups,dc=test,dc=example");
     await page.locator('[name="ldapBindPassword"]').fill("local-test-bind-password");
     await page.locator("#storage-mode").selectOption("s3ng");
+    await page.locator('[name="s3Endpoint"]').fill("https://s3.test.example");
+    await page.locator('[name="s3Region"]').fill("us-east-1");
+    await page.locator('[name="s3Bucket"]').fill("test-bucket");
+    await page.locator('[name="s3AccessKey"]').fill("test-access-key");
     await page.locator('[name="s3SecretKey"]').fill("test-secret-key");
     await page.locator("#registered-users").fill("20");
     await page.locator("#eula").check();
@@ -250,7 +263,11 @@ test.describe("Bundle Download and Verification", () => {
         expect(content).not.toContain("local-test-bind-password");
         expect(content).not.toContain("test-secret-key");
       } catch (e) {
-        // Skip binary files or files we can't read
+        // Only skip if it's a file read error (ENOENT, EISDIR, etc.)
+        // Let assertion errors propagate
+        if (e.code !== "ENOENT" && e.code !== "EISDIR") {
+          throw e;
+        }
       }
     }
   });
