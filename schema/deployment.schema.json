@@ -118,6 +118,55 @@
         "clamav": { "type": "boolean" },
         "search": { "type": "boolean" },
         "notifications": { "type": "boolean" },
+        "aiProxy": {
+          "oneOf": [
+            { "type": "boolean" },
+            { 
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "enabled": { "type": "boolean" },
+                "endpoint": { "type": "string", "format": "uri", "pattern": "^https://" },
+                "apiKeySecretRef": { "type": "string" },
+                "defaultTextModel": { "type": "string" },
+                "visionModel": { "type": "string" },
+                "forcedModel": { "type": "string" },
+                "requestTimeout": { "type": "integer", "minimum": 1, "maximum": 300, "description": "Request timeout in seconds" },
+                "tls": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "enabled": { "type": "boolean" },
+                    "customCA": { "type": "boolean" },
+                    "caSecretRef": { "type": "string" }
+                  }
+                },
+                "outboundProxy": { "type": "string", "format": "uri" },
+                "networkPolicy": { "type": "string" },
+                "maxInputSize": { "type": "integer", "minimum": 1, "description": "Maximum input size in bytes" },
+                "maxOutputSize": { "type": "integer", "minimum": 1, "description": "Maximum output size in bytes" },
+                "maxConcurrency": { "type": "integer", "minimum": 1, "description": "Maximum concurrent requests" }
+              }
+            }
+          ]
+        },
+        "aiDataInsightsSidebar": { "type": "boolean" },
+        "aiDocSummary": { "type": "boolean" },
+        "aiFolderBriefSidebar": { "type": "boolean" },
+        "aiFolderReadmeGenerator": { "type": "boolean" },
+        "aiImageAltTextSidebar": { "type": "boolean" },
+        "aiLlmProxy": { "type": "boolean" },
+        "aiMultiDocSynthesizer": { "type": "boolean" },
+        "aiQuickDraftCreator": { "type": "boolean" },
+        "aiSensitiveDataScanner": { "type": "boolean" },
+        "aiSmartCollectionsNav": { "type": "boolean" },
+        "aiSmartFileTaggerQa": { "type": "boolean" },
+        "chatWithFile": { "type": "boolean" },
+        "versionChangelog": { "type": "boolean" },
+        "fileComments": { "type": "boolean" },
+        "groupManagement": { "type": "boolean" },
+        "ocisAppTokens": { "type": "boolean" },
+        "vimNav": { "type": "boolean" },
         "monitoring": {
           "oneOf": [
             { "type": "boolean" },
@@ -171,6 +220,34 @@
           "pattern": "^(age1|ssh-ed25519 )",
           "description": "Operator-controlled public recipient used to encrypt automatic pre-update backups"
         }
+      }
+    },
+    "demoContent": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "optInRequired": { "type": "boolean" },
+        "destructiveWarning": { "type": "boolean" },
+        "licenses": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "sampleFiles": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "name": { "type": "string", "minLength": 1 },
+              "path": { "type": "string", "minLength": 1 },
+              "license": { "type": "string" },
+              "origin": { "type": "string" },
+              "size": { "type": "integer", "minimum": 1 }
+            }
+          }
+        },
+        "resetPath": { "type": "string" }
       }
     },
     "system": {
