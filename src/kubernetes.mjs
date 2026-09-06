@@ -49,7 +49,7 @@ export function buildHelmValues(profile, sizing) {
     "  emailNotifications:",
     `    enabled: ${Boolean(profile.features.notifications && profile.mail?.host)}`,
     "  monitoring:",
-    `    enabled: ${Boolean(profile.features.monitoring)}`
+    `    enabled: ${profile.features.monitoring === true || profile.features.monitoring?.enabled === true}`
   ];
 
   if (profile.features.notifications && profile.mail?.host) {
@@ -64,11 +64,10 @@ export function buildHelmValues(profile, sizing) {
   }
 
   // Add monitoring configuration
-  if (profile.features.monitoring) {
-    const monitoring = profile.features.monitoring;
-    const monitoringEnabled = monitoring === true || (typeof monitoring === 'object' && monitoring.enabled);
-    
-    if (monitoringEnabled) {
+  const monitoring = profile.features.monitoring;
+  const monitoringEnabled = monitoring === true || (typeof monitoring === 'object' && monitoring.enabled);
+  
+  if (monitoringEnabled) {
       if (typeof monitoring === 'object') {
         values.push(
           "    metrics:",
