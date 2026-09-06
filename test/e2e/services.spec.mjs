@@ -359,6 +359,32 @@ test.describe("Services Controls", () => {
     await expect(page.locator("#validation-errors")).toContainText("keycloakAdminPasswordSecretRef");
   });
 
+  // Tika Configuration tests
+  test("testTikaEnabled - Tika feature can be enabled", async ({ page }) => {
+    await page.locator('[name="tika"]').check();
+    await expect(page.locator('[name="tika"]')).toBeChecked();
+    
+    await page.getByRole("button", { name: "Validate and calculate" }).click();
+    await expect(page.locator("#sizing-breakdown")).toContainText("Tika");
+  });
+
+  test("testTikaDisabled - Tika feature can be disabled", async ({ page }) => {
+    await page.locator('[name="tika"]').uncheck();
+    await expect(page.locator('[name="tika"]')).not.toBeChecked();
+    
+    await page.getByRole("button", { name: "Validate and calculate" }).click();
+    await expect(page.locator("#sizing-breakdown")).toContainText("Calculated minimum");
+  });
+
+  test("testTikaKubernetesEnabled - Tika can be enabled for Kubernetes", async ({ page }) => {
+    await page.locator('[name="runtime"]').selectOption('kubernetes');
+    await page.locator('[name="tika"]').check();
+    
+    await page.getByRole("button", { name: "Validate and calculate" }).click();
+    // For Kubernetes, Tika requires storageClassName
+    await expect(page.locator("#validation-errors")).toContainText("storageClassName");
+  });
+
   // SMTP Configuration tests
   test("testSmtpDisabled - SMTP configuration disabled by default", async ({ page }) => {
     // SMTP configuration should not be required when notifications is disabled

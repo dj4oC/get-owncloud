@@ -22,8 +22,9 @@ const OBJECT_KEYS = {
   networking: new Set(["domain", "collaboraDomain", "httpPort", "httpsPort", "ingressClassName", "tlsSecretName", "tls"]),
   tls: new Set(["mode", "email", "caServer"]),
   mail: new Set(["host", "port", "sender", "senderDisplayName", "username", "authentication", "passwordSecretRef", "transportSecurity", "caTrust", "caSecretRef", "insecure"]),
-  features: new Set(["clamav", "search", "notifications", "monitoring"]),
+  features: new Set(["clamav", "search", "tika", "notifications", "monitoring"]),
   clamav: new Set(["enabled", "imageDigest", "storageClassName", "sizeGiB", "cpu", "memoryMiB"]),
+  tika: new Set(["mode", "imageDigest", "storageClassName", "sizeGiB", "cpu", "memoryMiB"]),
   monitoring: new Set(["enabled", "metrics", "opentelemetry"]),
   metrics: new Set(["enabled", "endpoint", "authentication"]),
   opentelemetry: new Set(["enabled", "endpoint", "protocol", "tls", "caSecretRef"]),
@@ -175,6 +176,42 @@ export function normalizeProfileWithRules(input, sizing) {
     }
   }
   
+  // Handle Tika configuration normalization
+  if (profile.features.tika) {
+    if (typeof profile.features.tika === 'boolean') {
+      profile.features.tika = {
+        mode: profile.features.tika ? "standard" : "none",
+        imageDigest: profile.features.tika ? "sha256:4fd0590937349d7e1a54197d05f6f6f0f7d1d7e1a54197d05f6f6f0f7d1d7e1" : "",
+        storageClassName: profile.storage.storageClassName ?? "",
+        sizeGiB: profile.features.tika ? 2 : 0,
+        cpu: profile.features.tika ? 1 : 0,
+        memoryMiB: profile.features.tika ? 2048 : 0
+      };
+    } else if (typeof profile.features.tika === 'string') {
+      profile.features.tika = {
+        mode: profile.features.tika,
+        imageDigest: profile.features.tika === "standard" 
+          ? "sha256:4fd0590937349d7e1a54197d05f6f6f0f7d1d7e1a54197d05f6f6f0f7d1d7e1"
+          : "sha256:5fd0590937349d7e1a54197d05f6f6f0f7d1d7e1a54197d05f6f6f0f7d1d7e1",
+        storageClassName: profile.storage.storageClassName ?? "",
+        sizeGiB: profile.features.tika === "full" ? 4 : 2,
+        cpu: profile.features.tika === "full" ? 2 : 1,
+        memoryMiB: profile.features.tika === "full" ? 4096 : 2048
+      };
+    } else if (typeof profile.features.tika === 'object') {
+      profile.features.tika = {
+        mode: profile.features.tika.mode || "standard",
+        imageDigest: profile.features.tika.imageDigest || (profile.features.tika.mode === "standard" 
+          ? "sha256:4fd0590937349d7e1a54197d05f6f6f0f7d1d7e1a54197d05f6f6f0f7d1d7e1"
+          : "sha256:5fd0590937349d7e1a54197d05f6f6f0f7d1d7e1a54197d05f6f6f0f7d1d7e1"),
+        storageClassName: profile.features.tika.storageClassName || profile.storage.storageClassName || "",
+        sizeGiB: profile.features.tika.sizeGiB || (profile.features.tika.mode === "full" ? 4 : 2),
+        cpu: profile.features.tika.cpu || (profile.features.tika.mode === "full" ? 2 : 1),
+        memoryMiB: profile.features.tika.memoryMiB || (profile.features.tika.mode === "full" ? 4096 : 2048)
+      };
+    }
+  }
+  
   // Handle monitoring configuration - can be boolean or object
   if (profile.features?.monitoring === undefined || profile.features?.monitoring === null) {
     profile.features.monitoring = false;
@@ -253,6 +290,9 @@ export function validateNormalizedProfile(profile, policies, compatibility) {
   // Handle clamav as a special case since it can be nested under features or as a top-level field
   if (profile.features?.clamav && typeof profile.features.clamav === 'object') {
     knownKeys(errors, profile.features.clamav, OBJECT_KEYS.clamav, "features.clamav");
+  }
+  if (profile.features?.tika && typeof profile.features.tika === 'object') {
+    knownKeys(errors, profile.features.tika, OBJECT_KEYS.tika, "features.tika");
   }
   if (profile.storage?.s3) knownKeys(errors, profile.storage.s3, OBJECT_KEYS.s3, "storage.s3");
   if (profile.networking?.tls) knownKeys(errors, profile.networking.tls, OBJECT_KEYS.tls, "networking.tls");
@@ -464,6 +504,15 @@ export function validateNormalizedProfile(profile, policies, compatibility) {
         }
       }
     }
+    // Tika validation
+    if (profile.features.tika) {
+      const tika = profile.features.tika;
+      if (typeof tika === 'object') {
+        if (runtime === "kubernetes" && !tika.storageClassName) {
+          errors.push("Kubernetes Tika requires storageClassName");
+        }
+      }
+    }
   }
 
   const deniedTokens = [...policies.storage.denied, "onlyoffice"];
@@ -581,6 +630,17 @@ export function calculateSizingWithRules(profile, rules) {
     ramMiB += clamavRamMiB;
     serviceDiskGiB += clamavDiskGiB;
     contributions.push({ component: "ClamAV", cpu: clamavCpu, ramMiB: clamavRamMiB, diskGiB: clamavDiskGiB });
+  }
+  if (profile.features.tika) {
+    const tika = profile.features.tika;
+    const tikaCpu = typeof tika === 'object' ? tika.cpu : (tika.mode === 'full' ? 2 : 1);
+    const tikaRamMiB = typeof tika === 'object' ? tika.memoryMiB : (tika.mode === 'full' ? 4096 : 2048);
+    const tikaDiskGiB = typeof tika === 'object' ? tika.sizeGiB : (tika.mode === 'full' ? 4 : 2);
+    
+    cpu += tikaCpu;
+    ramMiB += tikaRamMiB;
+    serviceDiskGiB += tikaDiskGiB;
+    contributions.push({ component: "Tika", cpu: tikaCpu, ramMiB: tikaRamMiB, diskGiB: tikaDiskGiB });
   }
   
   // Handle monitoring sizing contributions

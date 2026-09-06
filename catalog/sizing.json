@@ -30,6 +30,10 @@
     "evidence": "Collabora-maintained richdocumentscode requirements plus conservative container-image allowance"
   },
   "clamav": { "cpu": 1, "minimumRamMiB": 3072, "recommendedRamMiB": 4096, "diskGiB": 5 },
+  "tika": {
+    "standard": { "cpu": 1, "ramMiB": 2048, "diskGiB": 2 },
+    "full": { "cpu": 2, "ramMiB": 4096, "diskGiB": 4 }
+  },
   "monitoring": {
     "metrics": { "cpu": 0.5, "ramMiB": 512, "diskGiB": 0 },
     "tracing": { "cpu": 1, "ramMiB": 1024, "diskGiB": 1 }

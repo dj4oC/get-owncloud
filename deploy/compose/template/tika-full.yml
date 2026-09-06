@@ -1,0 +1,24 @@
+---
+services:
+  tika:
+    image: docker.io/apache/tika@sha256:5fd0590937349d7e1a54197d05f6f6f0f7d1d7e1a54197d05f6f6f0f7d1d7e1
+    networks:
+      ocis-net: {}
+    environment:
+      TIKA_MAX_FILE_SIZE: "209715200"  # 200MB for Full
+      TIKA_TIMEOUT: "600000"
+    volumes:
+      - tika-data:/var/lib/tika
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: ${LOG_DRIVER:-local}
+    restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9998/"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+
+volumes:
+  tika-data:

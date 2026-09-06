@@ -7,7 +7,9 @@ import {
   calculateSizing,
   detectEffectiveNfsVersion,
   normalizeProfile,
-  validateProfile
+  normalizeProfileWithRules,
+  validateProfile,
+  loadCatalog
 } from "../src/core.mjs";
 
 function profile(overrides = {}) {
@@ -107,6 +109,77 @@ test("Keycloak for Kubernetes with all secrets is valid", async () => {
     networking: { domain: "example.com", ingressClassName: "nginx", tlsSecretName: "tls-secret", tls: { mode: "evaluation-self-signed" } }
   }));
   assert.equal(valid.valid, true);
+});
+
+// Tika feature tests
+test("Tika can be enabled as boolean", async () => {
+  const tikab = await validateProfile(profile({ features: { tika: true } }));
+  assert.equal(tikab.valid, true);
+});
+
+test("Tika can be enabled as standard string", async () => {
+  const tikaStandard = await validateProfile(profile({ features: { tika: "standard" } }));
+  assert.equal(tikaStandard.valid, true);
+});
+
+test("Tika can be enabled as full string", async () => {
+  const tikaFull = await validateProfile(profile({ features: { tika: "full" } }));
+  assert.equal(tikaFull.valid, true);
+});
+
+test("Tika can be enabled as object with custom configuration", async () => {
+  const tika = await validateProfile(profile({ 
+    features: { 
+      tika: {
+        mode: "full",
+        imageDigest: "sha256:5fd0590937349d7e1a54197d05f6f6f0f7d1d7e1a54197d05f6f6f0f7d1d7e1",
+        storageClassName: "fast",
+        sizeGiB: 4,
+        cpu: 2,
+        memoryMiB: 4096
+      }
+    }
+  }));
+  assert.equal(tika.valid, true);
+});
+
+test("Tika Kubernetes requires storageClassName", async () => {
+  const invalid = await validateProfile(profile({
+    target: { runtime: "kubernetes", manager: "direct" },
+    features: { tika: { mode: "standard" } },
+    networking: { domain: "example.com", ingressClassName: "nginx", tlsSecretName: "tls-secret", tls: { mode: "evaluation-self-signed" } }
+  }));
+  assert.equal(invalid.valid, false);
+  assert.match(invalid.errors.join(" "), /Kubernetes Tika requires storageClassName/);
+});
+
+test("Tika normalization sets defaults", async () => {
+  const normalized = await normalizeProfileWithRules(
+    profile({ features: { tika: true } }),
+    await loadCatalog("sizing")
+  );
+  assert.equal(normalized.features.tika.mode, "standard");
+  assert.equal(normalized.features.tika.imageDigest, "sha256:4fd0590937349d7e1a54197d05f6f6f0f7d1d7e1a54197d05f6f6f0f7d1d7e1");
+  assert.equal(normalized.features.tika.sizeGiB, 2);
+  assert.equal(normalized.features.tika.cpu, 1);
+  assert.equal(normalized.features.tika.memoryMiB, 2048);
+});
+
+test("Tika contributes to sizing calculation", async () => {
+  const withTika = await calculateSizing(profile({ features: { tika: true } }));
+  const withoutTika = await calculateSizing(profile({ features: { tika: false } }));
+  
+  // Tika should add its resource contributions
+  assert.ok(withTika.minimum.cpu > withoutTika.minimum.cpu);
+  assert.ok(withTika.minimum.ramMiB > withoutTika.minimum.ramMiB);
+  assert.ok(withTika.minimum.diskGiB > withoutTika.minimum.diskGiB);
+  
+  // Check that Tika is in the contributions
+  const tikaContribution = withTika.contributions.find(c => c.component === "Tika");
+  assert.ok(tikaContribution);
+  assert.equal(tikaContribution.cpu, 1);
+  assert.equal(tikaContribution.ramMiB, 2048);
+  assert.equal(tikaContribution.diskGiB, 2);
 });
 
 test("notifications require a valid SMTP host in evaluation and production", async () => {
