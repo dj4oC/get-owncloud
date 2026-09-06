@@ -91,11 +91,30 @@ get_owncloud_repair_restored_storage() {
   fi
 }
 
+get_owncloud_safe_env_get() {
+  local key=$1
+  local file=$2
+  local value
+  
+  # Use grep to find the line safely, then extract value
+  value=$(grep -m1 "^${key}=" "$file" 2>/dev/null | cut -d= -f2- || echo "")
+  
+  # Remove surrounding quotes safely using parameter expansion
+  # Remove single quotes
+  value="${value#\'}"
+  value="${value%\'}"
+  # Remove double quotes
+  value="${value#\"}"
+  value="${value%\"}"
+  
+  printf '%s' "$value"
+}
+
 get_owncloud_runtime_setup() {
   runtime_engine=$1
   runtime_bundle=$2
-  COMPOSE_PROJECT_NAME=$(sed -n 's/^COMPOSE_PROJECT_NAME="\([^"]*\)"/\1/p' "$runtime_bundle/.env" | tail -n 1)
-  COMPOSE_FILE=$(sed -n 's/^COMPOSE_FILE="\([^"]*\)"/\1/p' "$runtime_bundle/.env" | tail -n 1)
+  COMPOSE_PROJECT_NAME=$(get_owncloud_safe_env_get COMPOSE_PROJECT_NAME "$runtime_bundle/.env")
+  COMPOSE_FILE=$(get_owncloud_safe_env_get COMPOSE_FILE "$runtime_bundle/.env")
   export COMPOSE_PROJECT_NAME COMPOSE_FILE
   GET_OWNCLOUD_COMPOSE_ENGINE=$runtime_engine
   case "$runtime_engine" in
