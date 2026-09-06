@@ -30,11 +30,25 @@ get_owncloud_compose_debug() {
 get_owncloud_assert_storage_paths() {
   storage_config=$1
   storage_data=$2
+  
+  # Check if both parameters are provided
+  [ -z "$storage_config" ] || [ -z "$storage_data" ] && die "Storage paths must not be empty"
+  
   for storage_path in "$storage_config" "$storage_data"; do
+    # Must not be empty
+    [ -z "$storage_path" ] && die "Unsafe storage path: $storage_path"
+    
+    # Must be relative (not absolute) - check for leading /
     case "$storage_path" in
-      ""|/|.|..|../*|*/../*|*/..) die "Unsafe storage path: $storage_path" ;;
+      /*) die "Unsafe storage path: $storage_path" ;;
+    esac
+    
+    # Check for .. in any component or . as the entire path
+    case "$storage_path" in
+      .|..|*..*) die "Unsafe storage path: $storage_path" ;;
     esac
   done
+  
   [ "$storage_config" != "$storage_data" ] || die "Configuration and data paths must be distinct"
   case "$storage_config/" in "$storage_data/"*) die "Configuration path must not be inside the data path" ;; esac
   case "$storage_data/" in "$storage_config/"*) die "Data path must not be inside the configuration path" ;; esac
