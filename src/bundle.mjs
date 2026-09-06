@@ -1,9 +1,9 @@
-const encoder = new TextEncoder();
+/**
+ * Bundle generation module
+ * Issue #41: Consolidate duplicate crypto hash implementations
+ */
 
-export async function sha256Text(value) {
-  const digest = await globalThis.crypto.subtle.digest("SHA-256", encoder.encode(value));
-  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
-}
+import { sha256 } from "./crypto.mjs";
 
 function env(name, value) {
   const text = String(value ?? "");
@@ -190,7 +190,7 @@ export async function buildSingleHostBundle({ profile, sizing, templates, secret
     acknowledgedSections: legal.requiredSections,
     runtimeAcceptanceStillRequired: true
   }, null, 2) + "\n";
-  const profileSha256 = await sha256Text(files["deployment-profile.json"]);
+  const profileSha256 = await sha256(files["deployment-profile.json"]);
   files["deployment.lock.json"] = JSON.stringify({
     formatVersion: 1,
     profileSha256,
@@ -210,7 +210,7 @@ export async function buildSingleHostBundle({ profile, sizing, templates, secret
   }, null, 2) + "\n";
   files["README.md"] = readme(profile);
   const hashes = [];
-  for (const path of Object.keys(files).sort()) hashes.push((await sha256Text(files[path])) + "  " + path);
+  for (const path of Object.keys(files).sort()) hashes.push((await sha256(files[path])) + "  " + path);
   files["manifest.sha256"] = hashes.join("\n") + "\n";
   return files;
 }
