@@ -124,7 +124,6 @@ function scanForSecrets(content, filePath) {
   const findings = [];
   
   // Pre-compute newline positions for efficient line number calculation
-  // This replaces the O(n) substring+split operation per match with O(1) lookup
   const newlinePositions = [];
   for (let i = 0; i < content.length; i++) {
     if (content[i] === '\n') {
@@ -132,38 +131,74 @@ function scanForSecrets(content, filePath) {
     }
   }
   
-  // Helper function to get line number from character position
+  // Helper function to get line number using binary search (O(log n))
   function getLineNumber(position) {
+    let left = 0;
+    let right = newlinePositions.length - 1;
     let line = 1;
-    for (const pos of newlinePositions) {
-      if (pos < position) line++;
-      else break;
+    
+    while (left <= right) {
+      const mid = Math.floor((left + right) / 2);
+      if (newlinePositions[mid] < position) {
+        line = mid + 2;
+        left = mid + 1;
+      } else {
+        right = mid - 1;
+      }
     }
     return line;
   }
-
-  for (const { pattern, weight } of SECRET_PATTERNS) {
-    const matches = [...content.matchAll(pattern)];
-    for (const match of matches) {
-      const matchedText = match[0];
-      // Check if this match is actually a secret reference (allowed)
-      const isSecretReference = ALLOWED_SECRET_REFERENCE_PATTERNS.some(
-        refPattern => refPattern.test(matchedText)
-      );
-
-      if (!isSecretReference) {
-        findings.push({
-          file: filePath,
-          line: getLineNumber(match.index),
-          match: matchedText,
-          pattern: pattern.toString(),
-          weight,
-          severity: weight >= 8 ? "blocking" : weight >= 5 ? "warning" : "info"
-        });
+  
+  // Pre-compile all secret patterns with their weights for faster lookup
+  const compiledPatterns = SECRET_PATTERNS.map(({ pattern, weight }) => ({
+    regex: pattern,
+    weight
+  }));
+  
+  // Single pass through content: for each character position, check all patterns
+  // But this is still O(n * p). Better: use combined regex without groups
+  
+  // Create a combined regex pattern string (without capture groups for the patterns themselves)
+  // We'll use non-capturing groups for each pattern
+  const patternSources = SECRET_PATTERNS.map(({ pattern }) => `(${pattern.source})`);
+  const combinedRegex = new RegExp(patternSources.join('|'), 'gi');
+  
+  // Find all matches with the combined regex
+  const matches = [...content.matchAll(combinedRegex)];
+  
+  for (const match of matches) {
+    const matchedText = match[0];
+    
+    // Determine which pattern matched by checking each pattern
+    // This is O(p) per match but p is small (10)
+    let matchedPattern = null;
+    let weight = 5; // default weight
+    
+    for (const { regex, weight: w } of compiledPatterns) {
+      if (regex.test(matchedText)) {
+        matchedPattern = regex;
+        weight = w;
+        break;
       }
     }
+    
+    // Check if this match is actually a secret reference (allowed)
+    const isSecretReference = ALLOWED_SECRET_REFERENCE_PATTERNS.some(
+      refPattern => refPattern.test(matchedText)
+    );
+    
+    if (!isSecretReference) {
+      findings.push({
+        file: filePath,
+        line: getLineNumber(match.index),
+        match: matchedText,
+        pattern: matchedPattern ? matchedPattern.toString() : 'unknown',
+        weight,
+        severity: weight >= 8 ? "blocking" : weight >= 5 ? "warning" : "info"
+      });
+    }
   }
-
+  
   return findings;
 }
 
