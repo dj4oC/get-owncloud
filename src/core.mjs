@@ -87,6 +87,8 @@ function flattenValues(value, output = []) {
   return output;
 }
 
+
+
 export function normalizeProfileWithRules(input, sizing) {
   const profile = structuredClone(input);
   profile.ocisVersion ??= profile.target?.runtime === "kubernetes" ? "7.1.4" : "8.2.0";
@@ -296,13 +298,49 @@ export function validateNormalizedProfile(profile, policies, compatibility) {
   }
 
   const deniedTokens = [...policies.storage.denied, "onlyoffice"];
-  for (const value of flattenValues(profile)) {
-    const lower = String(value).toLowerCase();
-    for (const denied of deniedTokens) {
-      if (lower === denied || lower.includes(`/${denied}`) || lower.includes(`${denied}:`)) {
-        errors.push(`Denied value found: ${denied}`);
+  const deniedTokensSet = new Set(deniedTokens);
+  
+  // Use optimized search to find denied tokens without building large intermediate arrays
+  const foundDeniedTokens = new Set();
+  
+  function collectDeniedTokens(value) {
+    if (typeof value === "string") {
+      const lower = value.toLowerCase();
+      for (const denied of deniedTokensSet) {
+        if (lower === denied || lower.includes(`/${denied}`) || lower.includes(`${denied}:`)) {
+          foundDeniedTokens.add(denied);
+          return true; // Short-circuit: stop searching this branch
+        }
       }
+      return false;
     }
+    
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        if (collectDeniedTokens(item)) return true;
+      }
+      return false;
+    }
+    
+    if (value && typeof value === "object") {
+      // Check keys
+      for (const key of Object.keys(value)) {
+        if (collectDeniedTokens(key)) return true;
+      }
+      // Check values
+      for (const item of Object.values(value)) {
+        if (collectDeniedTokens(item)) return true;
+      }
+      return false;
+    }
+    
+    return false;
+  }
+  
+  collectDeniedTokens(profile);
+  
+  for (const denied of foundDeniedTokens) {
+    errors.push(`Denied value found: ${denied}`);
   }
 
   return { valid: errors.length === 0, errors: [...new Set(errors)], profile };
