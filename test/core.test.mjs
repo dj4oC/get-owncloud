@@ -182,6 +182,75 @@ test("Tika contributes to sizing calculation", async () => {
   assert.equal(tikaContribution.diskGiB, 2);
 });
 
+// Classic web extensions tests
+test("Draw.io can be enabled", async () => {
+  const drawio = await validateProfile(profile({ features: { drawio: true } }));
+  assert.equal(drawio.valid, true);
+});
+
+test("JSON Viewer can be enabled", async () => {
+  const jsonViewer = await validateProfile(profile({ features: { jsonViewer: true } }));
+  assert.equal(jsonViewer.valid, true);
+});
+
+test("Photo Add-on can be enabled", async () => {
+  const photoAddon = await validateProfile(profile({ features: { photoAddon: true } }));
+  assert.equal(photoAddon.valid, true);
+});
+
+test("Unzip can be enabled", async () => {
+  const unzip = await validateProfile(profile({ features: { unzip: true } }));
+  assert.equal(unzip.valid, true);
+});
+
+test("External Sites can be enabled with valid sites", async () => {
+  const externalSites = await validateProfile(profile({ 
+    features: { 
+      externalSites: [
+        { id: "site1", name: "Site 1", url: "https://example.com" }
+      ]
+    }
+  }));
+  assert.equal(externalSites.valid, true);
+});
+
+test("External Sites rejects duplicate IDs", async () => {
+  const invalid = await validateProfile(profile({ 
+    features: { 
+      externalSites: [
+        { id: "site1", name: "Site 1", url: "https://example.com" },
+        { id: "site1", name: "Site 2", url: "https://example2.com" }
+      ]
+    }
+  }));
+  assert.equal(invalid.valid, false);
+  assert.match(invalid.errors.join(" "), /Duplicate external site id/);
+});
+
+test("External Sites rejects non-HTTPS URLs", async () => {
+  const invalid = await validateProfile(profile({ 
+    features: { 
+      externalSites: [
+        { id: "site1", name: "Site 1", url: "http://example.com" }
+      ]
+    }
+  }));
+  assert.equal(invalid.valid, false);
+  assert.match(invalid.errors.join(" "), /External site URL must be HTTPS/);
+});
+
+test("External Sites rejects missing required fields", async () => {
+  const invalid = await validateProfile(profile({ 
+    features: { 
+      externalSites: [
+        { name: "Site 1", url: "https://example.com" }
+      ]
+    }
+  }));
+  assert.equal(invalid.valid, false);
+  assert.match(invalid.errors.join(" "), /External site must have a non-empty id/);
+});
+
 test("notifications require a valid SMTP host in evaluation and production", async () => {
   const invalid = await validateProfile(profile({ features: { notifications: true } }));
   assert.equal(invalid.valid, false);

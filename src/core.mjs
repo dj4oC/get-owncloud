@@ -22,9 +22,10 @@ const OBJECT_KEYS = {
   networking: new Set(["domain", "collaboraDomain", "httpPort", "httpsPort", "ingressClassName", "tlsSecretName", "tls"]),
   tls: new Set(["mode", "email", "caServer"]),
   mail: new Set(["host", "port", "sender", "senderDisplayName", "username", "authentication", "passwordSecretRef", "transportSecurity", "caTrust", "caSecretRef", "insecure"]),
-  features: new Set(["clamav", "search", "tika", "notifications", "monitoring"]),
+  features: new Set(["clamav", "search", "tika", "drawio", "externalSites", "jsonViewer", "photoAddon", "unzip", "notifications", "monitoring"]),
   clamav: new Set(["enabled", "imageDigest", "storageClassName", "sizeGiB", "cpu", "memoryMiB"]),
   tika: new Set(["mode", "imageDigest", "storageClassName", "sizeGiB", "cpu", "memoryMiB"]),
+  externalSites: new Set(["id", "name", "url", "target", "color", "icon", "priority"]),
   monitoring: new Set(["enabled", "metrics", "opentelemetry"]),
   metrics: new Set(["enabled", "endpoint", "authentication"]),
   opentelemetry: new Set(["enabled", "endpoint", "protocol", "tls", "caSecretRef"]),
@@ -294,6 +295,11 @@ export function validateNormalizedProfile(profile, policies, compatibility) {
   if (profile.features?.tika && typeof profile.features.tika === 'object') {
     knownKeys(errors, profile.features.tika, OBJECT_KEYS.tika, "features.tika");
   }
+  if (profile.features?.externalSites && Array.isArray(profile.features.externalSites)) {
+    for (const site of profile.features.externalSites) {
+      knownKeys(errors, site, OBJECT_KEYS.externalSites, "features.externalSites[]");
+    }
+  }
   if (profile.storage?.s3) knownKeys(errors, profile.storage.s3, OBJECT_KEYS.s3, "storage.s3");
   if (profile.networking?.tls) knownKeys(errors, profile.networking.tls, OBJECT_KEYS.tls, "networking.tls");
 
@@ -515,6 +521,30 @@ export function validateNormalizedProfile(profile, policies, compatibility) {
     }
   }
 
+  // External Sites validation (runs for all runtimes)
+  if (profile.features.externalSites && Array.isArray(profile.features.externalSites)) {
+    const sites = profile.features.externalSites;
+    const seenIds = new Set();
+    for (const site of sites) {
+      if (!site.id || typeof site.id !== 'string' || site.id.length === 0) {
+        errors.push("External site must have a non-empty id");
+      } else if (seenIds.has(site.id)) {
+        errors.push(`Duplicate external site id: ${site.id}`);
+      } else {
+        seenIds.add(site.id);
+      }
+      if (!site.name || typeof site.name !== 'string' || site.name.length === 0) {
+        errors.push("External site must have a non-empty name");
+      }
+      if (!site.url || typeof site.url !== 'string' || !site.url.startsWith('https://')) {
+        errors.push("External site URL must be HTTPS");
+      }
+      if (site.target && !['embedded', 'external'].includes(site.target)) {
+        errors.push(`Invalid external site target: ${site.target}`);
+      }
+    }
+  }
+
   const deniedTokens = [...policies.storage.denied, "onlyoffice"];
   const deniedTokensSet = new Set(deniedTokens);
   
@@ -608,6 +638,33 @@ export function calculateSizingWithRules(profile, rules) {
     ramMiB += rules.search.ramMiB;
     serviceDiskGiB += searchDisk;
     contributions.push({ component: "Search and extraction", cpu: rules.search.cpu, ramMiB: rules.search.ramMiB, diskGiB: searchDisk });
+  }
+  if (profile.features.drawio) {
+    cpu += rules.drawio.cpu;
+    ramMiB += rules.drawio.ramMiB;
+    contributions.push({ component: "Draw.io", cpu: rules.drawio.cpu, ramMiB: rules.drawio.ramMiB, diskGiB: 0 });
+  }
+  if (profile.features.externalSites && Array.isArray(profile.features.externalSites)) {
+    const externalSitesCpu = rules.externalSites.cpu * profile.features.externalSites.length;
+    const externalSitesRam = rules.externalSites.ramMiB * profile.features.externalSites.length;
+    cpu += externalSitesCpu;
+    ramMiB += externalSitesRam;
+    contributions.push({ component: "External Sites", cpu: externalSitesCpu, ramMiB: externalSitesRam, diskGiB: 0 });
+  }
+  if (profile.features.jsonViewer) {
+    cpu += rules.jsonViewer.cpu;
+    ramMiB += rules.jsonViewer.ramMiB;
+    contributions.push({ component: "JSON Viewer", cpu: rules.jsonViewer.cpu, ramMiB: rules.jsonViewer.ramMiB, diskGiB: 0 });
+  }
+  if (profile.features.photoAddon) {
+    cpu += rules.photoAddon.cpu;
+    ramMiB += rules.photoAddon.ramMiB;
+    contributions.push({ component: "Photo Add-on", cpu: rules.photoAddon.cpu, ramMiB: rules.photoAddon.ramMiB, diskGiB: 0 });
+  }
+  if (profile.features.unzip) {
+    cpu += rules.unzip.cpu;
+    ramMiB += rules.unzip.ramMiB;
+    contributions.push({ component: "Unzip", cpu: rules.unzip.cpu, ramMiB: rules.unzip.ramMiB, diskGiB: 0 });
   }
   if (profile.office?.mode === "collabora" && profile.office?.deployment === "bundled") {
     const concurrent = profile.workload.collaboraConcurrentUsers;

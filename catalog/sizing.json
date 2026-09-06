@@ -34,6 +34,11 @@
     "standard": { "cpu": 1, "ramMiB": 2048, "diskGiB": 2 },
     "full": { "cpu": 2, "ramMiB": 4096, "diskGiB": 4 }
   },
+  "drawio": { "cpu": 0.5, "ramMiB": 512, "diskGiB": 0 },
+  "externalSites": { "cpu": 0, "ramMiB": 0, "diskGiB": 0 },
+  "jsonViewer": { "cpu": 0.25, "ramMiB": 256, "diskGiB": 0 },
+  "photoAddon": { "cpu": 0.5, "ramMiB": 512, "diskGiB": 0 },
+  "unzip": { "cpu": 0.25, "ramMiB": 256, "diskGiB": 0 },
   "monitoring": {
     "metrics": { "cpu": 0.5, "ramMiB": 512, "diskGiB": 0 },
     "tracing": { "cpu": 1, "ramMiB": 1024, "diskGiB": 1 }
