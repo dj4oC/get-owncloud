@@ -58,7 +58,26 @@ export function buildHelmValues(profile, sizing) {
     "  emailNotifications:",
     `    enabled: ${Boolean(profile.features.notifications && profile.mail?.host)}`,
     "  monitoring:",
-    `    enabled: ${profile.features.monitoring === true || profile.features.monitoring?.enabled === true}`
+    `    enabled: ${profile.features.monitoring === true || profile.features.monitoring?.enabled === true}`,
+    ...(profile.office.mode === "collabora" && profile.office.deployment === "bundled" ? [
+      "  collabora:",
+      "    enabled: true",
+      `    domain: ${q(profile.networking.collaboraDomain)}`,
+      `    image: collabora/code@sha256:0011be3edac909b390e6f297093bb82f61f9f3ce5476a3bdd4f3ce6b12f74ec3`,
+      "    storageClassName:",
+      `      data: ${q(profile.storage.storageClassName || "")}`,
+      "    persistence:",
+      "      data:",
+      "        enabled: true",
+      "        size: 10Gi",
+      "    resources:",
+      "      requests:",
+      "        cpu: 2",
+      "        memory: 4Gi",
+      "      limits:",
+      "        cpu: 4",
+      "        memory: 8Gi"
+    ] : [])
   ];
 
   if (profile.features.notifications && profile.mail?.host) {
@@ -140,21 +159,31 @@ export function buildHelmValues(profile, sizing) {
   const collabora = profile.office.mode === "collabora";
   values.push("  appsIntegration:", `    enabled: ${collabora}`);
   if (collabora) {
+    const collaboraUrl = profile.office.deployment === "bundled"
+      ? `http://collabora.${profile.networking.domain}`
+      : profile.office.url;
     values.push(
       "    wopiIntegration:",
       "      officeSuites:",
       `        - name: ${q("Collabora Online")}`,
       `          product: ${q("Collabora")}`,
       "          enabled: true",
-      `          uri: ${q(profile.office.url)}`,
-      `          iconURI: ${q(`${profile.office.url.replace(/\/$/, "")}/favicon.ico`)}`,
+      `          uri: ${q(collaboraUrl)}`,
+      `          iconURI: ${q(collaboraUrl.replace(/\/$/, "") + "/favicon.ico")}`,
       `          description: ${q("Open office documents with Collabora")}`,
       "          insecure: false",
       "          disableProof: false",
       "          secureViewEnabled: true",
       "          disableChat: false",
-      "          ingress:",
-      "            enabled: false"
+      ...(profile.office.deployment === "bundled" ? [
+        "          ingress:",
+        "            enabled: true",
+        `            host: ${q(profile.networking.collaboraDomain)}`,
+        "            tls: true"
+      ] : [
+        "          ingress:",
+        "            enabled: false"
+      ])
     );
   }
 

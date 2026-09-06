@@ -39,6 +39,36 @@ test("Collabora is the only office integration", async () => {
   assert.match(other.errors.join(" "), /Collabora|Denied value/);
 });
 
+test("Collabora bundled mode is supported for Kubernetes", async () => {
+  const bundled = await validateProfile(profile({
+    target: { runtime: "kubernetes", manager: "direct" },
+    office: { mode: "collabora", deployment: "bundled" },
+    networking: { 
+      domain: "example.com", 
+      collaboraDomain: "collabora.example.com", 
+      ingressClassName: "nginx",
+      tlsSecretName: "tls-secret",
+      tls: { mode: "evaluation-self-signed" } 
+    }
+  }));
+  assert.equal(bundled.valid, true);
+});
+
+test("Collabora external mode with HTTPS URL is valid", async () => {
+  const external = await validateProfile(profile({
+    office: { mode: "collabora", deployment: "external", url: "https://collabora.example.com" }
+  }));
+  assert.equal(external.valid, true);
+});
+
+test("Collabora external mode requires HTTPS URL", async () => {
+  const invalid = await validateProfile(profile({
+    office: { mode: "collabora", deployment: "external", url: "http://collabora.example.com" }
+  }));
+  assert.equal(invalid.valid, false);
+  assert.match(invalid.errors.join(" "), /External Collabora must use an HTTPS URL/);
+});
+
 test("notifications require a valid SMTP host in evaluation and production", async () => {
   const invalid = await validateProfile(profile({ features: { notifications: true } }));
   assert.equal(invalid.valid, false);
