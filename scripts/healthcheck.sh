@@ -43,7 +43,7 @@ if [ "$EVALUATION_INSECURE" = true ]; then
   curl_tls_opts="--insecure"
   printf 'WARNING: Using insecure TLS verification. This is not recommended for production.\n' >&2
 elif [ -n "$EVALUATION_CA_BUNDLE" ]; then
-  curl_tls_opts="--cacert $EVALUATION_CA_BUNDLE"
+  curl_tls_opts="--cacert \"$EVALUATION_CA_BUNDLE\""
 fi
 
 if [ -n "$DOMAIN" ] && [ "$EVALUATION_INSECURE" = true ]; then
