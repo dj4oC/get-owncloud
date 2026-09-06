@@ -95,6 +95,30 @@ export function buildHelmValues(profile, sizing) {
       }
     }
   }
+  
+  // Add AI Proxy configuration
+  if (profile.aiProxy?.enabled) {
+    values.push(
+      "  aiProxy:",
+      "    enabled: true",
+      `    image: docker.io/owncloud/ai-proxy@sha256:PLACEHOLDER_AI_PROXY_DIGEST`,
+      `    endpoint: ${q(profile.aiProxy.endpoint)}`,
+      `    apiKeySecretRef: ${q(profile.aiProxy.apiKeySecretRef)}`,
+      `    defaultTextModel: ${q(profile.aiProxy.defaultTextModel ?? "gpt-4")}`,
+      ...(profile.aiProxy.visionModel ? [`    visionModel: ${q(profile.aiProxy.visionModel)}`] : []),
+      ...(profile.aiProxy.forcedModel ? [`    forcedModel: ${q(profile.aiProxy.forcedModel)}`] : []),
+      `    requestTimeout: ${profile.aiProxy.requestTimeout ?? 30}`,
+      "    tls:",
+      `      enabled: ${Boolean(profile.aiProxy.tls?.enabled ?? true)}`,
+      `      customCA: ${Boolean(profile.aiProxy.tls?.customCA ?? false)}`,
+      ...(profile.aiProxy.tls?.caSecretRef ? [`      caSecretRef: ${q(profile.aiProxy.tls.caSecretRef)}`] : []),
+      ...(profile.aiProxy.outboundProxy ? [`    outboundProxy: ${q(profile.aiProxy.outboundProxy)}`] : []),
+      ...(profile.aiProxy.networkPolicy ? [`    networkPolicy: ${q(profile.aiProxy.networkPolicy)}`] : []),
+      `    maxInputSize: ${profile.aiProxy.maxInputSize ?? 1048576}`,
+      `    maxOutputSize: ${profile.aiProxy.maxOutputSize ?? 1048576}`,
+      `    maxConcurrency: ${profile.aiProxy.maxConcurrency ?? 10}`
+    );
+  }
 
   const externalIdentity = profile.identity.mode === "external-oidc";
   values.push("  externalUserManagement:", `    enabled: ${externalIdentity}`);
@@ -148,6 +172,9 @@ export function buildHelmValues(profile, sizing) {
   if (externalIdentity) values.push(`  ldapSecretRef: ${q(profile.identity.ldapSecretRef)}`);
   if (profile.storage.mode === "s3ng") values.push(`  s3CredentialsSecretRef: ${q(profile.storage.s3.secretKeyReference)}`);
   if (profile.features.notifications && profile.mail?.username) values.push("  notificationsSmtpSecretRef: owncloud-smtp");
+  if (profile.aiProxy?.enabled && profile.aiProxy.apiKeySecretRef) {
+    values.push(`  aiProxyApiKeySecretRef: ${q(profile.aiProxy.apiKeySecretRef)}`);
+  }
   
   // Add monitoring secret references
   if (profile.features.monitoring && typeof profile.features.monitoring === 'object') {
