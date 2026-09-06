@@ -16,8 +16,21 @@ run_privileged() {
   sudo "$@"
 }
 env_get() {
-  value=$(sed -n "s/^$1=//p" "$BUNDLE_DIR/.env" | tail -n 1)
-  printf '%s' "$value" | sed 's/^"//; s/"$//'
+  local key=$1
+  local value
+  
+  # Use grep to find the line safely, then extract value
+  value=$(grep -m1 "^${key}=" "$BUNDLE_DIR/.env" 2>/dev/null | cut -d= -f2- || echo "")
+  
+  # Remove surrounding quotes safely using parameter expansion
+  # Remove single quotes
+  value="${value#\'}"
+  value="${value%\'}"
+  # Remove double quotes
+  value="${value#\"}"
+  value="${value%\"}"
+  
+  printf '%s' "$value"
 }
 
 while [ "$#" -gt 0 ]; do
