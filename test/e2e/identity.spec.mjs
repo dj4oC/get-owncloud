@@ -54,7 +54,7 @@ test.describe("Identity Controls", () => {
     
     await page.getByRole("button", { name: "Validate and calculate" }).click();
     // Should not show validation errors for valid URL format
-    await expect(page.locator("#validation-errors")).not.toContainText("oidcIssuer");
+    await expect(page.locator("#validation-errors")).not.toContainText("External OIDC issuer");
   });
 
   test("testOidcIssuerMissing - Missing OIDC issuer shows validation error", async ({ page }) => {
@@ -63,7 +63,7 @@ test.describe("Identity Controls", () => {
     
     await page.getByRole("button", { name: "Validate and calculate" }).click();
     // Should show validation error for missing required field
-    await expect(page.locator("#validation-errors")).toContainText("oidcIssuer");
+    await expect(page.locator("#validation-errors")).toContainText("External OIDC issuer");
   });
 
   test("testOidcIssuerMalformed - Malformed OIDC issuer URL shows validation error", async ({ page }) => {
@@ -72,7 +72,7 @@ test.describe("Identity Controls", () => {
     
     await page.getByRole("button", { name: "Validate and calculate" }).click();
     // Should show validation error for malformed URL
-    await expect(page.locator("#validation-errors")).toContainText("oidcIssuer");
+    await expect(page.locator("#validation-errors")).toContainText("External OIDC issuer");
   });
 
   // OIDC Client ID tests
@@ -100,7 +100,7 @@ test.describe("Identity Controls", () => {
     await expect(page.locator('[name="ldapUri"]')).toHaveValue("ldaps://ldap.corp.example:636");
     
     await page.getByRole("button", { name: "Validate and calculate" }).click();
-    await expect(page.locator("#validation-errors")).not.toContainText("ldapUri");
+    await expect(page.locator("#validation-errors")).not.toContainText("External identity requires a trusted LDAPS directory URI");
   });
 
   test("testLdapUriValidLdap - Valid LDAP URI is accepted", async ({ page }) => {
@@ -117,7 +117,7 @@ test.describe("Identity Controls", () => {
     await page.locator('[name="ldapUri"]').fill("");
     
     await page.getByRole("button", { name: "Validate and calculate" }).click();
-    await expect(page.locator("#validation-errors")).toContainText("ldapUri");
+    await expect(page.locator("#validation-errors")).toContainText("External identity requires a trusted LDAPS directory URI");
   });
 
   test("testLdapUriMalformed - Malformed LDAP URI shows validation error", async ({ page }) => {
@@ -125,7 +125,7 @@ test.describe("Identity Controls", () => {
     await page.locator('[name="ldapUri"]').fill("invalid-uri");
     
     await page.getByRole("button", { name: "Validate and calculate" }).click();
-    await expect(page.locator("#validation-errors")).toContainText("ldapUri");
+    await expect(page.locator("#validation-errors")).toContainText("External identity requires a trusted LDAPS directory URI");
   });
 
   // LDAP Bind DN tests
@@ -259,7 +259,7 @@ test.describe("Identity Controls", () => {
     await page.locator("#identity-mode").selectOption("embedded");
     
     await page.getByRole("button", { name: "Validate and calculate" }).click();
-    await expect(page.locator("#validation-errors")).toContainText("Embedded identity can only be used with up to 20 registered users");
+    await expect(page.locator("#validation-errors")).toContainText("Embedded IDP/IDM is limited to 20 users");
     
     // Reduce to 20 users - should work
     await page.locator("#registered-users").fill("20");

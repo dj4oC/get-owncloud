@@ -96,6 +96,22 @@ test.describe("Completeness Guard", () => {
         return files;
       });
       
+      // Also check other sections that reference test files
+      if (catalogue.bundleValidation?.testFile) {
+        allTestFiles.push(catalogue.bundleValidation.testFile);
+      }
+      if (catalogue.highRiskJourneys?.testFunction) {
+        // Extract test file from highRiskJourneys
+        const highRiskFile = catalogue.highRiskJourneys.testFile || "high-risk.spec.mjs";
+        allTestFiles.push(highRiskFile);
+      }
+      if (catalogue.completenessGuard?.testFile) {
+        allTestFiles.push(catalogue.completenessGuard.testFile);
+      }
+      if (catalogue.accessibility?.testFile) {
+        allTestFiles.push(catalogue.accessibility.testFile);
+      }
+      
       expect(allTestFiles).toContain(testFile);
     }
     

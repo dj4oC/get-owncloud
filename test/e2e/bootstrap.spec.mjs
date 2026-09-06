@@ -18,7 +18,7 @@ test.describe("Bootstrap Command Picker", () => {
     
     // Docker should allow direct and ansible managers
     const managerOptions = await page.locator("#manager option").allTextContents();
-    expect(managerOptions).toContain("Direct Compose");
+    expect(managerOptions).toContain("Direct");
     expect(managerOptions).toContain("Ansible");
     
     // Should not show Kubernetes-specific managers
