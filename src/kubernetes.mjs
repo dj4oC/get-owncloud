@@ -1,4 +1,4 @@
-import { sha256Text } from "./bundle.mjs";
+import { sha256 } from "./crypto.mjs";
 
 const q = (value) => JSON.stringify(String(value));
 
@@ -313,7 +313,7 @@ export async function buildKubernetesBundle({ profile, sizing, templates, legal,
   }, null, 2) + "\n";
   files["README.md"] = `# Generated Kubernetes Community Preview\n\nThis bundle is deliberately pinned to chart 0.7.0 / oCIS 7.1.4. Issue #6 remains open. It is not a production claim.\n\n1. Run \`sh install.sh --target kubernetes --manager ${profile.target.manager} --install-missing --allow-sudo\`.\n2. Create the referenced TLS and external-service secrets.\n3. Inspect every file.\n4. Run \`sh deploy.sh --accept-eula${profile.target.manager === "argocd" ? " --argocd" : ""}\`.\n`;
   const hashes = [];
-  for (const path of Object.keys(files).sort()) hashes.push(`${await sha256Text(files[path])}  ${path}`);
+  for (const path of Object.keys(files).sort()) hashes.push(`${await sha256(files[path])}  ${path}`);
   files["manifest.sha256"] = hashes.join("\n") + "\n";
   return files;
 }

@@ -6,8 +6,8 @@
 
 import { mkdir, readFile, writeFile, readdir, stat, rm, mkdtemp } from "node:fs/promises";
 import { join, dirname, basename, relative } from "node:path";
-import { createHash } from "node:crypto";
 import { tmpdir as osTmpdir } from "node:os";
+import { sha256 } from "./crypto.mjs";
 import { loadCatalog, validateProfile, normalizeProfileWithRules, calculateSizing } from "./core.mjs";
 import { buildSingleHostBundle, requiredTemplatePaths } from "./bundle.mjs";
 import { buildKubernetesBundle, requiredKubernetesTemplatePaths } from "./kubernetes.mjs";
@@ -109,18 +109,12 @@ function generateDeploymentId() {
 }
 
 /**
- * Calculate SHA-256 hash of a string
- */
-async function sha256Hash(data) {
-  return createHash("sha256").update(data).digest("hex");
-}
-
-/**
  * Calculate SHA-256 hash of a file
+ * Issue #41: Consolidate duplicate crypto hash implementations
  */
 async function hashFile(filePath) {
   const content = await readFile(filePath, "utf8");
-  return sha256Hash(content);
+  return sha256(content);
 }
 
 /**
@@ -214,7 +208,7 @@ async function validateNoSecrets(filePath) {
  * Generate lock file content
  */
 async function generateLockFile(profile, sizing, catalog, legal, options = {}) {
-  const profileHash = options.profileHash || await sha256Hash(JSON.stringify(profile, null, 2));
+  const profileHash = options.profileHash || await sha256(JSON.stringify(profile, null, 2));
 
   return {
     version: REPOSITORY_SPEC_VERSION,
@@ -518,7 +512,7 @@ export async function exportToRepository(profile, outputDirectory, options = {})
   await mkdir(outputDirectory, { recursive: true, mode: 0o700 });
 
   // Calculate profile hash
-  const profileHash = await sha256Hash(JSON.stringify(checked.profile, null, 2));
+  const profileHash = await sha256(JSON.stringify(checked.profile, null, 2));
 
   // Create metadata
   const metadata = createRepositoryMetadata(checked.profile, {
@@ -617,7 +611,7 @@ export async function exportToRepository(profile, outputDirectory, options = {})
     await mkdir(dirname(destination), { recursive: true, mode: 0o700 });
 
     // Store hash for drift detection
-    const fileHash = await sha256Hash(content);
+    const fileHash = await sha256(content);
     generatedFilesHashes[filePath] = { hash: fileHash, algorithm: "sha256" };
 
     await writeFile(destination, content, { mode: 0o644 });
@@ -1123,7 +1117,7 @@ async function checkDrift(repositoryPath, profile, lock) {
       const expectedHash = expectedHashes[filePath]?.hash;
 
       if (expectedHash) {
-        const actualHash = await sha256Hash(content);
+        const actualHash = await sha256(content);
 
         if (actualHash !== expectedHash) {
           drifts.push({
