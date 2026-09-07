@@ -22,6 +22,7 @@ function composeFiles(profile) {
   }
   if (profile.features.clamav) files.push("clamav.yml");
   if (profile.identity.mode === "external-oidc") files.push("external-oidc.yml");
+  if (profile.identity.mode === "keycloak") files.push("keycloak.yml");
   return files;
 }
 
@@ -88,8 +89,8 @@ function makeEnv(profile, sizing, secrets, selected) {
     ["COLLABORA_ADMIN_USER", "admin"],
     ["COLLABORA_ADMIN_PASSWORD", profile.office.mode === "collabora" && profile.office.deployment === "bundled" ? secrets.collaboraAdminPassword ?? "" : ""],
     ["COLLABORA_SSL_VERIFICATION", profile.purpose === "production" ? "true" : "false"],
-    ["OCIS_OIDC_ISSUER", profile.identity.issuer ?? ""],
-    ["OCIS_OIDC_CLIENT_ID", profile.identity.clientId ?? ""],
+    ["OCIS_OIDC_ISSUER", profile.identity.mode === "keycloak" ? `https://${profile.networking.domain}` : profile.identity.issuer ?? ""],
+    ["OCIS_OIDC_CLIENT_ID", profile.identity.clientId ?? "web"],
     ["OCIS_OIDC_USER_CLAIM", profile.identity.userClaim ?? "preferred_username"],
     ["OCIS_OIDC_CS3_CLAIM", profile.identity.cs3Claim ?? "username"],
     ["LDAP_URI", profile.identity.ldapUri ?? ""],
@@ -101,6 +102,9 @@ function makeEnv(profile, sizing, secrets, selected) {
     ["LDAP_USER_NAME_ATTRIBUTE", profile.identity.ldapUserNameAttribute ?? "uid"],
     ["LDAP_GROUP_ID_ATTRIBUTE", profile.identity.ldapGroupIdAttribute ?? "ownclouduuid"],
     ["LDAP_GROUP_NAME_ATTRIBUTE", profile.identity.ldapGroupNameAttribute ?? "cn"],
+    ["KEYCLOAK_HOSTNAME", profile.identity.mode === "keycloak" ? profile.networking.domain : ""],
+    ["KEYCLOAK_ADMIN_PASSWORD", profile.identity.mode === "keycloak" ? secrets.keycloakAdminPassword ?? "" : ""],
+    ["KEYCLOAK_DB_PASSWORD", profile.identity.mode === "keycloak" ? secrets.keycloakDatabasePassword ?? "" : ""],
     ["S3NG_ENDPOINT", profile.storage.s3?.endpoint ?? ""],
     ["S3NG_REGION", profile.storage.s3?.region ?? ""],
     ["S3NG_BUCKET", profile.storage.s3?.bucket ?? ""],

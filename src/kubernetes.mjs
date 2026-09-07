@@ -77,6 +77,29 @@ export function buildHelmValues(profile, sizing) {
       "      limits:",
       "        cpu: 4",
       "        memory: 8Gi"
+    ] : []),
+    ...(profile.identity.mode === "keycloak" ? [
+      "  keycloak:",
+      "    enabled: true",
+      `    hostname: ${q(profile.networking.domain)}`,
+      "    image: docker.io/keycloak/keycloak@sha256:0e3483351197ae1558340473bc54b8f8151842871464090200e58f208c070c30",
+      "    database:",
+      "      vendor: postgres",
+      "      image: docker.io/library/postgres@sha256:9f960731546a19d453f817542225535087991428229813043480184099ce028",
+      "    persistence:",
+      "      enabled: true",
+      "      size: 10Gi",
+      `    storageClassName: ${q(profile.storage.storageClassName || "")}`,
+      "    resources:",
+      "      requests:",
+      "        cpu: 1",
+      "        memory: 2Gi",
+      "      limits:",
+      "        cpu: 2",
+      "        memory: 4Gi",
+      "    secretRefs:",
+      "      adminPassword: keycloak-admin-secret",
+      "      databasePassword: keycloak-db-secret"
     ] : [])
   ];
 
@@ -129,13 +152,18 @@ export function buildHelmValues(profile, sizing) {
       }
     }
 
-  const externalIdentity = profile.identity.mode === "external-oidc";
+  const externalIdentity = profile.identity.mode === "external-oidc" || profile.identity.mode === "keycloak";
   values.push("  externalUserManagement:", `    enabled: ${externalIdentity}`);
   if (externalIdentity) {
+    // For Keycloak, use the Keycloak service URL as the issuer
+    const oidcIssuer = profile.identity.mode === "keycloak"
+      ? `https://keycloak.${profile.networking.domain}`
+      : profile.identity.issuer;
     values.push(
       "    oidc:",
-      `      issuerURI: ${q(profile.identity.issuer)}`,
+      `      issuerURI: ${q(oidcIssuer)}`,
       `      userIDClaim: ${q(profile.identity.userClaim)}`,
+      `      clientId: ${q(profile.identity.clientId ?? "web")}`,
       "      userIDClaimAttributeMapping: username",
       "    ldap:",
       "      writeable: false",
@@ -188,7 +216,13 @@ export function buildHelmValues(profile, sizing) {
   }
 
   values.push("secretRefs:");
-  if (externalIdentity) values.push(`  ldapSecretRef: ${q(profile.identity.ldapSecretRef)}`);
+  if (externalIdentity && profile.identity.mode === "external-oidc") {
+    values.push(`  ldapSecretRef: ${q(profile.identity.ldapSecretRef)}`);
+  }
+  if (profile.identity.mode === "keycloak") {
+    values.push(`  keycloakAdminPasswordSecretRef: ${q(profile.identity.keycloakAdminPasswordSecretRef)}`);
+    values.push(`  keycloakDatabasePasswordSecretRef: ${q(profile.identity.keycloakDatabasePasswordSecretRef)}`);
+  }
   if (profile.storage.mode === "s3ng") values.push(`  s3CredentialsSecretRef: ${q(profile.storage.s3.secretKeyReference)}`);
   if (profile.features.notifications && profile.mail?.username) values.push("  notificationsSmtpSecretRef: owncloud-smtp");
   

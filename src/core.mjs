@@ -13,7 +13,8 @@ const OBJECT_KEYS = {
   identity: new Set([
     "mode", "issuer", "clientId", "userClaim", "cs3Claim", "ldapUri", "ldapBindDn",
     "ldapSecretRef", "ldapUserBaseDn", "ldapGroupBaseDn", "ldapUserIdAttribute",
-    "ldapUserNameAttribute", "ldapGroupIdAttribute", "ldapGroupNameAttribute"
+    "ldapUserNameAttribute", "ldapGroupIdAttribute", "ldapGroupNameAttribute",
+    "keycloakAdminPasswordSecretRef", "keycloakDatabasePasswordSecretRef"
   ]),
   storage: new Set(["mode", "filesystem", "dataPath", "configPath", "nfsVersion", "storageClassName", "s3"]),
   s3: new Set(["endpoint", "region", "bucket", "accessKeyReference", "secretKeyReference"]),
@@ -208,6 +209,14 @@ export function normalizeProfileWithRules(input, sizing) {
     profile.identity.ldapGroupIdAttribute ??= "ownclouduuid";
     profile.identity.ldapGroupNameAttribute ??= "cn";
   }
+  if (profile.identity?.mode === "keycloak") {
+    profile.identity.userClaim ??= "preferred_username";
+    profile.identity.cs3Claim ??= "username";
+    profile.identity.ldapUserIdAttribute ??= "ownclouduuid";
+    profile.identity.ldapUserNameAttribute ??= "uid";
+    profile.identity.ldapGroupIdAttribute ??= "ownclouduuid";
+    profile.identity.ldapGroupNameAttribute ??= "cn";
+  }
   profile.updates = {
     automaticSecurityPatches: profile.purpose === "production" && profile.target?.runtime === "docker",
     observationDelayHours: 24,
@@ -279,7 +288,7 @@ export function validateNormalizedProfile(profile, policies, compatibility) {
   if (profile.identity?.mode === "embedded" && users > policies.identity.embeddedMaximumUsers) {
     errors.push(`Embedded IDP/IDM is limited to ${policies.identity.embeddedMaximumUsers} users`);
   }
-  if (!["embedded", "external-oidc"].includes(profile.identity?.mode)) errors.push("Identity must be embedded or external OIDC");
+  if (!["embedded", "external-oidc", "keycloak"].includes(profile.identity?.mode)) errors.push("Identity must be embedded, external OIDC, or Keycloak");
   if (profile.identity?.mode === "external-oidc") {
     if (!isHttpsUrl(profile.identity.issuer)) errors.push("External OIDC issuer must be an HTTPS URL");
     if (!profile.identity.clientId) errors.push("External OIDC clientId is required");
@@ -291,6 +300,17 @@ export function validateNormalizedProfile(profile, policies, compatibility) {
     }
     if (runtime === "kubernetes" && !profile.identity.ldapSecretRef) {
       errors.push("Kubernetes external identity requires ldapSecretRef");
+    }
+  }
+  if (profile.identity?.mode === "keycloak") {
+    if (!profile.identity.clientId) errors.push("Keycloak requires clientId");
+    if (runtime === "kubernetes") {
+      if (!profile.identity.keycloakAdminPasswordSecretRef) {
+        errors.push("Kubernetes Keycloak requires keycloakAdminPasswordSecretRef");
+      }
+      if (!profile.identity.keycloakDatabasePasswordSecretRef) {
+        errors.push("Kubernetes Keycloak requires keycloakDatabasePasswordSecretRef");
+      }
     }
   }
 

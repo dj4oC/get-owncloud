@@ -339,6 +339,26 @@ test.describe("Services Controls", () => {
     await expect(page.locator("#sizing-breakdown")).toContainText("Bundled Collabora");
   });
 
+  // Keycloak Configuration tests
+  test("testKeycloakEnabled - Keycloak identity mode can be enabled", async ({ page }) => {
+    await page.locator('[name="identityMode"]').selectOption('keycloak');
+    await page.locator('[name="oidcClientId"]').fill('web');
+    
+    await page.getByRole("button", { name: "Validate and calculate" }).click();
+    // Keycloak should be accepted as a valid identity mode
+    await expect(page.locator("#sizing-breakdown")).toContainText("Calculated minimum");
+  });
+
+  test("testKeycloakKubernetes - Keycloak works for Kubernetes with secret references", async ({ page }) => {
+    await page.locator('[name="runtime"]').selectOption('kubernetes');
+    await page.locator('[name="identityMode"]').selectOption('keycloak');
+    await page.locator('[name="oidcClientId"]').fill('web');
+    
+    await page.getByRole("button", { name: "Validate and calculate" }).click();
+    // For Kubernetes, Keycloak requires secret references
+    await expect(page.locator("#validation-errors")).toContainText("keycloakAdminPasswordSecretRef");
+  });
+
 
   // SMTP Configuration tests
   test("testSmtpDisabled - SMTP configuration disabled by default", async ({ page }) => {
