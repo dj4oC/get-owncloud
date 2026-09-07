@@ -585,55 +585,6 @@ export function validateNormalizedProfile(profile, policies, compatibility) {
       }
     }
   }
-  
-  // Validate SMTP configuration
-  const mailConfig = profile.mail;
-  if (mailConfig && mailConfig.host) {
-    if (!mailConfig.port || mailConfig.port < 1 || mailConfig.port > 65535) {
-      errors.push("SMTP port must be a valid port number (1-65535)");
-    }
-    
-    // Validate sender email format
-    if (mailConfig.sender && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mailConfig.sender)) {
-      errors.push("SMTP sender must be a valid email address");
-    }
-    
-    // Validate authentication and transport security compatibility
-    if (mailConfig.insecure === true && mailConfig.transportSecurity !== "insecure") {
-      errors.push("Insecure mode must have transportSecurity set to 'insecure'");
-    }
-    
-    if (mailConfig.transportSecurity === "insecure" && mailConfig.insecure !== true) {
-      errors.push("Transport security 'insecure' requires insecure: true");
-    }
-    
-    // Validate CA trust configuration
-    if (mailConfig.caTrust === "custom" && !mailConfig.caSecretRef && runtime === "kubernetes") {
-      errors.push("Custom CA trust requires caSecretRef for Kubernetes");
-    }
-    
-    // Validate username/password requirements
-    if (mailConfig.authentication !== "none" && !mailConfig.username) {
-      errors.push("Authentication mode other than 'none' requires username");
-    }
-    
-    // Kubernetes-specific validation
-    if (runtime === "kubernetes") {
-      if (mailConfig.username && !mailConfig.passwordSecretRef) {
-        errors.push("Kubernetes SMTP requires passwordSecretRef when username is specified");
-      }
-      if (mailConfig.caTrust === "custom" && !mailConfig.caSecretRef) {
-        errors.push("Kubernetes custom CA trust requires caSecretRef");
-      }
-    }
-    
-    // Docker/Podman specific validation
-    if (runtime !== "kubernetes" && mailConfig.username) {
-      if (!profile.features.notifications) {
-        errors.push("SMTP username requires notifications to be enabled for Docker/Podman");
-      }
-    }
-  }
   if (profile.updates?.automaticSecurityPatches) {
     const recipient = profile.updates.backupRecipient;
     if (typeof recipient !== "string" || !(recipient.startsWith("age1") || recipient.startsWith("ssh-ed25519 "))) {
