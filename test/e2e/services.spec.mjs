@@ -303,6 +303,42 @@ test.describe("Services Controls", () => {
     await expect(page.locator("#sizing-breakdown")).toContainText("ClamAV");
   });
 
+  // Collabora Configuration tests
+  test("testCollaboraBundledEnabled - Collabora bundled mode can be enabled", async ({ page }) => {
+    await page.locator('[name="officeMode"]').selectOption('collabora');
+    await page.locator('[name="officeDeployment"]').selectOption('bundled');
+    
+    await page.getByRole("button", { name: "Validate and calculate" }).click();
+    await expect(page.locator("#sizing-breakdown")).toContainText("Bundled Collabora");
+  });
+
+  test("testCollaboraExternalEnabled - Collabora external mode can be enabled", async ({ page }) => {
+    await page.locator('[name="officeMode"]').selectOption('collabora');
+    await page.locator('[name="officeDeployment"]').selectOption('external');
+    await page.locator('[name="collaboraUrl"]').fill('https://collabora.example.com');
+    
+    await page.getByRole("button", { name: "Validate and calculate" }).click();
+    await expect(page.locator("#sizing-breakdown")).toContainText("Collabora");
+  });
+
+  test("testCollaboraDisabled - Collabora can be disabled", async ({ page }) => {
+    await page.locator('[name="officeMode"]').selectOption('none');
+    
+    await page.getByRole("button", { name: "Validate and calculate" }).click();
+    await expect(page.locator("#sizing-breakdown")).toContainText("Calculated minimum");
+  });
+
+  test("testCollaboraBundledKubernetes - Collabora bundled mode works for Kubernetes", async ({ page }) => {
+    await page.locator('[name="runtime"]').selectOption('kubernetes');
+    await page.locator('[name="officeMode"]').selectOption('collabora');
+    await page.locator('[name="officeDeployment"]').selectOption('bundled');
+    await page.locator('[name="collaboraDomain"]').fill('collabora.example.com');
+    
+    await page.getByRole("button", { name: "Validate and calculate" }).click();
+    // For Kubernetes bundled Collabora, it should work without errors
+    await expect(page.locator("#sizing-breakdown")).toContainText("Bundled Collabora");
+  });
+
 
   // SMTP Configuration tests
   test("testSmtpDisabled - SMTP configuration disabled by default", async ({ page }) => {

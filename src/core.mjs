@@ -485,9 +485,6 @@ export function validateNormalizedProfile(profile, policies, compatibility) {
     if (profile.storage.filesystem === "nfs" && !profile.storage.storageClassName) {
       errors.push("Kubernetes NFS requires an explicitly reviewed NFSv4.2 StorageClass");
     }
-    if (office === "collabora" && profile.office.deployment === "bundled") {
-      errors.push("Kubernetes 7.1.4 preview supports external Collabora only; the oCIS chart does not bundle the Collabora server");
-    }
     // ClamAV validation
     if (profile.features.clamav) {
       const clamav = profile.features.clamav;
