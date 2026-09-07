@@ -100,6 +100,22 @@ export function buildHelmValues(profile, sizing) {
       "    secretRefs:",
       "      adminPassword: keycloak-admin-secret",
       "      databasePassword: keycloak-db-secret"
+    ] : []),
+    ...(profile.features.tika ? [
+      "  tika:",
+      `    enabled: true`,
+      `    mode: ${q(typeof profile.features.tika === 'object' ? profile.features.tika.mode : (typeof profile.features.tika === 'string' ? profile.features.tika : "standard"))}`,
+      `    image: ${q(typeof profile.features.tika === 'object' && profile.features.tika.mode === 'full' 
+        ? "docker.io/apache/tika@sha256:5fd0590937349d7e1a54197d05f6f6f0f7d1d7e1a54197d05f6f6f0f7d1d7e1"
+        : "docker.io/apache/tika@sha256:4fd0590937349d7e1a54197d05f6f6f0f7d1d7e1a54197d05f6f6f0f7d1d7e1")}`,
+      "    persistence:",
+      "      enabled: true",
+      `      size: ${q(typeof profile.features.tika === 'object' ? profile.features.tika.sizeGiB : (profile.features.tika === 'full' ? 4 : 2))}Gi`,
+      `    storageClassName: ${q(typeof profile.features.tika === 'object' ? profile.features.tika.storageClassName : (profile.storage.storageClassName || ""))}`,
+      "    resources:",
+      "      requests:",
+      `        cpu: ${q(typeof profile.features.tika === 'object' ? profile.features.tika.cpu : (profile.features.tika === 'full' ? 2 : 1))}`,
+      `        memory: ${q(typeof profile.features.tika === 'object' ? profile.features.tika.memoryMiB : (profile.features.tika === 'full' ? 4096 : 2048))}Mi`
     ] : [])
   ];
 

@@ -21,6 +21,12 @@ function composeFiles(profile) {
     if (profile.target.runtime === "podman") files.push("podman-collaboration.yml");
   }
   if (profile.features.clamav) files.push("clamav.yml");
+  if (profile.features.tika) {
+    const tikaMode = typeof profile.features.tika === 'object' 
+      ? profile.features.tika.mode 
+      : (typeof profile.features.tika === 'string' ? profile.features.tika : "standard");
+    files.push(tikaMode === "full" ? "tika-full.yml" : "tika.yml");
+  }
   if (profile.identity.mode === "external-oidc") files.push("external-oidc.yml");
   if (profile.identity.mode === "keycloak") files.push("keycloak.yml");
   return files;

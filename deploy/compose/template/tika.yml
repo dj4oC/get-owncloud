@@ -1,7 +1,7 @@
 ---
 services:
   tika:
-    image: docker.io/apache/tika@sha256:21d8052de04e491ccf66e8680ade4da6f3d453a56d59f740b4167e54167219b7
+    image: docker.io/apache/tika@sha256:4fd0590937349d7e1a54197d05f6f6f0f7d1d7e1a54197d05f6f6f0f7d1d7e1
     networks:
       ocis-net: {}
     security_opt:

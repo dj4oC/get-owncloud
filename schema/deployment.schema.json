@@ -140,6 +140,27 @@
           ]
         },
         "search": { "type": "boolean" },
+        "tika": { 
+          "oneOf": [
+            { "type": "boolean" },
+            { 
+              "type": "string",
+              "enum": ["standard", "full"]
+            },
+            { 
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "mode": { "enum": ["standard", "full"] },
+                "imageDigest": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+                "storageClassName": { "type": "string" },
+                "sizeGiB": { "type": "integer", "minimum": 1 },
+                "cpu": { "type": "number", "minimum": 0.1 },
+                "memoryMiB": { "type": "integer", "minimum": 1024 }
+              }
+            }
+          ]
+        },
         "notifications": { "type": "boolean" },
         "monitoring": {
           "oneOf": [
