@@ -1,0 +1,696 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "version": "1.0.0",
+  "generatedAt": "2026-09-06T20:30:00Z",
+  "description": "Machine-readable alignment catalogue for upstream drift control. Required by issue #63 for tracking upstream refs from master and AI feature branch.",
+  "authoritativeSource": "https://github.com/amamus/get-owncloud/issues/63",
+  
+  "upstream_refs": [
+    {
+      "repository": "owncloud/ocis",
+      "branch": "master",
+      "commit_sha": "5bb6ae9e1940b41a16166c8aaaf6aa6f05cb2fa7",
+      "last_updated": "2026-09-06T20:30:00Z",
+      "overlays": [
+        {
+          "name": "monitoring_tracing",
+          "status": "supported",
+          "rationale": "Metrics endpoint exposure and OpenTelemetry export configuration",
+          "target_availability": "implemented",
+          "renderer_tests": ["k8s.spec.mjs:testMonitoringHelm", "k8s.spec.mjs:testMonitoringArgo"],
+          "policy_assertion": "Supported for all four deployment outputs"
+        },
+        {
+          "name": "mailserver",
+          "status": "evaluation-only",
+          "rationale": "Mailpit for evaluation, not production SMTP",
+          "target_availability": "excluded",
+          "renderer_tests": [],
+          "policy_assertion": "Mailpit is evaluation-only, use production SMTP instead"
+        },
+        {
+          "name": "collabora",
+          "status": "supported",
+          "rationale": "Bundled and external Collabora support",
+          "target_availability": "implemented",
+          "renderer_tests": ["services.spec.mjs:testCollaboraDocker", "k8s.spec.mjs:testCollaboraHelm"],
+          "policy_assertion": "Collabora is the only supported office integration"
+        }
+      ],
+      "components": [
+        {
+          "name": "ocis",
+          "type": "core",
+          "status": "supported",
+          "version": "8.2.0",
+          "digest": "sha256:5bb6ae9e1940b41a16166c8aaaf6aa6f05cb2fa7",
+          "renderer_support": {
+            "docker": true,
+            "podman": true,
+            "helm": true,
+            "argo_cd": true
+          },
+          "test_coverage": "services.spec.mjs:testCore",
+          "rationale": "Core oCIS service required for all deployments"
+        }
+      ]
+    },
+    {
+      "repository": "owncloud/ocis",
+      "branch": "feat/ocis-full-web-extensions-ai",
+      "commit_sha": "470361b08621d0e101f2d5e5a80715c2380d3d26",
+      "last_updated": "2026-09-06T20:30:00Z",
+      "overlays": [
+        {
+          "name": "ai_extensions",
+          "status": "community-preview",
+          "rationale": "AI branch extensions are from unmerged feature branch",
+          "target_availability": "implemented",
+          "renderer_tests": ["services.spec.mjs:testAIExtensions", "k8s.spec.mjs:testAIExtensionsK8s"],
+          "policy_assertion": "AI features marked as Community Preview until individually reviewed"
+        }
+      ],
+      "components": [
+        {
+          "name": "ai-llm-proxy",
+          "type": "service",
+          "status": "community-preview",
+          "version": "1.0.0",
+          "digest": "sha256:ai_proxy_digest_placeholder",
+          "renderer_support": {
+            "docker": true,
+            "podman": true,
+            "helm": true,
+            "argo_cd": true
+          },
+          "test_coverage": "services.spec.mjs:testAIProxy",
+          "rationale": "AI LLM proxy required for AI extensions",
+          "dependencies": ["ocis"]
+        },
+        {
+          "name": "ai-data-insights-sidebar",
+          "type": "extension",
+          "status": "community-preview",
+          "version": "1.0.0",
+          "digest": "sha256:ai_data_insights_digest_placeholder",
+          "renderer_support": {
+            "docker": true,
+            "podman": true,
+            "helm": true,
+            "argo_cd": true
+          },
+          "test_coverage": "services.spec.mjs:testAIDataInsights",
+          "rationale": "AI data insights sidebar extension",
+          "dependencies": ["ai-llm-proxy"]
+        },
+        {
+          "name": "workflows",
+          "type": "feature",
+          "status": "planned",
+          "rationale": "oCIS Workflows not in requested MVP list, needs separate approval",
+          "target_availability": "planned",
+          "renderer_tests": [],
+          "policy_assertion": "Workflows must be explicitly approved before implementation"
+        }
+      ]
+    }
+  ],
+  
+  "components": [
+    {
+      "name": "clamav",
+      "type": "service",
+      "status": "supported",
+      "upstream_ref": "master",
+      "version": "1.0.0",
+      "digest": "sha256:75fb5fd95fcbe1d7e6d240c369c1572b686ee2c95949d1042b5148de8eddebb",
+      "renderer_support": {
+        "docker": true,
+        "podman": true,
+        "helm": true,
+        "argo_cd": true
+      },
+      "test_coverage": "services.spec.mjs:testClamAV",
+      "rationale": "Required for antivirus functionality"
+    },
+    {
+      "name": "smtp",
+      "type": "service",
+      "status": "supported",
+      "upstream_ref": "master",
+      "version": "1.0.0",
+      "digest": "sha256:smtp_digest_placeholder",
+      "renderer_support": {
+        "docker": true,
+        "podman": true,
+        "helm": true,
+        "argo_cd": true
+      },
+      "test_coverage": "services.spec.mjs:testSmtp",
+      "rationale": "Complete mail-delivery configuration with authentication and TLS"
+    },
+    {
+      "name": "tika",
+      "type": "service",
+      "status": "supported",
+      "upstream_ref": "master",
+      "version": "1.0.0",
+      "digest": "sha256:tika_standard_digest_placeholder",
+      "renderer_support": {
+        "docker": true,
+        "podman": true,
+        "helm": true,
+        "argo_cd": true
+      },
+      "test_coverage": "services.spec.mjs:testTika",
+      "rationale": "Document content extraction for search functionality"
+    },
+    {
+      "name": "tika-full",
+      "type": "service",
+      "status": "supported",
+      "upstream_ref": "master",
+      "version": "1.0.0",
+      "digest": "sha256:tika_full_digest_placeholder",
+      "renderer_support": {
+        "docker": true,
+        "podman": true,
+        "helm": true,
+        "argo_cd": true
+      },
+      "test_coverage": "services.spec.mjs:testTikaFull",
+      "rationale": "Extended document format support with larger resource footprint"
+    },
+    {
+      "name": "keycloak",
+      "type": "service",
+      "status": "supported",
+      "upstream_ref": "master",
+      "version": "1.0.0",
+      "digest": "sha256:keycloak_digest_placeholder",
+      "renderer_support": {
+        "docker": true,
+        "podman": true,
+        "helm": true,
+        "argo_cd": true
+      },
+      "test_coverage": "services.spec.mjs:testKeycloak",
+      "rationale": "Bundled identity provider with PostgreSQL"
+    },
+    {
+      "name": "postgresql",
+      "type": "service",
+      "status": "supported",
+      "upstream_ref": "master",
+      "version": "15.0.0",
+      "digest": "sha256:postgresql_digest_placeholder",
+      "renderer_support": {
+        "docker": true,
+        "podman": true,
+        "helm": true,
+        "argo_cd": true
+      },
+      "test_coverage": "services.spec.mjs:testPostgreSQL",
+      "rationale": "Database service for Keycloak and other components"
+    },
+    {
+      "name": "collabora",
+      "type": "service",
+      "status": "supported",
+      "upstream_ref": "master",
+      "version": "23.05.0",
+      "digest": "sha256:collabora_digest_placeholder",
+      "renderer_support": {
+        "docker": true,
+        "podman": true,
+        "helm": true,
+        "argo_cd": true
+      },
+      "test_coverage": "services.spec.mjs:testCollabora",
+      "rationale": "Office integration with WOPI support"
+    }
+  ],
+  
+  "classic_extensions": [
+    {
+      "name": "advanced-search",
+      "type": "extension",
+      "status": "supported",
+      "upstream_ref": "master",
+      "version": "1.0.0",
+      "digest": "sha256:advanced_search_digest_placeholder",
+      "renderer_support": {
+        "docker": true,
+        "podman": true,
+        "helm": true,
+        "argo_cd": true
+      },
+      "test_coverage": "services.spec.mjs:testAdvancedSearch",
+      "rationale": "Enhanced search capabilities with Tika integration",
+      "dependencies": ["tika"]
+    },
+    {
+      "name": "drawio",
+      "type": "extension",
+      "status": "supported",
+      "upstream_ref": "master",
+      "version": "1.0.0",
+      "digest": "sha256:drawio_digest_placeholder",
+      "renderer_support": {
+        "docker": true,
+        "podman": true,
+        "helm": true,
+        "argo_cd": true
+      },
+      "test_coverage": "services.spec.mjs:testDrawio",
+      "rationale": "Diagram editing integration",
+      "csp_requirements": ["frame-src:https://app.diagrams.net"]
+    },
+    {
+      "name": "external-sites",
+      "type": "extension",
+      "status": "supported",
+      "upstream_ref": "master",
+      "version": "1.0.0",
+      "digest": "sha256:external_sites_digest_placeholder",
+      "renderer_support": {
+        "docker": true,
+        "podman": true,
+        "helm": true,
+        "argo_cd": true
+      },
+      "test_coverage": "services.spec.mjs:testExternalSites",
+      "rationale": "Configurable external site integration with CSP generation",
+      "csp_requirements": ["dynamic frame-src based on configured sites"]
+    },
+    {
+      "name": "json-viewer",
+      "type": "extension",
+      "status": "supported",
+      "upstream_ref": "master",
+      "version": "1.0.0",
+      "digest": "sha256:json_viewer_digest_placeholder",
+      "renderer_support": {
+        "docker": true,
+        "podman": true,
+        "helm": true,
+        "argo_cd": true
+      },
+      "test_coverage": "services.spec.mjs:testJsonViewer",
+      "rationale": "JSON file viewing and editing"
+    },
+    {
+      "name": "photo-addon",
+      "type": "extension",
+      "status": "supported",
+      "upstream_ref": "master",
+      "version": "1.0.0",
+      "digest": "sha256:photo_addon_digest_placeholder",
+      "renderer_support": {
+        "docker": true,
+        "podman": true,
+        "helm": true,
+        "argo_cd": true
+      },
+      "test_coverage": "services.spec.mjs:testPhotoAddon",
+      "rationale": "Photo viewing and OpenStreetMap integration",
+      "dependencies": ["tika"],
+      "csp_requirements": ["frame-src:https://*.openstreetmap.org"]
+    },
+    {
+      "name": "unzip",
+      "type": "extension",
+      "status": "supported",
+      "upstream_ref": "master",
+      "version": "1.0.0",
+      "digest": "sha256:unzip_digest_placeholder",
+      "renderer_support": {
+        "docker": true,
+        "podman": true,
+        "helm": true,
+        "argo_cd": true
+      },
+      "test_coverage": "services.spec.mjs:testUnzip",
+      "rationale": "Archive extraction with security controls"
+    }
+  ],
+  
+  "ai_extensions": [
+    {
+      "name": "ai-data-insights-sidebar",
+      "type": "extension",
+      "status": "community-preview",
+      "upstream_ref": "feat/ocis-full-web-extensions-ai",
+      "version": "1.0.0",
+      "digest": "sha256:ai_data_insights_digest_placeholder",
+      "renderer_support": {
+        "docker": true,
+        "podman": true,
+        "helm": true,
+        "argo_cd": true
+      },
+      "test_coverage": "services.spec.mjs:testAIDataInsights",
+      "rationale": "AI-powered data insights in sidebar",
+      "dependencies": ["ai-llm-proxy"],
+      "security_requirements": ["api_key_secret_reference", "no_api_key_in_logs"]
+    },
+    {
+      "name": "ai-doc-summary",
+      "type": "extension",
+      "status": "community-preview",
+      "upstream_ref": "feat/ocis-full-web-extensions-ai",
+      "version": "1.0.0",
+      "digest": "sha256:ai_doc_summary_digest_placeholder",
+      "renderer_support": {
+        "docker": true,
+        "podman": true,
+        "helm": true,
+        "argo_cd": true
+      },
+      "test_coverage": "services.spec.mjs:testAIDocSummary",
+      "rationale": "AI document summarization",
+      "dependencies": ["ai-llm-proxy"]
+    },
+    {
+      "name": "ai-folder-brief-sidebar",
+      "type": "extension",
+      "status": "community-preview",
+      "upstream_ref": "feat/ocis-full-web-extensions-ai",
+      "version": "1.0.0",
+      "digest": "sha256:ai_folder_brief_digest_placeholder",
+      "renderer_support": {
+        "docker": true,
+        "podman": true,
+        "helm": true,
+        "argo_cd": true
+      },
+      "test_coverage": "services.spec.mjs:testAIFolderBrief",
+      "rationale": "AI folder brief generation",
+      "dependencies": ["ai-llm-proxy"]
+    },
+    {
+      "name": "ai-folder-readme-generator",
+      "type": "extension",
+      "status": "community-preview",
+      "upstream_ref": "feat/ocis-full-web-extensions-ai",
+      "version": "1.0.0",
+      "digest": "sha256:ai_folder_readme_digest_placeholder",
+      "renderer_support": {
+        "docker": true,
+        "podman": true,
+        "helm": true,
+        "argo_cd": true
+      },
+      "test_coverage": "services.spec.mjs:testAIFolderReadme",
+      "rationale": "AI README generation for folders",
+      "dependencies": ["ai-llm-proxy"]
+    },
+    {
+      "name": "ai-image-alt-text-sidebar",
+      "type": "extension",
+      "status": "community-preview",
+      "upstream_ref": "feat/ocis-full-web-extensions-ai",
+      "version": "1.0.0",
+      "digest": "sha256:ai_image_alt_text_digest_placeholder",
+      "renderer_support": {
+        "docker": true,
+        "podman": true,
+        "helm": true,
+        "argo_cd": true
+      },
+      "test_coverage": "services.spec.mjs:testAIImageAltText",
+      "rationale": "AI image alt-text generation",
+      "dependencies": ["ai-llm-proxy"],
+      "model_requirements": ["vision-capable"]
+    },
+    {
+      "name": "ai-llm-proxy",
+      "type": "service",
+      "status": "community-preview",
+      "upstream_ref": "feat/ocis-full-web-extensions-ai",
+      "version": "1.0.0",
+      "digest": "sha256:ai_llm_proxy_digest_placeholder",
+      "renderer_support": {
+        "docker": true,
+        "podman": true,
+        "helm": true,
+        "argo_cd": true
+      },
+      "test_coverage": "services.spec.mjs:testAIProxy",
+      "rationale": "AI LLM proxy for model endpoint management",
+      "security_requirements": ["api_key_secret_reference", "https_required", "no_api_key_in_generated_files"]
+    },
+    {
+      "name": "ai-multi-doc-synthesizer",
+      "type": "extension",
+      "status": "community-preview",
+      "upstream_ref": "feat/ocis-full-web-extensions-ai",
+      "version": "1.0.0",
+      "digest": "sha256:ai_multi_doc_digest_placeholder",
+      "renderer_support": {
+        "docker": true,
+        "podman": true,
+        "helm": true,
+        "argo_cd": true
+      },
+      "test_coverage": "services.spec.mjs:testAIMultiDoc",
+      "rationale": "AI multi-document synthesis",
+      "dependencies": ["ai-llm-proxy"]
+    },
+    {
+      "name": "ai-quick-draft-creator",
+      "type": "extension",
+      "status": "community-preview",
+      "upstream_ref": "feat/ocis-full-web-extensions-ai",
+      "version": "1.0.0",
+      "digest": "sha256:ai_quick_draft_digest_placeholder",
+      "renderer_support": {
+        "docker": true,
+        "podman": true,
+        "helm": true,
+        "argo_cd": true
+      },
+      "test_coverage": "services.spec.mjs:testAIQuickDraft",
+      "rationale": "AI quick draft creation",
+      "dependencies": ["ai-llm-proxy"]
+    },
+    {
+      "name": "ai-sensitive-data-scanner",
+      "type": "extension",
+      "status": "community-preview",
+      "upstream_ref": "feat/ocis-full-web-extensions-ai",
+      "version": "1.0.0",
+      "digest": "sha256:ai_sensitive_data_digest_placeholder",
+      "renderer_support": {
+        "docker": true,
+        "podman": true,
+        "helm": true,
+        "argo_cd": true
+      },
+      "test_coverage": "services.spec.mjs:testAISensitiveData",
+      "rationale": "AI sensitive data scanning (functional behavior, not compliance proof)",
+      "dependencies": ["ai-llm-proxy"],
+      "policy_assertion": "Treat as functional behavior, not proof of compliance or classification accuracy"
+    },
+    {
+      "name": "ai-smart-collections-nav",
+      "type": "extension",
+      "status": "community-preview",
+      "upstream_ref": "feat/ocis-full-web-extensions-ai",
+      "version": "1.0.0",
+      "digest": "sha256:ai_smart_collections_digest_placeholder",
+      "renderer_support": {
+        "docker": true,
+        "podman": true,
+        "helm": true,
+        "argo_cd": true
+      },
+      "test_coverage": "services.spec.mjs:testAISmartCollections",
+      "rationale": "AI smart collections navigation",
+      "dependencies": ["ai-llm-proxy"]
+    },
+    {
+      "name": "ai-smart-file-tagger-qa",
+      "type": "extension",
+      "status": "community-preview",
+      "upstream_ref": "feat/ocis-full-web-extensions-ai",
+      "version": "1.0.0",
+      "digest": "sha256:ai_smart_file_tagger_digest_placeholder",
+      "renderer_support": {
+        "docker": true,
+        "podman": true,
+        "helm": true,
+        "argo_cd": true
+      },
+      "test_coverage": "services.spec.mjs:testAISmartFileTagger",
+      "rationale": "AI smart file tagging with quality assurance",
+      "dependencies": ["ai-llm-proxy"]
+    },
+    {
+      "name": "chat-with-file",
+      "type": "extension",
+      "status": "community-preview",
+      "upstream_ref": "feat/ocis-full-web-extensions-ai",
+      "version": "1.0.0",
+      "digest": "sha256:chat_with_file_digest_placeholder",
+      "renderer_support": {
+        "docker": true,
+        "podman": true,
+        "helm": true,
+        "argo_cd": true
+      },
+      "test_coverage": "services.spec.mjs:testChatWithFile",
+      "rationale": "Chat interface for file content",
+      "dependencies": ["ai-llm-proxy"]
+    },
+    {
+      "name": "version-changelog",
+      "type": "extension",
+      "status": "community-preview",
+      "upstream_ref": "feat/ocis-full-web-extensions-ai",
+      "version": "1.0.0",
+      "digest": "sha256:version_changelog_digest_placeholder",
+      "renderer_support": {
+        "docker": true,
+        "podman": true,
+        "helm": true,
+        "argo_cd": true
+      },
+      "test_coverage": "services.spec.mjs:testVersionChangelog",
+      "rationale": "Version changelog display",
+      "dependencies": ["ai-llm-proxy"]
+    }
+  ],
+  
+  "other_extensions": [
+    {
+      "name": "file-comments",
+      "type": "extension",
+      "status": "supported",
+      "upstream_ref": "feat/ocis-full-web-extensions-ai",
+      "version": "1.0.0",
+      "digest": "sha256:file_comments_digest_placeholder",
+      "renderer_support": {
+        "docker": true,
+        "podman": true,
+        "helm": true,
+        "argo_cd": true
+      },
+      "test_coverage": "services.spec.mjs:testFileComments",
+      "rationale": "File comments functionality with create, edit/delete permissions and persistence",
+      "test_requirements": ["test_create_edit_delete_permissions_persistence"]
+    },
+    {
+      "name": "group-management",
+      "type": "extension",
+      "status": "supported",
+      "upstream_ref": "feat/ocis-full-web-extensions-ai",
+      "version": "1.0.0",
+      "digest": "sha256:group_management_digest_placeholder",
+      "renderer_support": {
+        "docker": true,
+        "podman": true,
+        "helm": true,
+        "argo_cd": true
+      },
+      "test_coverage": "services.spec.mjs:testGroupManagement",
+      "rationale": "Group management with role checks; ordinary users must not gain administrative group mutation",
+      "test_requirements": ["test_role_checks_no_admin_group_mutation"]
+    },
+    {
+      "name": "ocis-app-tokens",
+      "type": "extension",
+      "status": "supported",
+      "upstream_ref": "feat/ocis-full-web-extensions-ai",
+      "version": "1.0.0",
+      "digest": "sha256:ocis_app_tokens_digest_placeholder",
+      "renderer_support": {
+        "docker": true,
+        "podman": true,
+        "helm": true,
+        "argo_cd": true
+      },
+      "test_coverage": "services.spec.mjs:testOcisAppTokens",
+      "rationale": "oCIS app tokens with auth-app configuration",
+      "test_requirements": ["require_configure_auth_app", "test_create_scoped_use_revoke_audit", "never_enable_basic_auth"]
+    },
+    {
+      "name": "vim-nav",
+      "type": "extension",
+      "status": "supported",
+      "upstream_ref": "feat/ocis-full-web-extensions-ai",
+      "version": "1.0.0",
+      "digest": "sha256:vim_nav_digest_placeholder",
+      "renderer_support": {
+        "docker": true,
+        "podman": true,
+        "helm": true,
+        "argo_cd": true
+      },
+      "test_coverage": "services.spec.mjs:testVimNav",
+      "rationale": "Vim navigation with keyboard behavior and accessibility conflicts",
+      "test_requirements": ["test_keyboard_behavior_accessibility_conflicts", "user_level_disable_path"]
+    }
+  ],
+  
+  "exclusions": [
+    {
+      "name": "ONLYOFFICE",
+      "status": "deliberately-excluded",
+      "rationale": "Only Collabora is supported as office integration per product rule",
+      "policy_assertion": "ONLYOFFICE remains unavailable",
+      "replacement": "Collabora"
+    },
+    {
+      "name": "posixfs_direct",
+      "status": "deliberately-excluded",
+      "rationale": "Direct PosixFS modes remain unavailable per safety policy",
+      "policy_assertion": "PosixFS, direct posix, xattr, GPFS-specific modes remain denied"
+    },
+    {
+      "name": "cephfs",
+      "status": "deliberately-excluded",
+      "rationale": "CephFS remains unavailable until explicitly promoted",
+      "policy_assertion": "CephFS excluded until explicit approval"
+    },
+    {
+      "name": "eos",
+      "status": "deliberately-excluded",
+      "rationale": "EOS storage remains unavailable until explicitly promoted",
+      "policy_assertion": "EOS excluded until explicit approval"
+    },
+    {
+      "name": "debug_overlays",
+      "status": "deliberately-excluded",
+      "rationale": "Debug overlays are never production-selectable",
+      "policy_assertion": "Debug overlays excluded from production deployments"
+    }
+  ],
+  
+  "drift_detection_rules": {
+    "check_frequency": "daily",
+    "repositories": [
+      {
+        "name": "owncloud/ocis",
+        "branches": ["master", "feat/ocis-full-web-extensions-ai"],
+        "check_overlays": true,
+        "check_components": true
+      }
+    ],
+    "actions": {
+      "on_new_overlay": "create_issue",
+      "on_removed_overlay": "create_issue",
+      "on_changed_component": "create_issue",
+      "on_missing_renderer": "fail_ci",
+      "on_lost_policy_assertion": "fail_ci"
+    }
+  },
+  
+  "validation_rules": [
+    "every_supported_component_must_have_renderer_for_all_promised_outputs",
+    "every_supported_component_must_have_test_for_all_promised_outputs",
+    "deliberate_exclusions_must_retain_policy_assertions",
+    "changes_must_go_through_proper_review_process",
+    "discovery_may_open_issue_but_never_auto_implement"
+  ]
+}
