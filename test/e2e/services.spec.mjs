@@ -385,6 +385,39 @@ test.describe("Services Controls", () => {
     await expect(page.locator("#validation-errors")).toContainText("storageClassName");
   });
 
+  // Classic Web Extensions tests
+  test("testDrawioEnabled - Draw.io extension can be enabled", async ({ page }) => {
+    await page.locator('[name="drawio"]').check();
+    await expect(page.locator('[name="drawio"]')).toBeChecked();
+    
+    await page.getByRole("button", { name: "Validate and calculate" }).click();
+    await expect(page.locator("#sizing-breakdown")).toContainText("Draw.io");
+  });
+
+  test("testJsonViewerEnabled - JSON Viewer extension can be enabled", async ({ page }) => {
+    await page.locator('[name="jsonViewer"]').check();
+    await expect(page.locator('[name="jsonViewer"]')).toBeChecked();
+    
+    await page.getByRole("button", { name: "Validate and calculate" }).click();
+    await expect(page.locator("#sizing-breakdown")).toContainText("JSON Viewer");
+  });
+
+  test("testPhotoAddonEnabled - Photo Add-on extension can be enabled", async ({ page }) => {
+    await page.locator('[name="photoAddon"]').check();
+    await expect(page.locator('[name="photoAddon"]')).toBeChecked();
+    
+    await page.getByRole("button", { name: "Validate and calculate" }).click();
+    await expect(page.locator("#sizing-breakdown")).toContainText("Photo Add-on");
+  });
+
+  test("testUnzipEnabled - Unzip extension can be enabled", async ({ page }) => {
+    await page.locator('[name="unzip"]').check();
+    await expect(page.locator('[name="unzip"]')).toBeChecked();
+    
+    await page.getByRole("button", { name: "Validate and calculate" }).click();
+    await expect(page.locator("#sizing-breakdown")).toContainText("Unzip");
+  });
+
 
   // SMTP Configuration tests
   test("testSmtpDisabled - SMTP configuration disabled by default", async ({ page }) => {

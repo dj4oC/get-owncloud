@@ -161,6 +161,27 @@
             }
           ]
         },
+        "drawio": { "type": "boolean" },
+        "externalSites": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "name", "url"],
+            "properties": {
+              "id": { "type": "string", "minLength": 1 },
+              "name": { "type": "string", "minLength": 1 },
+              "url": { "type": "string", "format": "uri", "pattern": "^https://" },
+              "target": { "enum": ["embedded", "external"] },
+              "color": { "type": "string" },
+              "icon": { "type": "string" },
+              "priority": { "type": "integer", "minimum": 0 }
+            }
+          }
+        },
+        "jsonViewer": { "type": "boolean" },
+        "photoAddon": { "type": "boolean" },
+        "unzip": { "type": "boolean" },
         "notifications": { "type": "boolean" },
         "monitoring": {
           "oneOf": [
