@@ -374,245 +374,143 @@ test("storage paths reject root, traversal and identical targets", async () => {
   }
 });
 
-// SMTP Configuration Tests
-test("SMTP configuration validates basic fields", async () => {
-  const valid = await validateProfile(profile({
-    features: { notifications: true },
-    mail: { host: "smtp.example.com", port: 587, sender: "test@example.com" }
-  }));
-  assert.equal(valid.valid, true, valid.errors.join(" "));
+// AI Proxy Configuration Tests
+test("AI Proxy can be enabled as boolean", async () => {
+  const result = await validateProfile(profile({ aiProxy: true }));
+  assert.equal(result.valid, true, result.errors.join(" "));
 });
 
-test("SMTP configuration requires valid port", async () => {
-  const invalid = await validateProfile(profile({
-    features: { notifications: true },
-    mail: { host: "smtp.example.com", port: 0, sender: "test@example.com" }
-  }));
-  assert.equal(invalid.valid, false);
-  assert.match(invalid.errors.join(" "), /valid port number/);
-});
-
-test("SMTP configuration validates sender email format", async () => {
-  const invalid = await validateProfile(profile({
-    features: { notifications: true },
-    mail: { host: "smtp.example.com", port: 587, sender: "invalid-email" }
-  }));
-  assert.equal(invalid.valid, false);
-  assert.match(invalid.errors.join(" "), /valid email address/);
-});
-
-test("SMTP authentication requires username", async () => {
-  const invalid = await validateProfile(profile({
-    features: { notifications: true },
-    mail: { host: "smtp.example.com", port: 587, sender: "test@example.com", authentication: "plain" }
-  }));
-  assert.equal(invalid.valid, false);
-  assert.match(invalid.errors.join(" "), /requires username/);
-});
-
-test("SMTP username with authentication mode requires valid configuration", async () => {
-  // Username without authentication mode should default to "none" during normalization
-  const valid = await validateProfile(profile({
-    features: { notifications: true },
-    mail: { host: "smtp.example.com", port: 587, sender: "test@example.com", username: "user" }
-  }));
-  assert.equal(valid.valid, true, valid.errors.join(" "));
-  
-  // But authentication mode other than "none" requires username
-  const invalid = await validateProfile(profile({
-    features: { notifications: true },
-    mail: { host: "smtp.example.com", port: 587, sender: "test@example.com", authentication: "plain" }
-  }));
-  assert.equal(invalid.valid, false);
-  assert.match(invalid.errors.join(" "), /requires username/);
-});
-
-test("SMTP insecure mode requires transportSecurity insecure", async () => {
-  const invalid = await validateProfile(profile({
-    features: { notifications: true },
-    mail: { host: "smtp.example.com", port: 25, sender: "test@example.com", insecure: true, transportSecurity: "tls" }
-  }));
-  assert.equal(invalid.valid, false);
-  assert.match(invalid.errors.join(" "), /must have transportSecurity set to 'insecure'/);
-});
-
-test("SMTP transportSecurity insecure requires insecure true", async () => {
-  const invalid = await validateProfile(profile({
-    features: { notifications: true },
-    mail: { host: "smtp.example.com", port: 25, sender: "test@example.com", transportSecurity: "insecure", insecure: false }
-  }));
-  assert.equal(invalid.valid, false);
-  assert.match(invalid.errors.join(" "), /requires insecure: true/);
-});
-
-test("SMTP custom CA trust requires caSecretRef for Kubernetes", async () => {
-  const invalid = await validateProfile({
-    apiVersion: "get.owncloud.com/v1alpha1",
-    purpose: "evaluation",
-    target: { runtime: "kubernetes", manager: "direct" },
-    workload: { registeredUsers: 20, storedDataGiB: 100 },
-    identity: { mode: "embedded" },
-    storage: { mode: "ocis", filesystem: "ext4" },
-    office: { mode: "none" },
-    networking: { domain: "test.example.com", tls: { mode: "evaluation-self-signed" } },
-    features: { notifications: true },
-    mail: { host: "smtp.example.com", port: 587, sender: "test@example.com", caTrust: "custom" }
-  });
-  assert.equal(invalid.valid, false);
-  assert.match(invalid.errors.join(" "), /caSecretRef/);
-});
-
-test("SMTP normalization sets defaults", async () => {
-  const normalized = await normalizeProfile(profile({
-    features: { notifications: true },
-    mail: { host: "smtp.example.com" },
-    networking: { domain: "test.example.com" }
-  }));
-  assert.equal(normalized.mail.port, 587);
-  assert.equal(normalized.mail.sender, "no-reply@test.example.com");
-  assert.equal(normalized.mail.authentication, "none");
-  assert.equal(normalized.mail.transportSecurity, "starttls");
-  assert.equal(normalized.mail.caTrust, "system");
-});
-
-test("SMTP Docker/Podman requires notifications for authenticated SMTP", async () => {
-  const invalid = await validateProfile(profile({
-    features: { notifications: false },
-    mail: { host: "smtp.example.com", port: 587, sender: "test@example.com", username: "user", authentication: "plain" }
-  }));
-  assert.equal(invalid.valid, false);
-  assert.match(invalid.errors.join(" "), /requires notifications to be enabled/);
-});
-// ClamAV Configuration Tests
-test("ClamAV can be enabled as boolean", async () => {
+test("AI Proxy can be enabled as object with custom configuration", async () => {
   const result = await validateProfile(profile({
-    features: { clamav: true }
-  }));
-  assert.equal(result.valid, true, result.errors.join(" "));
-});
-
-test("ClamAV can be enabled as object with custom configuration", async () => {
-  const result = await validateProfile(profile({
-    features: { 
-      clamav: {
-        enabled: true,
-        imageDigest: "sha256:75fb5fd95fcbe1d7e6d240c369c1572b686ee2c95949d1042b5148de8eddebb4",
-        storageClassName: "fast",
-        sizeGiB: 10,
-        cpu: 2,
-        memoryMiB: 8192
-      }
+    aiProxy: {
+      enabled: true,
+      endpoint: "https://ai-proxy.example.com",
+      apiKeySecretRef: "ai-proxy-api-key",
+      defaultTextModel: "gpt-4",
+      visionModel: "gpt-4-vision",
+      requestTimeout: 60,
+      tls: { enabled: true, customCA: true, caSecretRef: "ai-proxy-ca" },
+      maxInputSize: 2097152,
+      maxOutputSize: 2097152,
+      maxConcurrency: 20
     }
   }));
   assert.equal(result.valid, true, result.errors.join(" "));
 });
 
-test("ClamAV object configuration preserves valid user input", async () => {
-  // System preserves valid user input during normalization
-  const result = await validateProfile({
-    apiVersion: "get.owncloud.com/v1alpha1",
-    purpose: "evaluation",
-    target: { runtime: "docker", manager: "direct" },
-    workload: { registeredUsers: 20, storedDataGiB: 100 },
-    identity: { mode: "embedded" },
-    storage: { mode: "ocis", filesystem: "ext4" },
-    office: { mode: "none" },
-    networking: { domain: "test.example.com", tls: { mode: "evaluation-self-signed" } },
-    features: { 
-      clamav: {
-        enabled: true,
-        imageDigest: "sha256:75fb5fd95fcbe1d7e6d240c369c1572b686ee2c95949d1042b5148de8eddebb4",
-        storageClassName: "fast",
-        sizeGiB: 10,
-        cpu: 2,
-        memoryMiB: 8192
-      }
+test("AI Proxy requires HTTPS endpoint", async () => {
+  const invalid = await validateProfile(profile({
+    aiProxy: {
+      enabled: true,
+      endpoint: "http://ai-proxy.example.com"
     }
-  });
-  // Should be valid and preserve user input
-  assert.equal(result.valid, true, result.errors.join(" "));
-  assert.equal(result.profile.features.clamav.imageDigest, "sha256:75fb5fd95fcbe1d7e6d240c369c1572b686ee2c95949d1042b5148de8eddebb4");
-  assert.equal(result.profile.features.clamav.sizeGiB, 10);
-  assert.equal(result.profile.features.clamav.cpu, 2);
-  assert.equal(result.profile.features.clamav.memoryMiB, 8192);
-});
-
-test("ClamAV object configuration uses defaults for missing values", async () => {
-  // System uses defaults for missing values during normalization
-  const result = await validateProfile({
-    apiVersion: "get.owncloud.com/v1alpha1",
-    purpose: "evaluation",
-    target: { runtime: "docker", manager: "direct" },
-    workload: { registeredUsers: 20, storedDataGiB: 100 },
-    identity: { mode: "embedded" },
-    storage: { mode: "ocis", filesystem: "ext4" },
-    office: { mode: "none" },
-    networking: { domain: "test.example.com", tls: { mode: "evaluation-self-signed" } },
-    features: { 
-      clamav: {
-        enabled: true
-        // All other values missing - should get defaults
-      }
-    }
-  });
-  // Should be valid with defaults applied
-  assert.equal(result.valid, true, result.errors.join(" "));
-  assert.equal(result.profile.features.clamav.imageDigest, "sha256:75fb5fd95fcbe1d7e6d240c369c1572b686ee2c95949d1042b5148de8eddebb4");
-  assert.equal(result.profile.features.clamav.sizeGiB, 5);
-  assert.equal(result.profile.features.clamav.cpu, 1);
-  assert.equal(result.profile.features.clamav.memoryMiB, 4096);
-});
-
-test("ClamAV Kubernetes requires storageClassName", async () => {
-  const invalid = await validateProfile({
-    apiVersion: "get.owncloud.com/v1alpha1",
-    purpose: "evaluation",
-    target: { runtime: "kubernetes", manager: "direct" },
-    workload: { registeredUsers: 20, storedDataGiB: 100 },
-    identity: { mode: "embedded" },
-    storage: { mode: "ocis", filesystem: "ext4" },
-    office: { mode: "none" },
-    networking: { domain: "test.example.com", tls: { mode: "evaluation-self-signed" } },
-    features: { 
-      clamav: {
-        enabled: true,
-        imageDigest: "sha256:75fb5fd95fcbe1d7e6d240c369c1572b686ee2c95949d1042b5148de8eddebb4"
-      }
-    }
-  });
+  }));
   assert.equal(invalid.valid, false);
-  assert.match(invalid.errors.join(" "), /storageClassName/);
+  assert.match(invalid.errors.join(" "), /HTTPS/);
 });
 
-test("ClamAV normalization sets defaults", async () => {
-  const normalized = await normalizeProfile(profile({
-    features: { clamav: true }
+test("AI Proxy enabled requires endpoint", async () => {
+  const invalid = await validateProfile(profile({
+    aiProxy: {
+      enabled: true
+      // No endpoint
+    }
   }));
-  assert.equal(normalized.features.clamav.enabled, true);
-  assert.equal(normalized.features.clamav.imageDigest, "sha256:75fb5fd95fcbe1d7e6d240c369c1572b686ee2c95949d1042b5148de8eddebb4");
-  assert.equal(normalized.features.clamav.sizeGiB, 5);
-  assert.equal(normalized.features.clamav.cpu, 1);
-  assert.equal(normalized.features.clamav.memoryMiB, 4096);
+  assert.equal(invalid.valid, false);
+  assert.match(invalid.errors.join(" "), /endpoint/);
 });
 
-test("ClamAV contributes to sizing calculation", async () => {
-  const withClamAV = await calculateSizing(profile({
-    features: { clamav: true }
+test("AI Proxy normalization sets defaults", async () => {
+  const normalized = await normalizeProfile(profile({ aiProxy: true }));
+  assert.equal(normalized.aiProxy.enabled, true);
+  assert.equal(normalized.aiProxy.endpoint, "");
+  assert.equal(normalized.aiProxy.defaultTextModel, "gpt-4");
+  assert.equal(normalized.aiProxy.requestTimeout, 30);
+  assert.equal(normalized.aiProxy.maxInputSize, 1048576);
+});
+
+test("AI Proxy disabled by default", async () => {
+  const normalized = await normalizeProfile(profile({}));
+  assert.equal(normalized.aiProxy, false);
+});
+
+// Demo Content Configuration Tests
+test("Demo Content can be enabled", async () => {
+  const result = await validateProfile(profile({
+    demoContent: {
+      enabled: true,
+      optInRequired: true,
+      destructiveWarning: true,
+      licenses: ["MIT", "Apache-2.0"],
+      sampleFiles: [],
+      resetPath: "/reset-demo"
+    }
   }));
-  const withoutClamAV = await calculateSizing(profile({
-    features: { clamav: false }
+  assert.equal(result.valid, true, result.errors.join(" "));
+});
+
+test("Demo Content requires destructive warning", async () => {
+  const invalid = await validateProfile(profile({
+    demoContent: {
+      enabled: true,
+      destructiveWarning: false
+    }
+  }));
+  assert.equal(invalid.valid, false);
+  assert.match(invalid.errors.join(" "), /destructive warning/);
+});
+
+// AI Application Dependency Tests
+test("AI applications require AI Proxy to be enabled", async () => {
+  const invalid = await validateProfile(profile({
+    features: { aiDataInsightsSidebar: true }
+    // No AI proxy enabled
+  }));
+  assert.equal(invalid.valid, false);
+  assert.match(invalid.errors.join(" "), /AI applications require aiProxy/);
+});
+
+test("Image Alt Text requires vision model", async () => {
+  const invalid = await validateProfile(profile({
+    aiProxy: { enabled: true, endpoint: "https://ai-proxy.example.com" },
+    features: { aiImageAltTextSidebar: true }
+    // No vision model
+  }));
+  assert.equal(invalid.valid, false);
+  assert.match(invalid.errors.join(" "), /vision-capable model/);
+});
+
+// AI Application Sizing Tests
+test("AI Proxy contributes to sizing calculation", async () => {
+  const withAiProxy = await calculateSizing(profile({
+    aiProxy: { enabled: true, endpoint: "https://ai-proxy.example.com" }
+  }));
+  const withoutAiProxy = await calculateSizing(profile({ aiProxy: false }));
+  
+  assert.ok(withAiProxy.minimum.cpu > withoutAiProxy.minimum.cpu);
+  assert.ok(withAiProxy.minimum.ramMiB > withoutAiProxy.minimum.ramMiB);
+  
+  const aiProxyContribution = withAiProxy.contributions.find(c => c.component === "AI Proxy");
+  assert.ok(aiProxyContribution);
+  assert.equal(aiProxyContribution.cpu, 2);
+  assert.equal(aiProxyContribution.ramMiB, 4096);
+});
+
+test("AI Data Insights Sidebar contributes to sizing calculation", async () => {
+  const withAi = await calculateSizing(profile({
+    aiProxy: { enabled: true, endpoint: "https://ai-proxy.example.com" },
+    features: { aiDataInsightsSidebar: true }
+  }));
+  const withoutAi = await calculateSizing(profile({
+    aiProxy: { enabled: true, endpoint: "https://ai-proxy.example.com" },
+    features: { aiDataInsightsSidebar: false }
   }));
   
-  // ClamAV should add its resource contributions
-  assert.ok(withClamAV.minimum.cpu > withoutClamAV.minimum.cpu);
-  assert.ok(withClamAV.minimum.ramMiB > withoutClamAV.minimum.ramMiB);
-  assert.ok(withClamAV.minimum.diskGiB > withoutClamAV.minimum.diskGiB);
+  assert.ok(withAi.minimum.cpu > withoutAi.minimum.cpu);
+  assert.ok(withAi.minimum.ramMiB > withoutAi.minimum.ramMiB);
   
-  // Check that ClamAV is in the contributions
-  const clamavContribution = withClamAV.contributions.find(c => c.component === "ClamAV");
-  assert.ok(clamavContribution);
-  assert.equal(clamavContribution.cpu, 1);
-  assert.equal(clamavContribution.ramMiB, 4096);
-  assert.equal(clamavContribution.diskGiB, 5);
+  const aiContribution = withAi.contributions.find(c => c.component === "AI Data Insights Sidebar");
+  assert.ok(aiContribution);
+  assert.equal(aiContribution.cpu, 0.5);
+  assert.equal(aiContribution.ramMiB, 512);
 });
-

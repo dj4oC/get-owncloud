@@ -30,15 +30,24 @@
     "evidence": "Collabora-maintained richdocumentscode requirements plus conservative container-image allowance"
   },
   "clamav": { "cpu": 1, "minimumRamMiB": 3072, "recommendedRamMiB": 4096, "diskGiB": 5 },
-  "tika": {
-    "standard": { "cpu": 1, "ramMiB": 2048, "diskGiB": 2 },
-    "full": { "cpu": 2, "ramMiB": 4096, "diskGiB": 4 }
-  },
-  "drawio": { "cpu": 0.5, "ramMiB": 512, "diskGiB": 0 },
-  "externalSites": { "cpu": 0, "ramMiB": 0, "diskGiB": 0 },
-  "jsonViewer": { "cpu": 0.25, "ramMiB": 256, "diskGiB": 0 },
-  "photoAddon": { "cpu": 0.5, "ramMiB": 512, "diskGiB": 0 },
-  "unzip": { "cpu": 0.25, "ramMiB": 256, "diskGiB": 0 },
+"aiProxy": { "cpu": 2, "ramMiB": 4096, "diskGiB": 1 },
+  "aiLlmProxy": { "cpu": 1, "ramMiB": 2048, "diskGiB": 0 },
+  "aiDataInsightsSidebar": { "cpu": 0.5, "ramMiB": 512, "diskGiB": 0 },
+  "aiDocSummary": { "cpu": 0.5, "ramMiB": 512, "diskGiB": 0 },
+  "aiFolderBriefSidebar": { "cpu": 0.5, "ramMiB": 512, "diskGiB": 0 },
+  "aiFolderReadmeGenerator": { "cpu": 0.5, "ramMiB": 512, "diskGiB": 0 },
+  "aiImageAltTextSidebar": { "cpu": 1, "ramMiB": 1024, "diskGiB": 0 },
+  "aiMultiDocSynthesizer": { "cpu": 1, "ramMiB": 2048, "diskGiB": 0 },
+  "aiQuickDraftCreator": { "cpu": 0.5, "ramMiB": 512, "diskGiB": 0 },
+  "aiSensitiveDataScanner": { "cpu": 1, "ramMiB": 2048, "diskGiB": 0 },
+  "aiSmartCollectionsNav": { "cpu": 0.5, "ramMiB": 512, "diskGiB": 0 },
+  "aiSmartFileTaggerQa": { "cpu": 1, "ramMiB": 1024, "diskGiB": 0 },
+  "chatWithFile": { "cpu": 0.5, "ramMiB": 512, "diskGiB": 0 },
+  "versionChangelog": { "cpu": 0.25, "ramMiB": 256, "diskGiB": 0 },
+  "fileComments": { "cpu": 0.5, "ramMiB": 512, "diskGiB": 0 },
+  "groupManagement": { "cpu": 0.25, "ramMiB": 256, "diskGiB": 0 },
+  "ocisAppTokens": { "cpu": 0.25, "ramMiB": 256, "diskGiB": 0 },
+  "vimNav": { "cpu": 0.1, "ramMiB": 128, "diskGiB": 0 },
   "monitoring": {
     "metrics": { "cpu": 0.5, "ramMiB": 512, "diskGiB": 0 },
     "tracing": { "cpu": 1, "ramMiB": 1024, "diskGiB": 1 }

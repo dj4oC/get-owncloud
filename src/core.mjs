@@ -1,7 +1,8 @@
 const ROOT = new URL("../", import.meta.url);
 const ROOT_KEYS = new Set([
   "apiVersion", "purpose", "maturity", "ocisVersion", "target", "workload", "identity",
-  "storage", "office", "networking", "mail", "features", "security", "updates", "system"
+  "storage", "office", "networking", "mail", "features", "security", "updates", "system",
+  "aiProxy", "demoContent"
 ]);
 const OBJECT_KEYS = {
   target: new Set(["runtime", "manager"]),
@@ -22,10 +23,20 @@ const OBJECT_KEYS = {
   networking: new Set(["domain", "collaboraDomain", "httpPort", "httpsPort", "ingressClassName", "tlsSecretName", "tls"]),
   tls: new Set(["mode", "email", "caServer"]),
   mail: new Set(["host", "port", "sender", "senderDisplayName", "username", "authentication", "passwordSecretRef", "transportSecurity", "caTrust", "caSecretRef", "insecure"]),
-  features: new Set(["clamav", "search", "tika", "drawio", "externalSites", "jsonViewer", "photoAddon", "unzip", "notifications", "monitoring"]),
-  clamav: new Set(["enabled", "imageDigest", "storageClassName", "sizeGiB", "cpu", "memoryMiB"]),
-  tika: new Set(["mode", "imageDigest", "storageClassName", "sizeGiB", "cpu", "memoryMiB"]),
-  externalSites: new Set(["id", "name", "url", "target", "color", "icon", "priority"]),
+features: new Set([
+    "clamav", "search", "tika", "drawio", "externalSites", "jsonViewer", "photoAddon", "unzip",
+    "notifications", "monitoring", "aiDataInsightsSidebar", "aiDocSummary", "aiFolderBriefSidebar",
+    "aiFolderReadmeGenerator", "aiImageAltTextSidebar", "aiLlmProxy", "aiMultiDocSynthesizer",
+    "aiQuickDraftCreator", "aiSensitiveDataScanner", "aiSmartCollectionsNav", "aiSmartFileTaggerQa",
+    "chatWithFile", "versionChangelog", "fileComments", "groupManagement", "ocisAppTokens", "vimNav"
+  ]),
+  aiProxy: new Set([
+    "enabled", "endpoint", "apiKeySecretRef", "defaultTextModel", "visionModel", "forcedModel",
+    "requestTimeout", "tls", "outboundProxy", "networkPolicy", "maxInputSize", "maxOutputSize", "maxConcurrency"
+  ]),
+  aiProxyTls: new Set(["enabled", "customCA", "caSecretRef"]),
+  demoContent: new Set(["enabled", "optInRequired", "destructiveWarning", "licenses", "sampleFiles", "resetPath"]),
+  demoContentSampleFile: new Set(["name", "path", "license", "origin", "size"]),
   monitoring: new Set(["enabled", "metrics", "opentelemetry"]),
   metrics: new Set(["enabled", "endpoint", "authentication"]),
   opentelemetry: new Set(["enabled", "endpoint", "protocol", "tls", "caSecretRef"]),
@@ -131,7 +142,31 @@ export function normalizeProfileWithRules(input, sizing) {
   profile.features = {
     clamav: false,
     search: true,
+    tika: false,
+    drawio: false,
+    externalSites: [],
+    jsonViewer: false,
+    photoAddon: false,
+    unzip: false,
     notifications: false,
+    monitoring: false,
+    aiDataInsightsSidebar: false,
+    aiDocSummary: false,
+    aiFolderBriefSidebar: false,
+    aiFolderReadmeGenerator: false,
+    aiImageAltTextSidebar: false,
+    aiLlmProxy: false,
+    aiMultiDocSynthesizer: false,
+    aiQuickDraftCreator: false,
+    aiSensitiveDataScanner: false,
+    aiSmartCollectionsNav: false,
+    aiSmartFileTaggerQa: false,
+    chatWithFile: false,
+    versionChangelog: false,
+    fileComments: false,
+    groupManagement: false,
+    ocisAppTokens: false,
+    vimNav: false,
     ...profile.features
   };
   
@@ -240,6 +275,64 @@ export function normalizeProfileWithRules(input, sizing) {
       }
     };
   }
+  
+  // Handle AI proxy configuration - can be boolean or object
+  if (profile.aiProxy === undefined || profile.aiProxy === null) {
+    profile.aiProxy = false;
+  } else if (profile.aiProxy === true) {
+    profile.aiProxy = {
+      enabled: true,
+      endpoint: '',
+      apiKeySecretRef: '',
+      defaultTextModel: 'gpt-4',
+      visionModel: '',
+      forcedModel: '',
+      requestTimeout: 30,
+      tls: { enabled: true, customCA: false, caSecretRef: '' },
+      outboundProxy: '',
+      networkPolicy: '',
+      maxInputSize: 1048576,  // 1MB
+      maxOutputSize: 1048576, // 1MB
+      maxConcurrency: 10
+    };
+  } else if (profile.aiProxy === false) {
+    profile.aiProxy = false;
+  } else if (typeof profile.aiProxy === 'object') {
+    profile.aiProxy = {
+      enabled: profile.aiProxy.enabled ?? true,
+      endpoint: profile.aiProxy.endpoint ?? '',
+      apiKeySecretRef: profile.aiProxy.apiKeySecretRef ?? '',
+      defaultTextModel: profile.aiProxy.defaultTextModel ?? 'gpt-4',
+      visionModel: profile.aiProxy.visionModel ?? '',
+      forcedModel: profile.aiProxy.forcedModel ?? '',
+      requestTimeout: profile.aiProxy.requestTimeout ?? 30,
+      tls: {
+        enabled: profile.aiProxy.tls?.enabled ?? true,
+        customCA: profile.aiProxy.tls?.customCA ?? false,
+        caSecretRef: profile.aiProxy.tls?.caSecretRef ?? ''
+      },
+      outboundProxy: profile.aiProxy.outboundProxy ?? '',
+      networkPolicy: profile.aiProxy.networkPolicy ?? '',
+      maxInputSize: profile.aiProxy.maxInputSize ?? 1048576,
+      maxOutputSize: profile.aiProxy.maxOutputSize ?? 1048576,
+      maxConcurrency: profile.aiProxy.maxConcurrency ?? 10
+    };
+  }
+  
+  // Handle demoContent configuration
+  if (profile.demoContent === undefined || profile.demoContent === null) {
+    profile.demoContent = { enabled: false };
+  } else if (typeof profile.demoContent === 'object') {
+    profile.demoContent = {
+      enabled: profile.demoContent.enabled ?? false,
+      optInRequired: profile.demoContent.optInRequired ?? true,
+      destructiveWarning: profile.demoContent.destructiveWarning ?? true,
+      licenses: profile.demoContent.licenses ?? [],
+      sampleFiles: profile.demoContent.sampleFiles ?? [],
+      resetPath: profile.demoContent.resetPath ?? ''
+    };
+  }
+  
   profile.security = { basicAuth: false, demoUsers: false, ...profile.security };
   if (profile.identity?.mode === "external-oidc") {
     profile.identity.userClaim ??= "preferred_username";
@@ -286,7 +379,7 @@ export function validateNormalizedProfile(profile, policies, compatibility) {
   const errors = [];
 
   knownKeys(errors, profile, ROOT_KEYS, "profile");
-  for (const key of ["target", "workload", "identity", "storage", "office", "networking", "mail", "features", "security", "updates", "system"]) {
+  for (const key of ["target", "workload", "identity", "storage", "office", "networking", "mail", "features", "security", "updates", "system", "aiProxy", "demoContent"]) {
     if (profile[key]) knownKeys(errors, profile[key], OBJECT_KEYS[key], key);
   }
   
@@ -304,6 +397,12 @@ export function validateNormalizedProfile(profile, policies, compatibility) {
   }
   if (profile.storage?.s3) knownKeys(errors, profile.storage.s3, OBJECT_KEYS.s3, "storage.s3");
   if (profile.networking?.tls) knownKeys(errors, profile.networking.tls, OBJECT_KEYS.tls, "networking.tls");
+  if (profile.aiProxy?.tls) knownKeys(errors, profile.aiProxy.tls, OBJECT_KEYS.aiProxyTls, "aiProxy.tls");
+  if (profile.demoContent?.sampleFiles) {
+    for (const file of profile.demoContent.sampleFiles) {
+      knownKeys(errors, file, OBJECT_KEYS.demoContentSampleFile, "demoContent.sampleFiles[]");
+    }
+  }
 
   if (profile.apiVersion !== "get.owncloud.com/v1alpha1") errors.push("Unsupported apiVersion");
   if (!["evaluation", "production"].includes(profile.purpose)) errors.push("Purpose must be evaluation or production");
@@ -553,47 +652,68 @@ export function validateNormalizedProfile(profile, policies, compatibility) {
     if (profile.storage.filesystem === "nfs" && !profile.storage.storageClassName) {
       errors.push("Kubernetes NFS requires an explicitly reviewed NFSv4.2 StorageClass");
     }
-    // ClamAV validation
+if (office === "collabora" && profile.office.deployment === "bundled") {
+      errors.push("Kubernetes 7.1.4 preview supports external Collabora only; the oCIS chart does not bundle the Collabora server");
+    }
+    // Note: ClamAV validation updated - now supported across all deployment outputs
     if (profile.features.clamav) {
       const clamav = profile.features.clamav;
-      if (typeof clamav === 'object') {
-        if (runtime === "kubernetes" && !clamav.storageClassName) {
+      if (typeof clamav === 'object' && runtime === "kubernetes") {
+        if (!clamav.storageClassName) {
           errors.push("Kubernetes ClamAV requires storageClassName");
         }
       }
     }
-    // Tika validation
-    if (profile.features.tika) {
-      const tika = profile.features.tika;
-      if (typeof tika === 'object') {
-        if (runtime === "kubernetes" && !tika.storageClassName) {
-          errors.push("Kubernetes Tika requires storageClassName");
+// AI Proxy validation
+    if (profile.aiProxy) {
+      const aiProxy = profile.aiProxy;
+      if (typeof aiProxy === 'object') {
+        if (aiProxy.enabled && !aiProxy.endpoint) {
+          errors.push("AI Proxy requires endpoint when enabled");
+        }
+        if (aiProxy.endpoint && !aiProxy.endpoint.startsWith('https://')) {
+          errors.push("AI Proxy endpoint must use HTTPS");
+        }
+        if (aiProxy.enabled && runtime === "kubernetes" && !aiProxy.apiKeySecretRef) {
+          errors.push("Kubernetes AI Proxy requires apiKeySecretRef when enabled");
+        }
+        if (aiProxy.tls?.customCA && !aiProxy.tls?.caSecretRef) {
+          errors.push("Custom CA requires caSecretRef");
         }
       }
     }
-  }
-
-  // External Sites validation (runs for all runtimes)
-  if (profile.features.externalSites && Array.isArray(profile.features.externalSites)) {
-    const sites = profile.features.externalSites;
-    const seenIds = new Set();
-    for (const site of sites) {
-      if (!site.id || typeof site.id !== 'string' || site.id.length === 0) {
-        errors.push("External site must have a non-empty id");
-      } else if (seenIds.has(site.id)) {
-        errors.push(`Duplicate external site id: ${site.id}`);
-      } else {
-        seenIds.add(site.id);
+    
+    // Demo Content validation
+    if (profile.demoContent?.enabled) {
+      if (profile.demoContent.optInRequired !== false && runtime === "production") {
+        errors.push("Demo content opt-in is required for evaluation, prohibited for production");
       }
-      if (!site.name || typeof site.name !== 'string' || site.name.length === 0) {
-        errors.push("External site must have a non-empty name");
+      if (profile.demoContent.destructiveWarning !== true) {
+        errors.push("Demo content must have destructive warning enabled");
       }
-      if (!site.url || typeof site.url !== 'string' || !site.url.startsWith('https://')) {
-        errors.push("External site URL must be HTTPS");
+      if (profile.demoContent.sampleFiles) {
+        for (const file of profile.demoContent.sampleFiles) {
+          if (!file.name || !file.path) {
+            errors.push("Demo content sample files must have name and path");
+            break;
+          }
+        }
       }
-      if (site.target && !['embedded', 'external'].includes(site.target)) {
-        errors.push(`Invalid external site target: ${site.target}`);
-      }
+    }
+    
+    // AI Application dependency validation
+    const aiApps = [
+      'aiDataInsightsSidebar', 'aiDocSummary', 'aiFolderBriefSidebar', 'aiFolderReadmeGenerator',
+      'aiImageAltTextSidebar', 'aiLlmProxy', 'aiMultiDocSynthesizer', 'aiQuickDraftCreator',
+      'aiSensitiveDataScanner', 'aiSmartCollectionsNav', 'aiSmartFileTaggerQa', 'chatWithFile',
+      'versionChangelog'
+    ];
+    const enabledAiApps = aiApps.filter(app => profile.features?.[app]);
+    if (enabledAiApps.length > 0 && !profile.aiProxy?.enabled) {
+      errors.push("AI applications require aiProxy to be enabled");
+    }
+    if (profile.features?.aiImageAltTextSidebar && !profile.aiProxy?.visionModel) {
+      errors.push("Image Alt Text requires vision-capable model in AI Proxy");
     }
   }
 
@@ -750,6 +870,103 @@ export function calculateSizingWithRules(profile, rules) {
     ramMiB += tikaRamMiB;
     serviceDiskGiB += tikaDiskGiB;
     contributions.push({ component: "Tika", cpu: tikaCpu, ramMiB: tikaRamMiB, diskGiB: tikaDiskGiB });
+  }
+  
+  // AI Proxy sizing
+  if (profile.aiProxy?.enabled) {
+    cpu += rules.aiProxy.cpu;
+    ramMiB += rules.aiProxy.ramMiB;
+    serviceDiskGiB += rules.aiProxy.diskGiB;
+    contributions.push({ component: "AI Proxy", cpu: rules.aiProxy.cpu, ramMiB: rules.aiProxy.ramMiB, diskGiB: rules.aiProxy.diskGiB });
+  }
+  
+  // AI Application sizing
+  if (profile.features.aiDataInsightsSidebar) {
+    cpu += rules.aiDataInsightsSidebar.cpu;
+    ramMiB += rules.aiDataInsightsSidebar.ramMiB;
+    contributions.push({ component: "AI Data Insights Sidebar", cpu: rules.aiDataInsightsSidebar.cpu, ramMiB: rules.aiDataInsightsSidebar.ramMiB, diskGiB: 0 });
+  }
+  if (profile.features.aiDocSummary) {
+    cpu += rules.aiDocSummary.cpu;
+    ramMiB += rules.aiDocSummary.ramMiB;
+    contributions.push({ component: "AI Doc Summary", cpu: rules.aiDocSummary.cpu, ramMiB: rules.aiDocSummary.ramMiB, diskGiB: 0 });
+  }
+  if (profile.features.aiFolderBriefSidebar) {
+    cpu += rules.aiFolderBriefSidebar.cpu;
+    ramMiB += rules.aiFolderBriefSidebar.ramMiB;
+    contributions.push({ component: "AI Folder Brief Sidebar", cpu: rules.aiFolderBriefSidebar.cpu, ramMiB: rules.aiFolderBriefSidebar.ramMiB, diskGiB: 0 });
+  }
+  if (profile.features.aiFolderReadmeGenerator) {
+    cpu += rules.aiFolderReadmeGenerator.cpu;
+    ramMiB += rules.aiFolderReadmeGenerator.ramMiB;
+    contributions.push({ component: "AI Folder README Generator", cpu: rules.aiFolderReadmeGenerator.cpu, ramMiB: rules.aiFolderReadmeGenerator.ramMiB, diskGiB: 0 });
+  }
+  if (profile.features.aiImageAltTextSidebar) {
+    cpu += rules.aiImageAltTextSidebar.cpu;
+    ramMiB += rules.aiImageAltTextSidebar.ramMiB;
+    contributions.push({ component: "AI Image Alt Text Sidebar", cpu: rules.aiImageAltTextSidebar.cpu, ramMiB: rules.aiImageAltTextSidebar.ramMiB, diskGiB: 0 });
+  }
+  if (profile.features.aiLlmProxy) {
+    cpu += rules.aiLlmProxy.cpu;
+    ramMiB += rules.aiLlmProxy.ramMiB;
+    contributions.push({ component: "AI LLM Proxy", cpu: rules.aiLlmProxy.cpu, ramMiB: rules.aiLlmProxy.ramMiB, diskGiB: 0 });
+  }
+  if (profile.features.aiMultiDocSynthesizer) {
+    cpu += rules.aiMultiDocSynthesizer.cpu;
+    ramMiB += rules.aiMultiDocSynthesizer.ramMiB;
+    contributions.push({ component: "AI Multi Doc Synthesizer", cpu: rules.aiMultiDocSynthesizer.cpu, ramMiB: rules.aiMultiDocSynthesizer.ramMiB, diskGiB: 0 });
+  }
+  if (profile.features.aiQuickDraftCreator) {
+    cpu += rules.aiQuickDraftCreator.cpu;
+    ramMiB += rules.aiQuickDraftCreator.ramMiB;
+    contributions.push({ component: "AI Quick Draft Creator", cpu: rules.aiQuickDraftCreator.cpu, ramMiB: rules.aiQuickDraftCreator.ramMiB, diskGiB: 0 });
+  }
+  if (profile.features.aiSensitiveDataScanner) {
+    cpu += rules.aiSensitiveDataScanner.cpu;
+    ramMiB += rules.aiSensitiveDataScanner.ramMiB;
+    contributions.push({ component: "AI Sensitive Data Scanner", cpu: rules.aiSensitiveDataScanner.cpu, ramMiB: rules.aiSensitiveDataScanner.ramMiB, diskGiB: 0 });
+  }
+  if (profile.features.aiSmartCollectionsNav) {
+    cpu += rules.aiSmartCollectionsNav.cpu;
+    ramMiB += rules.aiSmartCollectionsNav.ramMiB;
+    contributions.push({ component: "AI Smart Collections Nav", cpu: rules.aiSmartCollectionsNav.cpu, ramMiB: rules.aiSmartCollectionsNav.ramMiB, diskGiB: 0 });
+  }
+  if (profile.features.aiSmartFileTaggerQa) {
+    cpu += rules.aiSmartFileTaggerQa.cpu;
+    ramMiB += rules.aiSmartFileTaggerQa.ramMiB;
+    contributions.push({ component: "AI Smart File Tagger QA", cpu: rules.aiSmartFileTaggerQa.cpu, ramMiB: rules.aiSmartFileTaggerQa.ramMiB, diskGiB: 0 });
+  }
+  if (profile.features.chatWithFile) {
+    cpu += rules.chatWithFile.cpu;
+    ramMiB += rules.chatWithFile.ramMiB;
+    contributions.push({ component: "Chat With File", cpu: rules.chatWithFile.cpu, ramMiB: rules.chatWithFile.ramMiB, diskGiB: 0 });
+  }
+  if (profile.features.versionChangelog) {
+    cpu += rules.versionChangelog.cpu;
+    ramMiB += rules.versionChangelog.ramMiB;
+    contributions.push({ component: "Version Changelog", cpu: rules.versionChangelog.cpu, ramMiB: rules.versionChangelog.ramMiB, diskGiB: 0 });
+  }
+  
+  // Other extension sizing
+  if (profile.features.fileComments) {
+    cpu += rules.fileComments.cpu;
+    ramMiB += rules.fileComments.ramMiB;
+    contributions.push({ component: "File Comments", cpu: rules.fileComments.cpu, ramMiB: rules.fileComments.ramMiB, diskGiB: 0 });
+  }
+  if (profile.features.groupManagement) {
+    cpu += rules.groupManagement.cpu;
+    ramMiB += rules.groupManagement.ramMiB;
+    contributions.push({ component: "Group Management", cpu: rules.groupManagement.cpu, ramMiB: rules.groupManagement.ramMiB, diskGiB: 0 });
+  }
+  if (profile.features.ocisAppTokens) {
+    cpu += rules.ocisAppTokens.cpu;
+    ramMiB += rules.ocisAppTokens.ramMiB;
+    contributions.push({ component: "oCIS App Tokens", cpu: rules.ocisAppTokens.cpu, ramMiB: rules.ocisAppTokens.ramMiB, diskGiB: 0 });
+  }
+  if (profile.features.vimNav) {
+    cpu += rules.vimNav.cpu;
+    ramMiB += rules.vimNav.ramMiB;
+    contributions.push({ component: "Vim Navigation", cpu: rules.vimNav.cpu, ramMiB: rules.vimNav.ramMiB, diskGiB: 0 });
   }
   
   // Handle monitoring sizing contributions

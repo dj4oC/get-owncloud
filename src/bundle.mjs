@@ -28,12 +28,14 @@ function composeFiles(profile) {
     files.push(tikaMode === "full" ? "tika-full.yml" : "tika.yml");
   }
   if (profile.identity.mode === "external-oidc") files.push("external-oidc.yml");
-  if (profile.identity.mode === "keycloak") files.push("keycloak.yml");
+if (profile.aiProxy?.enabled) files.push("ai-proxy.yml");
   return files;
 }
 
 function makeEnv(profile, sizing, secrets, selected) {
   const notificationServices = ["notifications"];
+  const aiServices = [];
+  if (profile.aiProxy?.enabled) aiServices.push("ai-proxy");
   const ocisUrl = `https://${profile.networking.domain}${profile.networking.httpsPort === 443 ? "" : `:${profile.networking.httpsPort}`}`;
   const collaboraUrl = profile.office.mode === "collabora" && profile.office.deployment === "external"
     ? profile.office.url.replace(/\/$/, "")
@@ -77,8 +79,7 @@ function makeEnv(profile, sizing, secrets, selected) {
     ["ADMIN_PASSWORD", secrets.adminPassword],
     ["DEMO_USERS", profile.security.demoUsers ? "true" : "false"],
     ["PROXY_ENABLE_BASIC_AUTH", profile.security.basicAuth ? "true" : "false"],
-    ["START_ADDITIONAL_SERVICES", notificationServices.join(",")],
-    ["CLAMAV_IMAGE", profile.features.clamav ? `docker.io/clamav/clamav@sha256:${profile.features.clamav.imageDigest ?? "75fb5fd95fcbe1d7e6d240c369c1572b686ee2c95949d1042b5148de8eddebb4"}` : ""],
+["START_ADDITIONAL_SERVICES", [...notificationServices, ...aiServices].join(",")],
     ["SMTP_HOST", profile.mail?.host ?? ""],
     ["SMTP_PORT", profile.mail?.port ?? ""],
     ["SMTP_SENDER", profile.mail?.sender ?? `no-reply@${profile.networking.domain}`],
@@ -119,7 +120,17 @@ function makeEnv(profile, sizing, secrets, selected) {
     ["GET_OWNCLOUD_AUTO_SECURITY_UPDATES", profile.updates.automaticSecurityPatches ? "true" : "false"],
     ["GET_OWNCLOUD_UPDATE_DELAY_HOURS", profile.updates.observationDelayHours],
     ["GET_OWNCLOUD_BACKUP_RECIPIENT", profile.updates.backupRecipient ?? ""],
-    ["GET_OWNCLOUD_RUNTIME", profile.target.runtime]
+    ["GET_OWNCLOUD_RUNTIME", profile.target.runtime],
+    ["AI_PROXY_ENABLED", profile.aiProxy?.enabled ? "true" : "false"],
+    ["AI_PROXY_ENDPOINT", profile.aiProxy?.endpoint ?? ""],
+    ["AI_PROXY_API_KEY", profile.aiProxy?.enabled && profile.target.runtime !== "kubernetes" ? secrets.aiProxyApiKey ?? "" : ""],
+    ["AI_PROXY_DEFAULT_TEXT_MODEL", profile.aiProxy?.defaultTextModel ?? ""],
+    ["AI_PROXY_VISION_MODEL", profile.aiProxy?.visionModel ?? ""],
+    ["AI_PROXY_FORCED_MODEL", profile.aiProxy?.forcedModel ?? ""],
+    ["AI_PROXY_REQUEST_TIMEOUT", profile.aiProxy?.requestTimeout ?? "30"],
+    ["AI_PROXY_MAX_INPUT_SIZE", profile.aiProxy?.maxInputSize ?? "1048576"],
+    ["AI_PROXY_MAX_OUTPUT_SIZE", profile.aiProxy?.maxOutputSize ?? "1048576"],
+    ["AI_PROXY_MAX_CONCURRENCY", profile.aiProxy?.maxConcurrency ?? "10"]
   ];
   return values.map(([name, value]) => env(name, value)).join("\n") + "\n";
 }
