@@ -20,7 +20,7 @@ const OBJECT_KEYS = {
   office: new Set(["mode", "deployment", "url"]),
   networking: new Set(["domain", "collaboraDomain", "httpPort", "httpsPort", "ingressClassName", "tlsSecretName", "tls"]),
   tls: new Set(["mode", "email", "caServer"]),
-  mail: new Set(["host", "port", "sender", "username", "authentication", "insecure"]),
+  mail: new Set(["host", "port", "sender", "senderDisplayName", "username", "authentication", "passwordSecretRef", "transportSecurity", "caTrust", "caSecretRef", "insecure"]),
   features: new Set(["clamav", "search", "notifications", "monitoring"]),
   monitoring: new Set(["enabled", "metrics", "opentelemetry"]),
   metrics: new Set(["enabled", "endpoint", "authentication"]),
@@ -130,6 +130,25 @@ export function normalizeProfileWithRules(input, sizing) {
     notifications: false,
     ...profile.features
   };
+  
+  // Handle SMTP configuration normalization
+  if (profile.mail) {
+    profile.mail = {
+      host: profile.mail.host ?? "",
+      port: profile.mail.port ?? 587,
+      sender: profile.mail.sender ?? `no-reply@${profile.networking.domain}`,
+      senderDisplayName: profile.mail.senderDisplayName ?? "",
+      username: profile.mail.username ?? "",
+      authentication: profile.mail.authentication ?? "none",
+      passwordSecretRef: profile.mail.passwordSecretRef ?? "",
+      transportSecurity: profile.mail.transportSecurity ?? "starttls",
+      caTrust: profile.mail.caTrust ?? "system",
+      caSecretRef: profile.mail.caSecretRef ?? "",
+      insecure: profile.mail.insecure ?? false
+    };
+  } else {
+    profile.mail = {};
+  }
   
   // Handle monitoring configuration - can be boolean or object
   if (profile.features?.monitoring === undefined || profile.features?.monitoring === null) {
@@ -300,8 +319,8 @@ export function validateNormalizedProfile(profile, policies, compatibility) {
     if (profile.security.basicAuth) errors.push("Basic authentication is evaluation-only");
     if (profile.security.demoUsers) errors.push("Demo users are forbidden in production");
   }
-  if (profile.features.notifications && !profile.mail?.sender) {
-    errors.push("SMTP sender is required when notifications are enabled");
+  if (profile.features.notifications && !profile.mail?.host) {
+    errors.push("SMTP host is required when notifications are enabled");
   }
   
   // Validate monitoring configuration
@@ -317,6 +336,55 @@ export function validateNormalizedProfile(profile, policies, compatibility) {
       if (runtime === "kubernetes" && monitoringConfig.opentelemetry?.caSecretRef && 
           typeof monitoringConfig.opentelemetry.caSecretRef !== "string") {
         errors.push("OpenTelemetry CA secret reference must be a string for Kubernetes");
+      }
+    }
+  }
+  
+  // Validate SMTP configuration
+  const mailConfig = profile.mail;
+  if (mailConfig && mailConfig.host) {
+    if (!mailConfig.port || mailConfig.port < 1 || mailConfig.port > 65535) {
+      errors.push("SMTP port must be a valid port number (1-65535)");
+    }
+    
+    // Validate sender email format
+    if (mailConfig.sender && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mailConfig.sender)) {
+      errors.push("SMTP sender must be a valid email address");
+    }
+    
+    // Validate authentication and transport security compatibility
+    if (mailConfig.insecure === true && mailConfig.transportSecurity !== "insecure") {
+      errors.push("Insecure mode must have transportSecurity set to 'insecure'");
+    }
+    
+    if (mailConfig.transportSecurity === "insecure" && mailConfig.insecure !== true) {
+      errors.push("Transport security 'insecure' requires insecure: true");
+    }
+    
+    // Validate CA trust configuration
+    if (mailConfig.caTrust === "custom" && !mailConfig.caSecretRef && runtime === "kubernetes") {
+      errors.push("Custom CA trust requires caSecretRef for Kubernetes");
+    }
+    
+    // Validate username/password requirements
+    if (mailConfig.authentication !== "none" && !mailConfig.username) {
+      errors.push("Authentication mode other than 'none' requires username");
+    }
+    
+    // Kubernetes-specific validation
+    if (runtime === "kubernetes") {
+      if (mailConfig.username && !mailConfig.passwordSecretRef) {
+        errors.push("Kubernetes SMTP requires passwordSecretRef when username is specified");
+      }
+      if (mailConfig.caTrust === "custom" && !mailConfig.caSecretRef) {
+        errors.push("Kubernetes custom CA trust requires caSecretRef");
+      }
+    }
+    
+    // Docker/Podman specific validation
+    if (runtime !== "kubernetes" && mailConfig.username) {
+      if (!profile.features.notifications) {
+        errors.push("SMTP username requires notifications to be enabled for Docker/Podman");
       }
     }
   }
