@@ -71,6 +71,7 @@ function makeEnv(profile, sizing, secrets, selected) {
     ["DEMO_USERS", profile.security.demoUsers ? "true" : "false"],
     ["PROXY_ENABLE_BASIC_AUTH", profile.security.basicAuth ? "true" : "false"],
     ["START_ADDITIONAL_SERVICES", notificationServices.join(",")],
+    ["CLAMAV_IMAGE", profile.features.clamav ? `docker.io/clamav/clamav@sha256:${profile.features.clamav.imageDigest ?? "75fb5fd95fcbe1d7e6d240c369c1572b686ee2c95949d1042b5148de8eddebb4"}` : ""],
     ["SMTP_HOST", profile.mail?.host ?? ""],
     ["SMTP_PORT", profile.mail?.port ?? ""],
     ["SMTP_SENDER", profile.mail?.sender ?? `no-reply@${profile.networking.domain}`],

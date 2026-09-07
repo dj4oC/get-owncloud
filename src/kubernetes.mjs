@@ -45,7 +45,16 @@ export function buildHelmValues(profile, sizing) {
     "features:",
     "  demoUsers: false",
     "  virusscan:",
-    "    enabled: false",
+    `    enabled: ${Boolean(profile.features.clamav)}`,
+    ...(profile.features.clamav ? [
+      "    clamav:",
+      `      enabled: true`,
+      `      image: clamav/clamav@sha256:${profile.features.clamav.imageDigest}`,
+      `      storageClassName: ${q(profile.features.clamav.storageClassName)}`,
+      `      size: ${profile.features.clamav.sizeGiB}Gi`,
+      `      cpu: ${q(profile.features.clamav.cpu)}`,
+      `      memory: ${q(profile.features.clamav.memoryMiB + "Mi")}`
+    ] : []),
     "  emailNotifications:",
     `    enabled: ${Boolean(profile.features.notifications && profile.mail?.host)}`,
     "  monitoring:",
@@ -100,7 +109,6 @@ export function buildHelmValues(profile, sizing) {
         );
       }
     }
-  }
 
   const externalIdentity = profile.identity.mode === "external-oidc";
   values.push("  externalUserManagement:", `    enabled: ${externalIdentity}`);

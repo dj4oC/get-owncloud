@@ -22,6 +22,7 @@ const OBJECT_KEYS = {
   tls: new Set(["mode", "email", "caServer"]),
   mail: new Set(["host", "port", "sender", "senderDisplayName", "username", "authentication", "passwordSecretRef", "transportSecurity", "caTrust", "caSecretRef", "insecure"]),
   features: new Set(["clamav", "search", "notifications", "monitoring"]),
+  clamav: new Set(["enabled", "imageDigest", "storageClassName", "sizeGiB", "cpu", "memoryMiB"]),
   monitoring: new Set(["enabled", "metrics", "opentelemetry"]),
   metrics: new Set(["enabled", "endpoint", "authentication"]),
   opentelemetry: new Set(["enabled", "endpoint", "protocol", "tls", "caSecretRef"]),
@@ -150,6 +151,29 @@ export function normalizeProfileWithRules(input, sizing) {
     profile.mail = {};
   }
   
+
+// Handle ClamAV configuration normalization
+  if (profile.features.clamav) {
+    if (typeof profile.features.clamav === 'boolean') {
+      profile.features.clamav = {
+        enabled: profile.features.clamav,
+        imageDigest: "sha256:75fb5fd95fcbe1d7e6d240c369c1572b686ee2c95949d1042b5148de8eddebb4",
+        storageClassName: profile.storage.storageClassName ?? "",
+        sizeGiB: 5,
+        cpu: 1,
+        memoryMiB: 4096
+      };
+    } else if (typeof profile.features.clamav === 'object') {
+      profile.features.clamav = {
+        enabled: true,
+        imageDigest: profile.features.clamav.imageDigest || "sha256:75fb5fd95fcbe1d7e6d240c369c1572b686ee2c95949d1042b5148de8eddebb4",
+        storageClassName: profile.features.clamav.storageClassName || profile.storage.storageClassName || "",
+        sizeGiB: profile.features.clamav.sizeGiB || 5,
+        cpu: profile.features.clamav.cpu || 1,
+        memoryMiB: profile.features.clamav.memoryMiB || 4096
+      }
+
+
   // Handle monitoring configuration - can be boolean or object
   if (profile.features?.monitoring === undefined || profile.features?.monitoring === null) {
     profile.features.monitoring = false;
@@ -215,6 +239,11 @@ export function validateNormalizedProfile(profile, policies, compatibility) {
   knownKeys(errors, profile, ROOT_KEYS, "profile");
   for (const key of ["target", "workload", "identity", "storage", "office", "networking", "mail", "features", "security", "updates", "system"]) {
     if (profile[key]) knownKeys(errors, profile[key], OBJECT_KEYS[key], key);
+  }
+  
+  // Handle clamav as a special case since it can be nested under features or as a top-level field
+  if (profile.features?.clamav && typeof profile.features.clamav === 'object') {
+    knownKeys(errors, profile.features.clamav, OBJECT_KEYS.clamav, "features.clamav");
   }
   if (profile.storage?.s3) knownKeys(errors, profile.storage.s3, OBJECT_KEYS.s3, "storage.s3");
   if (profile.networking?.tls) knownKeys(errors, profile.networking.tls, OBJECT_KEYS.tls, "networking.tls");
@@ -323,6 +352,56 @@ export function validateNormalizedProfile(profile, policies, compatibility) {
     errors.push("SMTP host is required when notifications are enabled");
   }
   
+  // Validate SMTP configuration
+  const mailConfig = profile.mail;
+  if (mailConfig && mailConfig.host) {
+    if (!mailConfig.port || mailConfig.port < 1 || mailConfig.port > 65535) {
+      errors.push("SMTP port must be a valid port number (1-65535)");
+    }
+    
+    // Validate sender email format
+    if (mailConfig.sender && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mailConfig.sender)) {
+      errors.push("SMTP sender must be a valid email address");
+    }
+    
+    // Validate authentication and transport security compatibility
+    if (mailConfig.insecure === true && mailConfig.transportSecurity !== "insecure") {
+      errors.push("Insecure mode must have transportSecurity set to 'insecure'");
+    }
+    
+    if (mailConfig.transportSecurity === "insecure" && mailConfig.insecure !== true) {
+      errors.push("Transport security 'insecure' requires insecure: true");
+    }
+    
+    // Validate CA trust configuration
+    if (mailConfig.caTrust === "custom" && !mailConfig.caSecretRef && runtime === "kubernetes") {
+      errors.push("Custom CA trust requires caSecretRef for Kubernetes");
+    }
+    
+    // Validate username/password requirements
+    if (mailConfig.authentication !== "none" && !mailConfig.username) {
+      errors.push("Authentication mode other than 'none' requires username");
+    }
+    
+    // Kubernetes-specific validation
+    if (runtime === "kubernetes") {
+      if (mailConfig.username && !mailConfig.passwordSecretRef) {
+        errors.push("Kubernetes SMTP requires passwordSecretRef when username is specified");
+      }
+      if (mailConfig.caTrust === "custom" && !mailConfig.caSecretRef) {
+        errors.push("Kubernetes custom CA trust requires caSecretRef");
+      }
+    }
+    
+    // Docker/Podman specific validation
+    if (runtime !== "kubernetes" && mailConfig.username) {
+      if (!profile.features.notifications) {
+        errors.push("SMTP username requires notifications to be enabled for Docker/Podman");
+      }
+    }
+
+  }
+  
   // Validate monitoring configuration
   const monitoringConfig = profile.features.monitoring;
   if (monitoringConfig) {
@@ -409,8 +488,14 @@ export function validateNormalizedProfile(profile, policies, compatibility) {
     if (office === "collabora" && profile.office.deployment === "bundled") {
       errors.push("Kubernetes 7.1.4 preview supports external Collabora only; the oCIS chart does not bundle the Collabora server");
     }
+    // ClamAV validation
     if (profile.features.clamav) {
-      errors.push("Kubernetes ClamAV requires an external scanner contract and is not emitted by the 7.1.4 preview");
+      const clamav = profile.features.clamav;
+      if (typeof clamav === 'object') {
+        if (runtime === "kubernetes" && !clamav.storageClassName) {
+          errors.push("Kubernetes ClamAV requires storageClassName");
+        }
+      }
     }
   }
 
@@ -520,10 +605,15 @@ export function calculateSizingWithRules(profile, rules) {
     contributions.push({ component: "Bundled Collabora", cpu: officeCpu, ramMiB: officeRam, diskGiB: rules.collabora.imageDiskGiB, networkKbit: officeNetwork });
   }
   if (profile.features.clamav) {
-    cpu += rules.clamav.cpu;
-    ramMiB += rules.clamav.recommendedRamMiB;
-    serviceDiskGiB += rules.clamav.diskGiB;
-    contributions.push({ component: "ClamAV", cpu: rules.clamav.cpu, ramMiB: rules.clamav.recommendedRamMiB, diskGiB: rules.clamav.diskGiB });
+    const clamav = profile.features.clamav;
+    const clamavCpu = typeof clamav === 'object' ? clamav.cpu : rules.clamav.cpu;
+    const clamavRamMiB = typeof clamav === 'object' ? clamav.memoryMiB : rules.clamav.recommendedRamMiB;
+    const clamavDiskGiB = typeof clamav === 'object' ? clamav.sizeGiB : rules.clamav.diskGiB;
+    
+    cpu += clamavCpu;
+    ramMiB += clamavRamMiB;
+    serviceDiskGiB += clamavDiskGiB;
+    contributions.push({ component: "ClamAV", cpu: clamavCpu, ramMiB: clamavRamMiB, diskGiB: clamavDiskGiB });
   }
   
   // Handle monitoring sizing contributions
