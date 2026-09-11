@@ -64,9 +64,23 @@ case "$ARCHIVE" in
     age -d -i "$IDENTITY" -o "$RAW" "$ARCHIVE"
     ;;
 esac
-tar -tzf "$RAW" | while IFS= read -r path; do
+# Validate tar contents before extraction (prevent TOCTOU)
+# List all entries and validate paths and symlink targets
+tar -tvf "$RAW" | while IFS= read -r line; do
+  # Extract the path (last field) and check if it's a symlink
+  path=$(echo "$line" | awk '{print $NF}')
+  
+  # Check for unsafe path patterns
   case "$path" in /*|../*|*/../*|*/..) die "Unsafe path in backup: $path" ;; esac
+  
+  # If this is a symlink entry (contains ->), validate the target
+  if echo "$line" | grep -q '->'; then
+    target=$(echo "$line" | sed 's/.*-> //')
+    # Validate symlink target path
+    case "$target" in /*|../*|*/../*|*/..) die "Unsafe symlink target in backup: $path -> $target" ;; esac
+  fi
 done
+
 tar -C "$STAGE" -xzf "$RAW"
 find "$STAGE" -type l -print | while IFS= read -r link; do
   case "$link" in

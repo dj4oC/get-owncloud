@@ -51,7 +51,7 @@ export function buildHelmValues(profile, sizing) {
       `      enabled: true`,
       `      image: clamav/clamav@sha256:${profile.features.clamav.imageDigest}`,
       `      storageClassName: ${q(profile.features.clamav.storageClassName)}`,
-      `      size: ${profile.features.clamav.sizeGiB}Gi`,
+      `      size: ${q(`${profile.features.clamav.sizeGiB}Gi`)}`,
       `      cpu: ${q(profile.features.clamav.cpu)}`,
       `      memory: ${q(profile.features.clamav.memoryMiB + "Mi")}`
     ] : []),
