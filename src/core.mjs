@@ -79,10 +79,14 @@ function isProductionDomain(value) {
 
 function isSafeStoragePath(value) {
   if (typeof value !== "string" || !value.trim()) return false;
-  // CWE-22 path traversal prevention: reject paths containing traversal sequences
-  // Absolute paths are allowed (e.g., /srv/owncloud/data) as they are explicit and safe
+  // CWE-22 path traversal prevention: reject absolute paths, empty, ., .., and traversal sequences
+  // Only relative paths are allowed for storage to prevent path traversal attacks
   const normalized = value.replaceAll("\\", "/").replace(/\/+$/, "") || "/";
+  // Reject absolute paths (leading /)
+  if (normalized.startsWith("/")) return false;
+  // Reject exactly "/", ".", ".."
   if (["/", ".", ".."].includes(normalized)) return false;
+  // Reject paths containing .. in any component
   return !normalized.split("/").includes("..");
 }
 
