@@ -108,11 +108,27 @@ function syncUi() {
   document.querySelector("#auto-updates-field").hidden = purpose.value === "production" || runtime.value === "kubernetes";
 
   if (isKubernetes) {
-    document.querySelector("#image-digest-note").textContent = ` Pinned to oCIS ${sources?.ocis?.kubernetes?.imageDigest}`;
-    document.querySelector("#healthcheck-url-note").textContent = " Relative to Traefik service at https://ocis-traefik.";
+    const imageDigestNote = document.querySelector("#image-digest-note");
+    const healthcheckNote = document.querySelector("#healthcheck-url-note");
+    if (imageDigestNote) {
+      imageDigestNote.textContent = ` Pinned to oCIS ${sources?.ocis?.kubernetes?.imageDigest}`;
+      imageDigestNote.hidden = false;
+    }
+    if (healthcheckNote) {
+      healthcheckNote.textContent = " Relative to Traefik service at https://ocis-traefik.";
+      healthcheckNote.hidden = false;
+    }
   } else {
-    document.querySelector("#image-digest-note").textContent = ` Pinned to oCIS ${sources?.ocis?.docker?.imageDigest || sources?.ocis?.podman?.imageDigest || ""}`;
-    document.querySelector("#healthcheck-url-note").textContent = " Relative to single-host service at https://ocis.";
+    const imageDigestNote = document.querySelector("#image-digest-note");
+    const healthcheckNote = document.querySelector("#healthcheck-url-note");
+    if (imageDigestNote) {
+      imageDigestNote.textContent = ` Pinned to oCIS ${sources?.ocis?.docker?.imageDigest || sources?.ocis?.podman?.imageDigest || ""}`;
+      imageDigestNote.hidden = false;
+    }
+    if (healthcheckNote) {
+      healthcheckNote.textContent = " Relative to single-host service at https://ocis.";
+      healthcheckNote.hidden = false;
+    }
   }
 }
 
