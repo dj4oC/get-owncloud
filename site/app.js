@@ -17,6 +17,7 @@ const status = document.querySelector("#generate-status");
 const runtime = document.querySelector("#runtime");
 const purpose = document.querySelector("#purpose");
 const manager = document.querySelector("#manager");
+runtime.addEventListener("change", () => { syncUi(); validateCurrent(); });
 const identityMode = document.querySelector("#identity-mode");
 const usersInput = document.querySelector("#registered-users");
 const autoUpdates = document.querySelector("#auto-updates");
