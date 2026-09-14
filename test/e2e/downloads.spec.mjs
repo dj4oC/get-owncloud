@@ -13,6 +13,9 @@ import { join } from "node:path";
 test.describe("Bundle Download and Verification", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
+    // Wait for catalogs to be loaded by checking for an element that's updated after loading
+    await page.waitForSelector("#image-digest-note", { state: "visible" });
+    await page.waitForTimeout(500);
   });
 
   // Test Docker bundle download and verification
