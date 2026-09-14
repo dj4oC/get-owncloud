@@ -410,18 +410,33 @@ async function loadProfile(event) {
     if (profile.target?.runtime) runtime.value = profile.target.runtime;
     if (profile.target?.manager) manager.value = profile.target.manager;
     if (profile.workload?.registeredUsers !== undefined) usersInput.value = profile.workload.registeredUsers;
-    if (profile.workload?.storedDataGiB !== undefined) document.querySelector("#storedDataGiB").value = profile.workload.storedDataGiB;
-    if (profile.workload?.annualGrowthPercent !== undefined) document.querySelector("#annualGrowthPercent").value = profile.workload.annualGrowthPercent;
+    if (profile.workload?.storedDataGiB !== undefined) {
+      const storedDataGibEl = document.querySelector("#stored-data-gib");
+      if (storedDataGibEl) storedDataGibEl.value = profile.workload.storedDataGiB;
+    }
+    if (profile.workload?.annualGrowthPercent !== undefined) {
+      const annualGrowthPercentEl = document.querySelector("#annual-growth-percent");
+      if (annualGrowthPercentEl) annualGrowthPercentEl.value = profile.workload.annualGrowthPercent;
+    }
     if (profile.identity?.mode) identityMode.value = profile.identity.mode;
-    if (profile.storage?.mode) document.querySelector("#storageMode").value = profile.storage.mode;
+    if (profile.storage?.mode) {
+      const storageModeEl = document.querySelector("#storage-mode");
+      if (storageModeEl) storageModeEl.value = profile.storage.mode;
+    }
     if (profile.storage?.filesystem) document.querySelector("#filesystem").value = profile.storage.filesystem;
     if (profile.storage?.dataPath) document.querySelector("#dataPath").value = profile.storage.dataPath;
     if (profile.storage?.configPath) document.querySelector("#configPath").value = profile.storage.configPath;
-    if (profile.office?.mode) document.querySelector("#officeMode").value = profile.office.mode;
+    if (profile.office?.mode) {
+      const officeModeEl = document.querySelector("#office-mode");
+      if (officeModeEl) officeModeEl.value = profile.office.mode;
+    }
     if (profile.networking?.domain) document.querySelector("#domain").value = profile.networking.domain;
     if (profile.networking?.httpPort !== undefined) document.querySelector("#httpPort").value = profile.networking.httpPort;
     if (profile.networking?.httpsPort !== undefined) document.querySelector("#httpsPort").value = profile.networking.httpsPort;
-    if (profile.networking?.tls?.mode) document.querySelector("#tlsMode").value = profile.networking.tls.mode;
+    if (profile.networking?.tls?.mode) {
+      const tlsModeEl = document.querySelector("#tls-mode");
+      if (tlsModeEl) tlsModeEl.value = profile.networking.tls.mode;
+    }
     
     // Trigger UI sync
     syncUi();
