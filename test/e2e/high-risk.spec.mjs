@@ -48,7 +48,7 @@ test.describe("High-Risk Journeys", () => {
     await page.locator("#search").check();
     await page.locator("#clamav").check();
     await page.locator("#notifications").check();
-    await page.locator("#autoUpdates").check();
+    await page.locator("#auto-updates").check();
     await page.locator('[name="updateDelay"]').fill("24");
     await page.locator('[name="backupRecipient"]').fill("admin@corp.example");
     
@@ -246,7 +246,7 @@ test.describe("High-Risk Journeys", () => {
     await page.locator("#search").check();
     await page.locator("#clamav").check();
     await page.locator("#notifications").check();
-    await page.locator("#autoUpdates").check();
+    await page.locator("#auto-updates").check();
     await page.locator('[name="updateDelay"]').fill("24");
     await page.locator('[name="backupRecipient"]').fill("admin@example.com");
     
