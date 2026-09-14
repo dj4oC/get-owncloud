@@ -236,8 +236,8 @@
                   <option value="nfs">NFSv4.2</option>
                 </select>
               </label>
-              <label data-single-host>Data path<input name="dataPath" id="dataPath" value="./data/data" required></label>
-              <label data-single-host>Configuration path<input name="configPath" id="configPath" value="./data/config" required></label>
+              <label data-single-host>Data path<input name="dataPath" id="dataPath" value="./data/data"></label>
+              <label data-single-host>Configuration path<input name="configPath" id="configPath" value="./data/config"></label>
               <label id="storage-class-field" hidden>Kubernetes StorageClass<input name="storageClassName" placeholder="nfs-4-2"></label>
             </div>
             <p class="field-help">Direct filesystem access beyond the standard drivers, extended-attribute modes, GPFS-specific modes, and experimental features are not emitted at any layer. NFS selection is blocked unless the effective mount reports version 4.2.</p>
