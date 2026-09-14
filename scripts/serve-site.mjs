@@ -22,7 +22,7 @@ createServer(async (request, response) => {
       "Cache-Control": "no-store",
       "X-Content-Type-Options": "nosniff",
       "Referrer-Policy": "strict-origin-when-cross-origin",
-      "Content-Security-Policy": "default-src 'self'; script-src 'self' 'sha256-IQZAzsaFYMMie9R369mqIVVyx9QQURrNhDcAQi0HMPI=' 'sha256-a56e20550f52a2786f385788f2a3f81436585da398719d700b471b39f4caa441'; style-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
+      "Content-Security-Policy": "default-src 'self'; script-src 'self' 'sha256-pW4gVQ9SonhvOFeI8qP4FDZYXaOYcZ1wC0cbOfTKpEE='; style-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
     });
     response.end(data);
   } catch {
