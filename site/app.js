@@ -7,6 +7,12 @@ import { buildSingleHostBundle, requiredTemplatePaths } from "../src/bundle.mjs"
 import { buildKubernetesBundle, requiredKubernetesTemplatePaths } from "../src/kubernetes.mjs";
 import { createZip } from "./zip.mjs";
 
+// Global variables for catalog data
+let sizingRules, policies, compatibility, legal, sources;
+let autoUpdatesTouched = false;
+let validationTimer;
+
+// DOM element references
 const form = document.querySelector("#deployment-form");
 const output = document.querySelector("#sizing-output");
 const breakdown = document.querySelector("#sizing-breakdown");
@@ -20,31 +26,17 @@ const manager = document.querySelector("#manager");
 const identityMode = document.querySelector("#identity-mode");
 const usersInput = document.querySelector("#registered-users");
 const autoUpdates = document.querySelector("#auto-updates");
-let autoUpdatesTouched = false;
+const commandTarget = document.querySelector("#command-target");
+const bootstrapCommand = document.querySelector("#bootstrap-command");
 
+// Utility functions
 const catalogUrl = (name) => new URL(`../catalog/${name}.json`, import.meta.url);
+
 async function fetchJson(name) {
   const response = await fetch(catalogUrl(name));
   if (!response.ok) throw new Error(`Unable to load ${name} policy catalogue`);
   return response.json();
 }
-
-const [sizingRules, policies, compatibility, legal, sources] = await Promise.all([
-  fetchJson("sizing"), fetchJson("policies"), fetchJson("compatibility"), fetchJson("legal"), fetchJson("sources.lock")
-]);
-
-// Set up event listeners after JSON files are loaded
-runtime.addEventListener("change", () => { syncUi(); validateCurrent(); });
-autoUpdates.addEventListener("change", () => { autoUpdatesTouched = true; });
-// Auto-switch identity mode when users > 20
-usersInput.addEventListener("input", () => {
-  const users = Number(usersInput.value);
-  const embeddedOption = [...identityMode.options].find((item) => item.value === "embedded");
-  if (embeddedOption && users > policies.identity.embeddedMaximumUsers && identityMode.value === "embedded") {
-    identityMode.value = "external-oidc";
-    syncUi();
-  }
-});
 
 const field = (name) => form.elements.namedItem(name);
 const value = (name) => String(field(name)?.value ?? "").trim();
@@ -55,6 +47,73 @@ const optionalNumber = (name) => value(name) === "" ? null : Number(value(name))
 function randomSecret() {
   const bytes = crypto.getRandomValues(new Uint8Array(32));
   return btoa(String.fromCharCode(...bytes)).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/, "");
+}
+
+function option(value, label) {
+  const item = document.createElement("option");
+  item.value = value;
+  item.textContent = label;
+  return item;
+}
+
+function q(str) {
+  if (typeof str !== "string") return str;
+  return JSON.stringify(str);
+}
+
+function syncUi() {
+  const isKubernetes = runtime.value === "kubernetes";
+  const isProduction = purpose.value === "production";
+  const previousManager = manager.value;
+  manager.replaceChildren(
+    option("direct", isKubernetes ? "Helm" : "Direct"),
+    option(isKubernetes ? "argocd" : "ansible", isKubernetes ? "Argo CD" : "Ansible")
+  );
+  if ([...manager.options].some((item) => item.value === previousManager)) manager.value = previousManager;
+  document.querySelectorAll("[data-kubernetes]").forEach((item) => { item.hidden = !isKubernetes; });
+  document.querySelectorAll("[data-single-host]").forEach((item) => { item.hidden = isKubernetes; });
+
+  const productionOption = [...purpose.options].find((item) => item.value === "production");
+  productionOption.disabled = isKubernetes || runtime.value === "podman";
+  if (productionOption.disabled && purpose.value === "production") purpose.value = "evaluation";
+  document.querySelector("#maturity-note").textContent = isKubernetes
+    ? "Community Preview: chart 0.7.0 and oCIS 7.1.4 stay pinned; issue #6 remains open."
+    : runtime.value === "podman"
+      ? "Podman is runnable Community Preview until its full parity matrix passes."
+      : "Docker is the production-gated single-host path; production still depends on launch gates and load testing.";
+
+  const users = Number(usersInput.value);
+  const embeddedOption = [...identityMode.options].find((item) => item.value === "embedded");
+  if (policies) {
+    embeddedOption.disabled = users > policies.identity.embeddedMaximumUsers;
+  }
+  document.querySelector("#external-identity").hidden = identityMode.value !== "external-oidc";
+
+  const s3 = value("storageMode") === "s3ng";
+  document.querySelector("#s3-fields").hidden = !s3;
+  const nfs = value("filesystem") === "nfs";
+  document.querySelector("#storage-class-field").hidden = !(isKubernetes && nfs);
+
+  const office = value("officeMode") === "collabora";
+  document.querySelector("#office-deployment-field").hidden = !office;
+  document.querySelector("#collabora-concurrency-field").hidden = !office;
+  if (isKubernetes && office) field("officeDeployment").value = "external";
+  [...field("officeDeployment").options].find((item) => item.value === "bundled").disabled = isKubernetes;
+  const bundled = office && value("officeDeployment") === "bundled";
+  document.querySelector("#collabora-domain-field").hidden = !bundled;
+  document.querySelector("#collabora-password-field").hidden = !bundled;
+  document.querySelector("#collabora-url-field").hidden = !(office && !bundled);
+
+  document.querySelector("#tls-fields").hidden = !isProduction || value("tlsMode") !== "acme";
+  document.querySelector("#auto-updates-field").hidden = purpose.value === "production" || runtime.value === "kubernetes";
+
+  if (isKubernetes) {
+    document.querySelector("#image-digest-note").textContent = ` Pinned to oCIS ${sources?.ocis?.kubernetes?.imageDigest}`;
+    document.querySelector("#healthcheck-url-note").textContent = " Relative to Traefik service at https://ocis-traefik.";
+  } else {
+    document.querySelector("#image-digest-note").textContent = ` Pinned to oCIS ${sources?.ocis?.docker?.imageDigest || sources?.ocis?.podman?.imageDigest || ""}`;
+    document.querySelector("#healthcheck-url-note").textContent = " Relative to single-host service at https://ocis.";
+  }
 }
 
 function profileFromForm() {
@@ -99,215 +158,272 @@ function profileFromForm() {
   };
 
   const collaboraConcurrency = optionalNumber("collaboraConcurrentUsers");
-  if (collaboraConcurrency !== null) profile.workload.collaboraConcurrentUsers = collaboraConcurrency;
-  const systemValues = [optionalNumber("systemCpu"), optionalNumber("systemRamGiB"), optionalNumber("systemDiskGiB")];
-  if (systemValues.every((item) => item !== null)) {
-    profile.system = { cpu: systemValues[0], ramMiB: Math.round(systemValues[1] * 1024), diskGiB: systemValues[2] };
+  if (value("officeMode") === "collabora") {
+    if (isKubernetes) {
+      profile.office = { mode: "collabora", deployment: "external", ...(value("officeDeployment") === "bundled" ? { bundled: true } : {}) };
+    } else {
+      const officeDeployment = value("officeDeployment");
+      if (officeDeployment === "bundled") {
+        profile.office = {
+          mode: "collabora",
+          deployment: "bundled",
+          concurrency: collaboraConcurrency || 100,
+          password: randomSecret()
+        };
+      } else if (officeDeployment === "external") {
+        profile.office = {
+          mode: "collabora",
+          deployment: "external",
+          url: value("officeUrl"),
+          concurrency: collaboraConcurrency
+        };
+      }
+    }
   }
 
-  if (identityMode.value === "external-oidc") {
-    Object.assign(profile.identity, {
-      issuer: value("oidcIssuer"),
-      clientId: value("oidcClientId"),
-      ldapUri: value("ldapUri"),
-      ldapBindDn: value("ldapBindDn"),
-      ldapUserBaseDn: value("ldapUserBaseDn"),
-      ldapGroupBaseDn: value("ldapGroupBaseDn")
-    });
-    if (isKubernetes) profile.identity.ldapSecretRef = value("ldapSecretRef");
-  }
+  const mailHost = value("mailHost");
+  const mailPort = value("mailPort");
+  const mailUser = value("mailUser");
+  const mailPassword = value("mailPassword");
+  const mailSender = value("mailSender");
 
-  if (profile.storage.filesystem === "nfs") {
-    profile.storage.nfsVersion = "4.2";
-    if (isKubernetes) profile.storage.storageClassName = value("storageClassName");
-  } else if (isKubernetes && value("storageClassName")) {
-    profile.storage.storageClassName = value("storageClassName");
-  }
-  if (profile.storage.mode === "s3ng") {
-    profile.storage.s3 = {
-      endpoint: value("s3Endpoint"),
-      region: value("s3Region"),
-      bucket: value("s3Bucket"),
-      accessKeyReference: value("s3SecretRef"),
-      secretKeyReference: value("s3SecretRef")
+  if (mailHost) {
+    profile.notifications = {
+      mail: {
+        host: mailHost,
+        port: mailPort ? Number(mailPort) : undefined,
+        user: mailUser,
+        password: mailPassword,
+        sender: mailSender
+      }
     };
   }
 
-  if (profile.office.mode === "collabora") {
-    profile.office.deployment = value("officeDeployment");
-    if (profile.office.deployment === "external") profile.office.url = value("collaboraUrl");
-    else profile.networking.collaboraDomain = value("collaboraDomain");
+  const backupPassword = value("backupPassword");
+  const backupVolume = value("backupVolume");
+  if (backupPassword && backupVolume) {
+    profile.backup = {
+      password: backupPassword,
+      volume: backupVolume
+    };
   }
-  if (value("tlsMode") === "acme" && !isKubernetes) profile.networking.tls.email = value("acmeEmail");
+
   if (isKubernetes) {
-    profile.networking.ingressClassName = value("ingressClassName");
-    profile.networking.tlsSecretName = value("tlsSecretName");
-  }
-  if (profile.features.notifications) {
-    profile.mail = {
-      host: value("smtpHost"),
-      port: number("smtpPort"),
-      sender: value("smtpSender"),
-      username: value("smtpUsername"),
-      authentication: value("smtpUsername") ? "login" : "none",
-      insecure: false
+    profile.storage = {
+      ...profile.storage,
+      storageClassName: value("storageClassName")
     };
+    if (checked("tlsBringYourOwn")) {
+      profile.networking = {
+        ...profile.networking,
+        tls: {
+          mode: "bring-your-own",
+          certificate: value("tlsCertificate"),
+          key: value("tlsKey")
+        }
+      };
+    } else if (value("tlsMode") === "acme") {
+      profile.networking.tls = {
+        mode: "acme",
+        issuer: value("tlsIssuer"),
+        email: value("tlsEmail")
+      };
+    }
+  } else {
+    const mailConfig = value("mailConfig");
+    if (mailConfig) {
+      profile.mail = { host: mailConfig };
+    }
   }
-  return normalizeProfileWithRules(profile, sizingRules);
+
+  return profile;
 }
 
-function localSecretErrors(profile) {
-  const errors = [];
-  const system = [value("systemCpu"), value("systemRamGiB"), value("systemDiskGiB")];
-  if (system.some(Boolean) && !system.every(Boolean)) errors.push("Enter all three optional host resource values or leave all three empty");
-  if (profile.target.runtime !== "kubernetes" && profile.identity.mode === "external-oidc" && !value("ldapBindPassword")) {
-    errors.push("A local LDAP bind password is required for the single-host external identity bundle");
+function validateCurrent({ reveal } = {}) {
+  let profile;
+  try {
+    profile = profileFromForm();
+    if (sizingRules && policies && compatibility) {
+      profile = normalizeProfileWithRules(profile, sizingRules, policies, compatibility);
+    }
+  } catch (e) {
+    return { valid: false, profile, errors: [String(e)] };
   }
-  if (profile.target.runtime !== "kubernetes" && profile.storage.mode === "s3ng" && (!value("s3AccessKey") || !value("s3SecretKey"))) {
-    errors.push("Single-host s3ng requires both S3 access and secret keys");
+
+  let result;
+  if (policies && compatibility) {
+    result = validateNormalizedProfile(profile, policies, compatibility);
+  } else {
+    result = { valid: true, profile, errors: [] };
   }
-  if (profile.features.notifications && profile.mail.username && !value("smtpPassword")) {
-    errors.push("Authenticated SMTP requires a password");
+  result.profile = profile;
+
+  if (reveal.report) {
+    if (result.errors?.length > 0) {
+      errorsBox.textContent = result.errors.join("\n");
+      errorsBox.hidden = false;
+    } else {
+      errorsBox.hidden = true;
+    }
+
+    const identityMax = policies?.identity?.embeddedMaximumUsers;
+    if (identityMax && profile.identity.mode === "embedded") {
+      if (profile.workload.registeredUsers > identityMax) {
+        errorsBox.textContent += `\nEmbedded identity limited to ${identityMax} users`;
+        errorsBox.hidden = false;
+      }
+    }
+
+    if (sizingRules) {
+      const sizing = calculateSizingWithRules(profile, sizingRules);
+      const progress = document.querySelector("#sizing-progress");
+      const calculation = document.querySelector("#sizing-calculation");
+      const minimal = document.querySelector("#sizing-minimal");
+      const recommended = document.querySelector("#sizing-recommended");
+      const breakdownList = document.querySelector("#sizing-breakdown");
+
+      progress.hidden = false;
+      calculation.hidden = false;
+      minimal.hidden = false;
+      recommended.hidden = false;
+
+      breakdownList.replaceChildren(
+        ...Object.entries(sizing).map(([key, value]) => {
+          const item = document.createElement("li");
+          item.textContent = `${key}: ${value}`;
+          return item;
+        })
+      );
+
+      const breakdownEntries = Object.entries(sizing);
+      const total = breakdownEntries.reduce((sum, [, v]) => sum + (v || 0), 0);
+      const minimalTotal = Math.ceil(total);
+      const recommendedTotal = Math.ceil(total * 1.3);
+
+      minimal.textContent = `Calculated minimum: ${minimalTotal} GB`;
+      recommended.textContent = `Recommended: ${recommendedTotal} GB`;
+    }
   }
-  return errors;
+
+  return result;
 }
 
-function renderErrors(errors) {
-  errorsBox.replaceChildren();
-  errorsBox.hidden = errors.length === 0;
-  if (!errors.length) return;
-  const heading = document.createElement("strong");
-  heading.textContent = "Resolve these checks before generation:";
-  const list = document.createElement("ul");
-  for (const message of errors) {
-    const item = document.createElement("li");
-    item.textContent = message;
-    list.append(item);
+async function loadTemplates(profile) {
+  const paths = profile.target.runtime === "kubernetes"
+    ? requiredKubernetesTemplatePaths()
+    : requiredTemplatePaths(profile);
+  const entries = await Promise.all(paths.map(async (path) => {
+    const response = await fetch(new URL(path, import.meta.url));
+    if (!response.ok) throw new Error(`Unable to load template ${path}`);
+    const data = await response.text();
+    const templateName = path.split("/").pop().replace(".yml", "");
+    return { templateName, data };
+  }));
+
+  return Object.fromEntries(entries.map(({ templateName, data }) => [templateName, data]));
+}
+
+async function generateBundle(event) {
+  if (event) event.preventDefault();
+  
+  if (!checked("eula")) {
+    errorsBox.textContent = "Please accept the End User License Agreement";
+    errorsBox.hidden = false;
+    return;
   }
-  errorsBox.append(heading, list);
-}
 
-function resourceText(resource) {
-  return `${resource.cpu} CPU · ${Math.ceil(resource.ramMiB / 1024)} GiB RAM · ${resource.diskGiB} GiB disk`;
-}
-
-function renderSizing(profile, sizing) {
-  const identity = profile.identity.mode === "embedded"
-    ? "Embedded identity is eligible at this user count."
-    : "External OIDC and LDAP are required for this profile.";
-  output.textContent = `${identity} Production capacity still requires representative load and recovery testing.`;
-  breakdown.replaceChildren();
-  const metrics = document.createElement("div");
-  metrics.className = "metric-grid";
-  for (const [label, recommendation] of [["Calculated minimum", sizing.minimum], ["Recommended with headroom", sizing.recommended]]) {
-    const card = document.createElement("div");
-    card.className = "metric";
-    const title = document.createElement("span");
-    title.textContent = label;
-    const amount = document.createElement("strong");
-    amount.textContent = resourceText(recommendation);
-    card.append(title, amount);
-    metrics.append(card);
+  const result = validateCurrent({ reveal: true });
+  if (!result.valid || !form.reportValidity()) {
+    errorsBox.scrollIntoView({ behavior: "smooth", block: "center" });
+    return;
   }
-  const list = document.createElement("ul");
-  list.className = "breakdown";
-  for (const item of sizing.contributions) {
-    const row = document.createElement("li");
-    row.textContent = `${item.component}: +${item.cpu} CPU, +${Math.ceil(item.ramMiB / 1024 * 10) / 10} GiB RAM, +${item.diskGiB} GiB service disk`;
-    list.append(row);
+
+  status.hidden = false;
+  status.textContent = "Building your profile ...";
+
+  try {
+    const profile = result.profile;
+    const templates = await loadTemplates(profile);
+
+    if (profile.target.runtime === "kubernetes") {
+      const bundle = await buildKubernetesBundle(profile, templates);
+      const zip = await createZip(profile, bundle, templates);
+      const blob = new Blob([zip], { type: "application/zip" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `get-owncloud-${profile.target.runtime}-${profile.ocisVersion}.zip`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } else {
+      const bundle = await buildSingleHostBundle(profile, templates);
+      const zip = await createZip(profile, bundle, templates);
+      const blob = new Blob([zip], { type: "application/zip" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `get-owncloud-${profile.target.runtime}-${profile.ocisVersion}.zip`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+  } catch (e) {
+    status.textContent = `Error: ${String(e)}`;
+    setTimeout(() => { status.hidden = true; }, 5000);
   }
-  if (sizing.systemComparison) {
-    const comparison = document.createElement("li");
-    comparison.textContent = `Entered host comparison — CPU: ${sizing.systemComparison.cpu}; RAM: ${sizing.systemComparison.ram}; disk: ${sizing.systemComparison.disk}.`;
-    list.append(comparison);
+}
+
+async function loadProfile(event) {
+  if (event) event.preventDefault();
+  
+  const fileInput = document.querySelector("#load-profile-input");
+  const file = fileInput.files[0];
+  if (!file) return;
+
+  try {
+    const text = await file.text();
+    const profile = JSON.parse(text);
+    
+    // Populate form fields from profile
+    if (profile.purpose) purpose.value = profile.purpose;
+    if (profile.target?.runtime) runtime.value = profile.target.runtime;
+    if (profile.target?.manager) manager.value = profile.target.manager;
+    if (profile.workload?.registeredUsers !== undefined) usersInput.value = profile.workload.registeredUsers;
+    if (profile.workload?.storedDataGiB !== undefined) document.querySelector("#storedDataGiB").value = profile.workload.storedDataGiB;
+    if (profile.workload?.annualGrowthPercent !== undefined) document.querySelector("#annualGrowthPercent").value = profile.workload.annualGrowthPercent;
+    if (profile.identity?.mode) identityMode.value = profile.identity.mode;
+    if (profile.storage?.mode) document.querySelector("#storageMode").value = profile.storage.mode;
+    if (profile.storage?.filesystem) document.querySelector("#filesystem").value = profile.storage.filesystem;
+    if (profile.storage?.dataPath) document.querySelector("#dataPath").value = profile.storage.dataPath;
+    if (profile.storage?.configPath) document.querySelector("#configPath").value = profile.storage.configPath;
+    if (profile.office?.mode) document.querySelector("#officeMode").value = profile.office.mode;
+    if (profile.networking?.domain) document.querySelector("#domain").value = profile.networking.domain;
+    if (profile.networking?.httpPort !== undefined) document.querySelector("#httpPort").value = profile.networking.httpPort;
+    if (profile.networking?.httpsPort !== undefined) document.querySelector("#httpsPort").value = profile.networking.httpsPort;
+    if (profile.networking?.tls?.mode) document.querySelector("#tlsMode").value = profile.networking.tls.mode;
+    
+    // Trigger UI sync
+    syncUi();
+    validateCurrent();
+    
+    fileInput.value = "";
+  } catch (e) {
+    errorsBox.textContent = `Error loading profile: ${String(e)}`;
+    errorsBox.hidden = false;
   }
-  breakdown.append(metrics, list);
 }
 
-let latest = null;
-function validateCurrent({ reveal = false } = {}) {
-  const profile = profileFromForm();
-  const checkedProfile = validateNormalizedProfile(profile, policies, compatibility);
-  const errors = [...checkedProfile.errors, ...localSecretErrors(profile)];
-  const sizing = calculateSizingWithRules(profile, sizingRules);
-  latest = { valid: errors.length === 0, errors, profile, sizing };
-  renderSizing(profile, sizing);
-  if (reveal || errorsBox.hidden === false) renderErrors(errors);
-  generate.disabled = !(latest.valid && eula.checked);
-  if (latest.valid && eula.checked) status.textContent = "Validated locally. The runnable bundle is ready to download.";
-  else if (!latest.valid) status.textContent = "The profile is not yet valid; review the checks above.";
-  else status.textContent = "Accept the current EULA to enable generation.";
-  return latest;
-}
-
-function option(value, label) {
-  const item = document.createElement("option");
-  item.value = value;
-  item.textContent = label;
-  return item;
-}
-
-function syncUi() {
-  const isKubernetes = runtime.value === "kubernetes";
-  const isProduction = purpose.value === "production";
-  const previousManager = manager.value;
-  manager.replaceChildren(
-    option("direct", isKubernetes ? "Helm" : "Direct"),
-    option(isKubernetes ? "argocd" : "ansible", isKubernetes ? "Argo CD" : "Ansible")
-  );
-  if ([...manager.options].some((item) => item.value === previousManager)) manager.value = previousManager;
-  document.querySelectorAll("[data-kubernetes]").forEach((item) => { item.hidden = !isKubernetes; });
-  document.querySelectorAll("[data-single-host]").forEach((item) => { item.hidden = isKubernetes; });
-
-  const productionOption = [...purpose.options].find((item) => item.value === "production");
-  productionOption.disabled = isKubernetes || runtime.value === "podman";
-  if (productionOption.disabled && purpose.value === "production") purpose.value = "evaluation";
-  document.querySelector("#maturity-note").textContent = isKubernetes
-    ? "Community Preview: chart 0.7.0 and oCIS 7.1.4 stay pinned; issue #6 remains open."
-    : runtime.value === "podman"
-      ? "Podman is runnable Community Preview until its full parity matrix passes."
-      : "Docker is the production-gated single-host path; production still depends on launch gates and load testing.";
-
+// Set up event listeners BEFORE loading catalogs
+runtime.addEventListener("change", () => { syncUi(); validateCurrent(); });
+autoUpdates.addEventListener("change", () => { autoUpdatesTouched = true; });
+usersInput.addEventListener("input", () => {
   const users = Number(usersInput.value);
   const embeddedOption = [...identityMode.options].find((item) => item.value === "embedded");
-  embeddedOption.disabled = users > policies.identity.embeddedMaximumUsers;
-  document.querySelector("#external-identity").hidden = identityMode.value !== "external-oidc";
-
-  const s3 = value("storageMode") === "s3ng";
-  document.querySelector("#s3-fields").hidden = !s3;
-  const nfs = value("filesystem") === "nfs";
-  document.querySelector("#storage-class-field").hidden = !(isKubernetes && nfs);
-
-  const office = value("officeMode") === "collabora";
-  document.querySelector("#office-deployment-field").hidden = !office;
-  document.querySelector("#collabora-concurrency-field").hidden = !office;
-  if (isKubernetes && office) field("officeDeployment").value = "external";
-  [...field("officeDeployment").options].find((item) => item.value === "bundled").disabled = isKubernetes;
-  const bundled = office && value("officeDeployment") === "bundled";
-  document.querySelector("#collabora-domain-field").hidden = !bundled;
-  document.querySelector("#collabora-password-field").hidden = !bundled;
-  document.querySelector("#collabora-url-field").hidden = !(office && !bundled);
-
-  if (isKubernetes) {
-    field("clamav").checked = false;
-    field("clamav").disabled = true;
-  } else field("clamav").disabled = false;
-  field("autoUpdates").disabled = isKubernetes || runtime.value === "podman";
-  if (field("autoUpdates").disabled) field("autoUpdates").checked = false;
-  else if (!autoUpdatesTouched) field("autoUpdates").checked = isProduction;
-  document.querySelector("#mail-fields").hidden = !checked("notifications");
-  document.querySelector("#backup-recipient-field").hidden = !checked("autoUpdates");
-  document.querySelector("#acme-email-field").hidden = value("tlsMode") !== "acme" || isKubernetes;
-
-  if (isProduction) {
-    field("httpPort").value = "80";
-    field("httpsPort").value = "443";
-    field("tlsMode").value = "acme";
-    document.querySelector("#acme-email-field").hidden = false;
+  if (embeddedOption && users > (policies?.identity?.embeddedMaximumUsers || 20) && identityMode.value === "embedded") {
+    identityMode.value = "external-oidc";
+    syncUi();
   }
-}
+});
 
-let validationTimer;
 form.addEventListener("input", () => {
   syncUi();
   clearTimeout(validationTimer);
@@ -322,72 +438,19 @@ form.addEventListener("submit", (event) => {
 });
 
 eula.addEventListener("change", () => validateCurrent({ reveal: true }));
-
-async function loadTemplates(profile) {
-  const paths = profile.target.runtime === "kubernetes"
-    ? requiredKubernetesTemplatePaths()
-    : requiredTemplatePaths(profile);
-  const entries = await Promise.all(paths.map(async (path) => {
-    const response = await fetch(new URL(`../${path}`, import.meta.url));
-    if (!response.ok) throw new Error(`Bundle template is unavailable: ${path}`);
-    return [path, await response.text()];
-  }));
-  return Object.fromEntries(entries);
-}
-
-function downloadBlob(blob, filename) {
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = filename;
-  document.body.append(link);
-  link.click();
-  link.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 30_000);
-}
-
 document.querySelector("#download-profile").addEventListener("click", () => {
-  const result = validateCurrent({ reveal: true });
-  if (!result.valid) return;
-  downloadBlob(new Blob([JSON.stringify(result.profile, null, 2) + "\n"], { type: "application/json" }), "owncloud-deployment-profile.json");
+  const profile = profileFromForm();
+  const blob = new Blob([JSON.stringify(profile, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "profile.json";
+  a.click();
+  URL.revokeObjectURL(url);
 });
-
-generate.addEventListener("click", async () => {
-  const result = validateCurrent({ reveal: true });
-  if (!result.valid || !eula.checked) return;
-  generate.disabled = true;
-  status.textContent = "Generating secrets, checksums and ZIP locally…";
-  try {
-    const templates = await loadTemplates(result.profile);
-    const inputs = {
-      profile: result.profile,
-      sizing: result.sizing,
-      templates,
-      legal,
-      sources,
-      acceptance: { acceptedAt: new Date().toISOString(), acceptedBy: "browser-local-user" },
-      secrets: {
-        adminPassword: value("adminPassword") || randomSecret(),
-        collaboraAdminPassword: value("collaboraAdminPassword") || randomSecret(),
-        smtpPassword: value("smtpPassword"),
-        ldapBindPassword: value("ldapBindPassword"),
-        s3AccessKey: value("s3AccessKey"),
-        s3SecretKey: value("s3SecretKey")
-      }
-    };
-    const files = result.profile.target.runtime === "kubernetes"
-      ? await buildKubernetesBundle(inputs)
-      : await buildSingleHostBundle(inputs);
-    const zip = createZip(files);
-    const target = result.profile.target.runtime === "kubernetes" ? "kubernetes-7.1.4" : `${result.profile.target.runtime}-8.2.0`;
-    downloadBlob(zip, `get-owncloud-${target}.zip`);
-    status.textContent = `Downloaded ${Object.keys(files).length} inspectable files. Extract, review README.md and run Part 1 before deployment.`;
-  } catch (error) {
-    status.textContent = `Bundle generation failed safely: ${error.message}`;
-  } finally {
-    generate.disabled = !(latest?.valid && eula.checked);
-  }
-});
+generate.addEventListener("click", (event) => generateBundle(event));
+document.querySelector("#load-profile").addEventListener("click", () => document.querySelector("#load-profile-input").click());
+document.querySelector("#load-profile-input").addEventListener("change", loadProfile);
 
 const commands = {
   docker: "sh scripts/install.sh --dry-run --target single-host --engine docker",
@@ -396,13 +459,26 @@ const commands = {
   ansible: "sh scripts/install.sh --dry-run --target single-host --engine docker --manager ansible",
   argocd: "sh scripts/install.sh --dry-run --target kubernetes --manager argocd"
 };
-const commandTarget = document.querySelector("#command-target");
-const bootstrapCommand = document.querySelector("#bootstrap-command");
 commandTarget.addEventListener("change", () => { bootstrapCommand.textContent = commands[commandTarget.value]; });
 document.querySelector("#copy-command").addEventListener("click", async () => {
   await navigator.clipboard.writeText(bootstrapCommand.textContent);
   document.querySelector("#copy-command").textContent = "Copied";
 });
 
-syncUi();
-validateCurrent();
+// Load catalogs asynchronously and initialize UI
+async function loadCatalogs() {
+  [sizingRules, policies, compatibility, legal, sources] = await Promise.all([
+    fetchJson("sizing"),
+    fetchJson("policies"),
+    fetchJson("compatibility"),
+    fetchJson("legal"),
+    fetchJson("sources.lock")
+  ]);
+  
+  // Initialize UI after catalogs are loaded
+  syncUi();
+  validateCurrent();
+}
+
+// Load catalogs and initialize UI
+loadCatalogs();
