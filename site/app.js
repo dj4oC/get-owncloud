@@ -17,22 +17,10 @@ const status = document.querySelector("#generate-status");
 const runtime = document.querySelector("#runtime");
 const purpose = document.querySelector("#purpose");
 const manager = document.querySelector("#manager");
-runtime.addEventListener("change", () => { syncUi(); validateCurrent(); });
 const identityMode = document.querySelector("#identity-mode");
 const usersInput = document.querySelector("#registered-users");
 const autoUpdates = document.querySelector("#auto-updates");
 let autoUpdatesTouched = false;
-autoUpdates.addEventListener("change", () => { autoUpdatesTouched = true; });
-
-// Auto-switch identity mode when users > 20
-usersInput.addEventListener("input", () => {
-  const users = Number(usersInput.value);
-  const embeddedOption = [...identityMode.options].find((item) => item.value === "embedded");
-  if (embeddedOption && users > policies.identity.embeddedMaximumUsers && identityMode.value === "embedded") {
-    identityMode.value = "external-oidc";
-    syncUi();
-  }
-});
 
 const catalogUrl = (name) => new URL(`../catalog/${name}.json`, import.meta.url);
 async function fetchJson(name) {
@@ -44,6 +32,19 @@ async function fetchJson(name) {
 const [sizingRules, policies, compatibility, legal, sources] = await Promise.all([
   fetchJson("sizing"), fetchJson("policies"), fetchJson("compatibility"), fetchJson("legal"), fetchJson("sources.lock")
 ]);
+
+// Set up event listeners after JSON files are loaded
+runtime.addEventListener("change", () => { syncUi(); validateCurrent(); });
+autoUpdates.addEventListener("change", () => { autoUpdatesTouched = true; });
+// Auto-switch identity mode when users > 20
+usersInput.addEventListener("input", () => {
+  const users = Number(usersInput.value);
+  const embeddedOption = [...identityMode.options].find((item) => item.value === "embedded");
+  if (embeddedOption && users > policies.identity.embeddedMaximumUsers && identityMode.value === "embedded") {
+    identityMode.value = "external-oidc";
+    syncUi();
+  }
+});
 
 const field = (name) => form.elements.namedItem(name);
 const value = (name) => String(field(name)?.value ?? "").trim();
