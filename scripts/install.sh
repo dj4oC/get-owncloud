@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 set -eu
 
 SCRIPT_VERSION="0.2.0"
@@ -249,8 +249,6 @@ install_tool() {
   tool=$1
   case "$tool" in kubectl|helm|argocd|age) install_downloaded_tool "$tool"; return ;; esac
   packages=$(package_names "$tool") || die "No approved $tool adapter for $OS_ID $OS_VERSION ($ARCH)"
-  source_kind=distribution
-  [ "$tool" != docker ] || [ "$PKG_MANAGER" = zypper ] || source_kind=official-docker-repository
   note "INSTALL: $packages via $PKG_MANAGER"
   [ "$DRY_RUN" = false ] || return 0
   [ "$INSTALL_MISSING" = true ] || die "$tool is missing. Approve with --install-missing."

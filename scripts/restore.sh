@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 set -eu
 
 BUNDLE_DIR=.
@@ -75,7 +75,8 @@ tar -tvf "$RAW" | while IFS= read -r line; do
   
   # If this is a symlink entry (contains ->), validate the target
   if echo "$line" | grep -q '->'; then
-    target=$(echo "$line" | sed 's/.*-> //')
+    # Extract target using parameter expansion instead of sed
+    target="${line##*-> }"
     # Validate symlink target path
     case "$target" in /*|../*|*/../*|*/..) die "Unsafe symlink target in backup: $path -> $target" ;; esac
   fi
