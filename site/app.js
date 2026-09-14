@@ -104,8 +104,14 @@ function syncUi() {
   document.querySelector("#collabora-password-field").hidden = !bundled;
   document.querySelector("#collabora-url-field").hidden = !(office && !bundled);
 
-  document.querySelector("#tls-fields").hidden = !isProduction || value("tlsMode") !== "acme";
-  document.querySelector("#auto-updates-field").hidden = purpose.value === "production" || runtime.value === "kubernetes";
+  const tlsFields = document.querySelector("#tls-fields");
+  if (tlsFields) {
+    tlsFields.hidden = !isProduction || value("tlsMode") !== "acme";
+  }
+  const autoUpdatesField = document.querySelector("#auto-updates-field");
+  if (autoUpdatesField) {
+    autoUpdatesField.hidden = purpose.value === "production" || runtime.value === "kubernetes";
+  }
 
   if (isKubernetes) {
     const imageDigestNote = document.querySelector("#image-digest-note");
@@ -298,10 +304,10 @@ function validateCurrent({ reveal } = {}) {
       const recommended = document.querySelector("#sizing-recommended");
       const breakdownList = document.querySelector("#sizing-breakdown");
 
-      progress.hidden = false;
-      calculation.hidden = false;
-      minimal.hidden = false;
-      recommended.hidden = false;
+      if (progress) progress.hidden = false;
+      if (calculation) calculation.hidden = false;
+      if (minimal) minimal.hidden = false;
+      if (recommended) recommended.hidden = false;
 
       breakdownList.replaceChildren(
         ...Object.entries(sizing).map(([key, value]) => {

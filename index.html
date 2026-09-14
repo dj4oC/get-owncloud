@@ -290,9 +290,11 @@
                   <option value="acme">Trusted ACME</option>
                 </select>
               </label>
-              <label id="acme-email-field" hidden>ACME contact email<input name="acmeEmail" type="email" placeholder="hostmaster@example.net"></label>
-              <label data-kubernetes hidden>Ingress class<input name="ingressClassName" value="nginx"></label>
-              <label data-kubernetes hidden>Pre-created TLS Secret<input name="tlsSecretName" value="owncloud-tls"></label>
+              <div id="tls-fields" hidden>
+                <label id="acme-email-field">ACME contact email<input name="acmeEmail" type="email" placeholder="hostmaster@example.net"></label>
+                <label data-kubernetes hidden>Ingress class<input name="ingressClassName" value="nginx"></label>
+                <label data-kubernetes hidden>Pre-created TLS Secret<input name="tlsSecretName" value="owncloud-tls"></label>
+              </div>
             </div>
           </fieldset>
 
@@ -303,7 +305,7 @@
               <label><input name="clamav" id="clamav" type="checkbox"> ClamAV malware scanning</label>
               <label><input name="notifications" id="notifications" type="checkbox"> Email notifications</label>
               <label><input name="monitoring" id="monitoring" type="checkbox"> Monitoring and metrics</label>
-              <label><input name="autoUpdates" id="auto-updates" type="checkbox"> Automatic eligible same-minor security patches</label>
+              <label id="auto-updates-field"><input name="autoUpdates" id="auto-updates" type="checkbox"> Automatic eligible same-minor security patches</label>
             </div>
             <label id="backup-recipient-field">Backup encryption recipient
               <input name="backupRecipient" placeholder="age1… or ssh-ed25519 …">
@@ -334,6 +336,10 @@
 
         <section class="result" aria-labelledby="sizing-title">
           <h3 id="sizing-title">System recommendation</h3>
+          <p id="sizing-progress" hidden></p>
+          <p id="sizing-calculation" hidden></p>
+          <p id="sizing-minimal" hidden></p>
+          <p id="sizing-recommended" hidden></p>
           <output id="sizing-output" aria-live="polite">Complete the form to calculate minimum and recommended resources.</output>
           <div id="sizing-breakdown"></div>
         </section>
