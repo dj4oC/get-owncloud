@@ -62,6 +62,9 @@ test("one-page configurator is accessible and downloads verified bundles", async
 
 test("Podman and Ansible wrapper generate the same locked single-host family", async ({ page }) => {
   await page.goto("/");
+  // Wait for catalogs to be loaded by checking for an element that's updated after loading
+  await page.waitForSelector("#image-digest-note", { state: "visible" });
+  await page.waitForTimeout(500);
   await page.locator("#runtime").selectOption("podman");
   await expect(page.locator("#maturity-note")).toContainText("Podman is runnable Community Preview");
   await expect(page.locator("#purpose option[value=production]")).toHaveAttribute("disabled", "");
@@ -90,6 +93,9 @@ test("Podman and Ansible wrapper generate the same locked single-host family", a
 
 test("advanced identity, S3, Collabora, ClamAV and SMTP choices produce one sized bundle", async ({ page }) => {
   await page.goto("/");
+  // Wait for catalogs to be loaded by checking for an element that's updated after loading
+  await page.waitForSelector("#image-digest-note", { state: "visible" });
+  await page.waitForTimeout(500);
   await page.locator("#registered-users").fill("100");
   await expect(page.locator("#identity-mode")).toHaveValue("external-oidc");
   await page.locator('[name="oidcIssuer"]').fill("https://id.corp.example/realms/owncloud");
@@ -149,6 +155,9 @@ test("advanced identity, S3, Collabora, ClamAV and SMTP choices produce one size
 
 test("production and policy boundaries fail closed", async ({ page }) => {
   await page.goto("/");
+  // Wait for catalogs to be loaded by checking for an element that's updated after loading
+  await page.waitForSelector("#image-digest-note", { state: "visible" });
+  await page.waitForTimeout(500);
   await page.locator("#purpose").selectOption("production");
   await page.getByRole("button", { name: "Validate and calculate" }).click();
   await expect(page.locator("#validation-errors")).toContainText("Production requires a real FQDN");
@@ -165,6 +174,9 @@ test("production and policy boundaries fail closed", async ({ page }) => {
 
 test("keyboard users can reach the skip target and operate the runtime selector", async ({ page }) => {
   await page.goto("/");
+  // Wait for catalogs to be loaded by checking for an element that's updated after loading
+  await page.waitForSelector("#image-digest-note", { state: "visible" });
+  await page.waitForTimeout(500);
   await page.keyboard.press("Tab");
   await expect(page.locator(".skip-link")).toBeFocused();
   await page.keyboard.press("Enter");
