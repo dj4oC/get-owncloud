@@ -60,7 +60,7 @@ test("one-page configurator is accessible and downloads verified bundles", async
 test("Podman and Ansible wrapper generate the same locked single-host family", async ({ page }) => {
   await page.goto("/");
   await page.locator("#runtime").selectOption("podman");
-  await expect(page.locator("#maturity-note")).toContainText("runnable Community Preview");
+  await expect(page.locator("#maturity-note")).toContainText("Podman is runnable Community Preview");
   await expect(page.locator("#purpose option[value=production]")).toHaveAttribute("disabled", "");
   await expect(page.locator("#auto-updates")).toBeDisabled();
   await page.locator("#manager").selectOption("ansible");

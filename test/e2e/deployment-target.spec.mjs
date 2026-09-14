@@ -65,7 +65,7 @@ test.describe("Deployment Target Controls", () => {
     await expect(page.locator("#runtime")).toHaveValue("podman");
     
     // Podman should show maturity note
-    await expect(page.locator("#maturity-note")).toContainText("runnable Community Preview");
+    await expect(page.locator("#maturity-note")).toContainText("Podman is runnable Community Preview");
     
     // Podman should allow both direct and ansible managers
     const managerOptions = await page.locator("#manager option").allTextContents();
