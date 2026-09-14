@@ -69,7 +69,12 @@ function syncUi() {
     option("direct", isKubernetes ? "Helm" : "Direct"),
     option(isKubernetes ? "argocd" : "ansible", isKubernetes ? "Argo CD" : "Ansible")
   );
-  if ([...manager.options].some((item) => item.value === previousManager)) manager.value = previousManager;
+  if ([...manager.options].some((item) => item.value === previousManager)) {
+    manager.value = previousManager;
+  } else {
+    // Set default manager value if previous value is not valid
+    manager.value = isKubernetes ? "helm" : "direct";
+  }
   document.querySelectorAll("[data-kubernetes]").forEach((item) => { item.hidden = !isKubernetes; });
   document.querySelectorAll("[data-single-host]").forEach((item) => { item.hidden = isKubernetes; });
 
