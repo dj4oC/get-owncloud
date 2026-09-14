@@ -102,8 +102,12 @@ function syncUi() {
   const office = value("officeMode") === "collabora";
   document.querySelector("#office-deployment-field").hidden = !office;
   document.querySelector("#collabora-concurrency-field").hidden = !office;
-  if (isKubernetes && office) field("officeDeployment").value = "external";
-  [...field("officeDeployment").options].find((item) => item.value === "bundled").disabled = isKubernetes;
+  const officeDeploymentField = field("officeDeployment");
+  if (isKubernetes && office && officeDeploymentField) officeDeploymentField.value = "external";
+  if (officeDeploymentField) {
+    const bundledOption = [...officeDeploymentField.options].find((item) => item.value === "bundled");
+    if (bundledOption) bundledOption.disabled = isKubernetes;
+  }
   const bundled = office && value("officeDeployment") === "bundled";
   document.querySelector("#collabora-domain-field").hidden = !bundled;
   document.querySelector("#collabora-password-field").hidden = !bundled;
