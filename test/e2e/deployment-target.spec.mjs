@@ -174,6 +174,7 @@ test.describe("Deployment Target Controls", () => {
   test("testRuntimeManagerConstraints - Manager options are constrained by runtime", async ({ page }) => {
     // Docker should offer direct and ansible
     await page.locator("#runtime").selectOption("docker");
+    await page.waitForTimeout(100);
     let managerOptions = await page.locator("#manager option").allTextContents();
     expect(managerOptions).toContain("Direct");
     expect(managerOptions).toContain("Ansible");
@@ -182,6 +183,7 @@ test.describe("Deployment Target Controls", () => {
 
     // Podman should offer direct and ansible
     await page.locator("#runtime").selectOption("podman");
+    await page.waitForTimeout(100);
     managerOptions = await page.locator("#manager option").allTextContents();
     expect(managerOptions).toContain("Direct");
     expect(managerOptions).toContain("Ansible");
@@ -190,6 +192,7 @@ test.describe("Deployment Target Controls", () => {
 
     // Kubernetes should offer helm and argocd
     await page.locator("#runtime").selectOption("kubernetes");
+    await page.waitForTimeout(100);
     managerOptions = await page.locator("#manager option").allTextContents();
     expect(managerOptions).toContain("Helm");
     expect(managerOptions).toContain("Argo CD");

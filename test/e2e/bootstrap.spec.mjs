@@ -146,6 +146,8 @@ test.describe("Bootstrap Command Picker", () => {
 
     for (const { runtime, manager } of invalidCombinations) {
       await page.locator("#runtime").selectOption(runtime);
+      // Wait for manager options to update after runtime change
+      await page.waitForTimeout(100);
       const managerOptions = await page.locator("#manager option").allTextContents();
       
       // Check that the invalid manager is not available
