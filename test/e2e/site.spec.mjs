@@ -9,6 +9,9 @@ test("one-page configurator is accessible and downloads verified bundles", async
   const consoleErrors = [];
   page.on("console", (message) => { if (message.type() === "error") consoleErrors.push(message.text()); });
   await page.goto("/");
+  // Wait for catalogs to be loaded by checking for an element that's updated after loading
+  await page.waitForSelector("#image-digest-note", { state: "visible" });
+  await page.waitForTimeout(500);
   await expect(page).toHaveTitle(/Deploy ownCloud by Kiteworks/);
   await expect(page.locator("header img")).toHaveJSProperty("complete", true);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Deploy ownCloud by Kiteworks");
