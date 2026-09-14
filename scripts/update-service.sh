@@ -52,7 +52,11 @@ while [ "$#" -gt 0 ]; do
   shift
 done
 
-case "$CANDIDATE_URL" in https://*) ;; *) die "Candidate URL must use HTTPS" ;; esac
+case "$CANDIDATE_URL" in
+  https://get.owncloud.com/*) ;;
+  https://*) die "Candidate URL must be from get.owncloud.com over HTTPS" ;;
+  *) die "Candidate URL must use HTTPS" ;;
+esac
 for tool in curl sha256sum jq; do command -v "$tool" >/dev/null 2>&1 || die "$tool is required"; done
 [ -f "$BUNDLE_DIR/.env" ] || die "Missing bundle .env"
 TEMP=$(mktemp -d)

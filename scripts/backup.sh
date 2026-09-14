@@ -85,6 +85,7 @@ timestamp=$(date -u '+%Y%m%dT%H%M%SZ')
 [ -n "$OUTPUT" ] || OUTPUT=$(dirname "$BUNDLE_DIR")/get-owncloud-backup-$timestamp.tar.gz
 case "$OUTPUT" in *.age) RAW_OUTPUT=${OUTPUT%.age} ;; *) RAW_OUTPUT=$OUTPUT ;; esac
 STAGE=$(mktemp -d)
+chmod 700 "$STAGE"
 WAS_RUNNING=false
 remove_stage() {
   if [ "$ENGINE" = podman ] && [ "$(id -u)" -ne 0 ]; then

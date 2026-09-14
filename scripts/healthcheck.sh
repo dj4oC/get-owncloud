@@ -25,6 +25,15 @@ while [ "$#" -gt 0 ]; do
 done
 
 command -v curl >/dev/null 2>&1 || { printf 'curl is required\n' >&2; exit 1; }
+
+# Validate domain to prevent argument injection
+validate_domain() {
+  case "$1" in
+    ''|*[!a-zA-Z0-9.-]*) return 1 ;;
+    *) return 0 ;;
+  esac
+}
+
 case "$URL" in
   https://*) ;;
   http://localhost:*|http://127.0.0.1:*) [ "$EVALUATION_INSECURE" = true ] || { printf 'Plain HTTP is evaluation-only\n' >&2; exit 1; } ;;
@@ -32,6 +41,9 @@ case "$URL" in
 esac
 
 case "$PORT" in ''|*[!0-9]*) [ -z "$DOMAIN" ] || { printf 'A numeric --port is required with --domain\n' >&2; exit 2; } ;; esac
+
+# Validate domain if provided
+[ -n "$DOMAIN" ] && validate_domain "$DOMAIN" || { printf 'Invalid domain: %s\n' "$DOMAIN" >&2; exit 2; }
 response=$(mktemp)
 cleanup() { rm -f "$response"; }
 trap cleanup EXIT HUP INT TERM
