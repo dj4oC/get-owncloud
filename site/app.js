@@ -73,14 +73,16 @@ function syncUi() {
     manager.value = previousManager;
   } else {
     // Set default manager value if previous value is not valid
-    manager.value = isKubernetes ? "helm" : "direct";
+    manager.value = isKubernetes ? "direct" : "direct";
   }
   document.querySelectorAll("[data-kubernetes]").forEach((item) => { item.hidden = !isKubernetes; });
   document.querySelectorAll("[data-single-host]").forEach((item) => { item.hidden = isKubernetes; });
 
   const productionOption = [...purpose.options].find((item) => item.value === "production");
-  productionOption.disabled = isKubernetes || runtime.value === "podman";
-  if (productionOption.disabled && purpose.value === "production") purpose.value = "evaluation";
+  if (productionOption) {
+    productionOption.disabled = isKubernetes || runtime.value === "podman";
+    if (productionOption.disabled && purpose.value === "production") purpose.value = "evaluation";
+  }
   document.querySelector("#maturity-note").textContent = isKubernetes
     ? "Community Preview: chart 0.7.0 and oCIS 7.1.4 stay pinned; issue #6 remains open."
     : runtime.value === "podman"
@@ -126,7 +128,7 @@ function syncUi() {
     const imageDigestNote = document.querySelector("#image-digest-note");
     const healthcheckNote = document.querySelector("#healthcheck-url-note");
     if (imageDigestNote) {
-      imageDigestNote.textContent = ` Pinned to oCIS ${sources?.ocis?.kubernetes?.imageDigest}`;
+      imageDigestNote.textContent = ` Pinned to oCIS ${sources?.ocisCharts?.appVersion || "7.1.4"}`;
       imageDigestNote.hidden = false;
     }
     if (healthcheckNote) {
@@ -137,7 +139,7 @@ function syncUi() {
     const imageDigestNote = document.querySelector("#image-digest-note");
     const healthcheckNote = document.querySelector("#healthcheck-url-note");
     if (imageDigestNote) {
-      imageDigestNote.textContent = ` Pinned to oCIS ${sources?.ocis?.docker?.imageDigest || sources?.ocis?.podman?.imageDigest || ""}`;
+      imageDigestNote.textContent = ` Pinned to oCIS ${sources?.ocisCompose?.commit?.substring(0, 12) || "8.2.0"}`;
       imageDigestNote.hidden = false;
     }
     if (healthcheckNote) {
