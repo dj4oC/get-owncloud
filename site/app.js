@@ -128,22 +128,22 @@ function syncUi() {
     const imageDigestNote = document.querySelector("#image-digest-note");
     const healthcheckNote = document.querySelector("#healthcheck-url-note");
     if (imageDigestNote) {
-      imageDigestNote.textContent = ` Pinned to oCIS ${sources?.ocisCharts?.appVersion || "7.1.4"}`;
+      imageDigestNote.textContent = `Pinned to oCIS ${sources?.ocisCharts?.appVersion || "7.1.4"}`;
       imageDigestNote.hidden = false;
     }
     if (healthcheckNote) {
-      healthcheckNote.textContent = " Relative to Traefik service at https://ocis-traefik.";
+      healthcheckNote.textContent = "Relative to Traefik service at https://ocis-traefik.";
       healthcheckNote.hidden = false;
     }
   } else {
     const imageDigestNote = document.querySelector("#image-digest-note");
     const healthcheckNote = document.querySelector("#healthcheck-url-note");
     if (imageDigestNote) {
-      imageDigestNote.textContent = ` Pinned to oCIS ${sources?.ocisCompose?.commit?.substring(0, 12) || "8.2.0"}`;
+      imageDigestNote.textContent = `Pinned to oCIS ${sources?.ocisCompose?.commit?.substring(0, 12) || "8.2.0"}`;
       imageDigestNote.hidden = false;
     }
     if (healthcheckNote) {
-      healthcheckNote.textContent = " Relative to single-host service at https://ocis.";
+      healthcheckNote.textContent = "Relative to single-host service at https://ocis.";
       healthcheckNote.hidden = false;
     }
   }
