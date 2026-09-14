@@ -327,8 +327,18 @@ function validateCurrent({ reveal } = {}) {
       const minimalTotal = Math.ceil(total);
       const recommendedTotal = Math.ceil(total * 1.3);
 
-      minimal.textContent = `Calculated minimum: ${minimalTotal} GB`;
-      recommended.textContent = `Recommended: ${recommendedTotal} GB`;
+      // Add calculated minimum and recommended to breakdown for backward compatibility
+      if (breakdownList) {
+        const minItem = document.createElement("li");
+        minItem.textContent = `Calculated minimum: ${minimalTotal} GB`;
+        breakdownList.appendChild(minItem);
+        const recItem = document.createElement("li");
+        recItem.textContent = `Recommended: ${recommendedTotal} GB`;
+        breakdownList.appendChild(recItem);
+      }
+
+      if (minimal) minimal.textContent = `Calculated minimum: ${minimalTotal} GB`;
+      if (recommended) recommended.textContent = `Recommended: ${recommendedTotal} GB`;
     }
   }
 
