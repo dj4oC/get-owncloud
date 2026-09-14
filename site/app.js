@@ -483,17 +483,22 @@ document.querySelector("#copy-command").addEventListener("click", async () => {
 
 // Load catalogs asynchronously and initialize UI
 async function loadCatalogs() {
-  [sizingRules, policies, compatibility, legal, sources] = await Promise.all([
-    fetchJson("sizing"),
-    fetchJson("policies"),
-    fetchJson("compatibility"),
-    fetchJson("legal"),
-    fetchJson("sources.lock")
-  ]);
-  
-  // Initialize UI after catalogs are loaded
-  syncUi();
-  validateCurrent();
+  try {
+    [sizingRules, policies, compatibility, legal, sources] = await Promise.all([
+      fetchJson("sizing"),
+      fetchJson("policies"),
+      fetchJson("compatibility"),
+      fetchJson("legal"),
+      fetchJson("sources.lock")
+    ]);
+  } catch (e) {
+    console.error("Error loading catalogs:", e);
+    // Initialize UI with default/empty values
+  } finally {
+    // Always initialize UI after attempting to load catalogs
+    syncUi();
+    validateCurrent();
+  }
 }
 
 // Load catalogs and initialize UI
