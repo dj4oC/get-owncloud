@@ -39,7 +39,7 @@ test.describe("Bootstrap Command Picker", () => {
     
     // Podman should allow direct and ansible managers
     const managerOptions = await page.locator("#manager option").allTextContents();
-    expect(managerOptions).toContain("Direct Compose");
+    expect(managerOptions).toContain("Direct");
     expect(managerOptions).toContain("Ansible");
     
     // Should not show Kubernetes-specific managers
@@ -63,7 +63,7 @@ test.describe("Bootstrap Command Picker", () => {
     expect(managerOptions).toContain("Argo CD");
     
     // Should not show Docker/Podman managers
-    expect(managerOptions).not.toContain("Direct Compose");
+    expect(managerOptions).not.toContain("Direct");
     expect(managerOptions).not.toContain("Ansible");
     
     // Production should be disabled for Kubernetes
@@ -147,7 +147,7 @@ test.describe("Bootstrap Command Picker", () => {
       
       // Check that the invalid manager is not available
       const managerDisplayNames = {
-        "direct": "Direct Compose",
+        "direct": "Direct",
         "ansible": "Ansible", 
         "helm": "Helm",
         "argocd": "Argo CD"
