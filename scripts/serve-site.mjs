@@ -22,7 +22,7 @@ createServer(async (request, response) => {
       "Cache-Control": "no-store",
       "X-Content-Type-Options": "nosniff",
       "Referrer-Policy": "strict-origin-when-cross-origin",
-      "Content-Security-Policy": "default-src 'self'; script-src 'self' 'sha256-IQZAzsaFYMMie9R369mqIVVyx9QQURrNhDcAQi0HMPI=' 'sha256-RN/i2gDL9Qj5aOpGY3+Ymb0ZhbmK0cnc1aitI2yW4O8=' 'sha256-rdtYuO9aAYb5YyXmiuhYonrJcouPjg/oKF9dXC3tFm0='; style-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
+      "Content-Security-Policy": "default-src 'self'; script-src 'self' 'sha256-IQZAzsaFYMMie9R369mqIVVyx9QQURrNhDcAQi0HMPI=' 'sha256-RN/i2gDL9Qj5aOpGY3+Ymb0ZhbmK0cnc1aitI2yW4O8=' 'sha256-N+4EWdgyjQDNXu+o6uoC/Q5y8hHNfP7yZKYbWd96C54='; style-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
     });
     response.end(data);
   } catch {
