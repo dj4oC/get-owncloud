@@ -9,6 +9,9 @@ import AxeBuilder from "@axe-core/playwright";
 test.describe("High-Risk Journeys", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
+    // Wait for catalogs to be loaded by checking for an element that's updated after loading
+    await page.waitForSelector("#image-digest-note", { state: "visible" });
+    await page.waitForTimeout(500);
   });
 
   // Docker production with all features
@@ -45,7 +48,7 @@ test.describe("High-Risk Journeys", () => {
     await page.locator("#search").check();
     await page.locator("#clamav").check();
     await page.locator("#notifications").check();
-    await page.locator("#autoUpdates").check();
+    await page.locator("#auto-updates").check();
     await page.locator('[name="updateDelay"]').fill("24");
     await page.locator('[name="backupRecipient"]').fill("admin@corp.example");
     
@@ -243,7 +246,7 @@ test.describe("High-Risk Journeys", () => {
     await page.locator("#search").check();
     await page.locator("#clamav").check();
     await page.locator("#notifications").check();
-    await page.locator("#autoUpdates").check();
+    await page.locator("#auto-updates").check();
     await page.locator('[name="updateDelay"]').fill("24");
     await page.locator('[name="backupRecipient"]').fill("admin@example.com");
     

@@ -30,6 +30,9 @@ features: new Set([
     "aiQuickDraftCreator", "aiSensitiveDataScanner", "aiSmartCollectionsNav", "aiSmartFileTaggerQa",
     "chatWithFile", "versionChangelog", "fileComments", "groupManagement", "ocisAppTokens", "vimNav"
   ]),
+  clamav: new Set(["enabled", "imageDigest", "storageClassName", "sizeGiB", "cpu", "memoryMiB"]),
+  tika: new Set(["mode", "imageDigest", "storageClassName", "sizeGiB", "cpu", "memoryMiB"]),
+  externalSites: new Set(["id", "name", "url"]),
   aiProxy: new Set([
     "enabled", "endpoint", "apiKeySecretRef", "defaultTextModel", "visionModel", "forcedModel",
     "requestTimeout", "tls", "outboundProxy", "networkPolicy", "maxInputSize", "maxOutputSize", "maxConcurrency"

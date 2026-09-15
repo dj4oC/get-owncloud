@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 set -eu
 
 SCRIPT_VERSION="0.2.0"
@@ -42,20 +42,11 @@ die() { printf '%s\n' "ERROR: $*" >&2; exit 1; }
 note() { printf '%s\n' "$*"; }
 has() { command -v "$1" >/dev/null 2>&1; }
 env_get() {
-  local key=$1
-  local value
-  
-  # Use grep to find the line safely, then extract value
+  local key=$1 value
   value=$(grep -m1 "^${key}=" "$BUNDLE_DIR/.env" 2>/dev/null | cut -d= -f2- || echo "")
-  
-  # Remove surrounding quotes safely using parameter expansion
-  # Remove single quotes
-  value="${value#\'}"
-  value="${value%\'}"
-  # Remove double quotes
-  value="${value#\"}"
-  value="${value%\"}"
-  
+  # Remove surrounding quotes
+  value="${value#\'}""${value%\'}"
+  value="${value#\"}""${value%\"}"
   printf '%s' "$value"
 }
 while [ "$#" -gt 0 ]; do
@@ -81,6 +72,7 @@ while [ "$#" -gt 0 ]; do
 done
 [ -d "$BUNDLE_DIR" ] || die "Bundle directory does not exist: $BUNDLE_DIR"
 BUNDLE_DIR=$(cd "$BUNDLE_DIR" && pwd -P)
+case "$BUNDLE_DIR" in *[!A-Za-z0-9_./-]*) die "Unsafe BUNDLE_DIR path: $BUNDLE_DIR" ;; esac
 if [ -f "$BUNDLE_DIR/.env" ]; then
   bundled_runtime=$(env_get GET_OWNCLOUD_RUNTIME)
   case "$bundled_runtime" in docker|podman) ENGINE=$bundled_runtime; TARGET=single-host ;; esac
@@ -94,7 +86,6 @@ case "$ENGINE" in auto|docker|podman) ;; *) die "Unsupported engine: $ENGINE" ;;
 case "$K8S_DISTRIBUTION" in existing|k3s) ;; *) die "Unsupported Kubernetes distribution" ;; esac
 [ "$MANAGER" != "argocd" ] || [ "$TARGET" = "kubernetes" ] || die "Argo CD requires Kubernetes"
 [ "$MANAGER" != "ansible" ] || [ "$TARGET" = "single-host" ] || die "Ansible wraps the single-host family"
-
 TTY=""
 if [ -r /dev/tty ] && [ -w /dev/tty ]; then TTY=/dev/tty; fi
 if [ "$NON_INTERACTIVE" = false ] && [ -z "$TTY" ] && [ "$DRY_RUN" = false ]; then
@@ -114,14 +105,12 @@ for candidate in apt-get dnf zypper; do
   if has "$candidate"; then PKG_MANAGER=$candidate; break; fi
 done
 if [ "$PKG_MANAGER" = none ] && has microdnf; then PKG_MANAGER=dnf; DNF_COMMAND=microdnf; fi
-
 run_privileged() {
   if [ "$(id -u)" -eq 0 ]; then "$@"; return; fi
   [ "$ALLOW_SUDO" = true ] || die "Privileged command requires explicit --allow-sudo: $*"
   has sudo || die "sudo is unavailable: $*"
   sudo "$@"
 }
-
 confirm() {
   prompt=$1
   if [ "$NON_INTERACTIVE" = true ]; then return 0; fi
@@ -129,7 +118,6 @@ confirm() {
   IFS= read -r answer <"$TTY" || return 1
   case "$answer" in y|Y|yes|YES) return 0 ;; *) return 1 ;; esac
 }
-
 required_tools() {
   if [ "$TARGET" = single-host ]; then
     if [ "$ENGINE" = auto ]; then
@@ -183,7 +171,7 @@ install_packages() {
   packages=$1
   # shellcheck disable=SC2086
   case "$PKG_MANAGER" in
-    apt-get) run_privileged apt-get update; run_privileged apt-get install -y $packages ;;
+    apt-get) run_privileged apt-get update && run_privileged apt-get install -y $packages ;;
     dnf) run_privileged "$DNF_COMMAND" install -y $packages ;;
     zypper) run_privileged zypper --non-interactive install $packages ;;
     *) die "No supported package manager" ;;
@@ -229,7 +217,7 @@ install_downloaded_tool() {
       archive=true ;;
     *) die "Unknown downloaded tool: $tool" ;;
   esac
-  note "INSTALL PLAN: tool=$tool version=$version source=$url verification=$checksum_url destination=/usr/local/bin/$tool"
+  note "INSTALL: $tool $version from $url"
   [ "$DRY_RUN" = false ] || return 0
   [ "$INSTALL_MISSING" = true ] || die "$tool is missing. Approve with --install-missing."
   confirm "Download and install pinned $tool $version?" || die "Installation declined"
@@ -261,9 +249,7 @@ install_tool() {
   tool=$1
   case "$tool" in kubectl|helm|argocd|age) install_downloaded_tool "$tool"; return ;; esac
   packages=$(package_names "$tool") || die "No approved $tool adapter for $OS_ID $OS_VERSION ($ARCH)"
-  source_kind=distribution
-  [ "$tool" != docker ] || [ "$PKG_MANAGER" = zypper ] || source_kind=official-docker-repository
-  note "INSTALL PLAN: source=$source_kind package-manager=$PKG_MANAGER packages=$packages privilege=root verification=$tool"
+  note "INSTALL: $packages via $PKG_MANAGER"
   [ "$DRY_RUN" = false ] || return 0
   [ "$INSTALL_MISSING" = true ] || die "$tool is missing. Approve with --install-missing."
   confirm "Install $tool using $PKG_MANAGER packages: $packages?" || die "Installation declined"
@@ -306,7 +292,7 @@ MISSING=""
 for tool in $(required_tools); do
   if tool_present "$tool"; then note "READY: $tool"; else MISSING="$MISSING $tool"; install_tool "$tool"; fi
 done
-if [ "$MANAGER" = argocd ]; then argocd_controller=cli-missing; if tool_present argocd; then argocd_controller=unreachable; argocd version >/dev/null 2>&1 && argocd_controller=reachable; fi; note "Argo CD controller status: $argocd_controller (v1 installs the CLI only and never mutates a controller)"; fi
+if [ "$MANAGER" = argocd ]; then argocd_controller=cli-missing; tool_present argocd && { argocd_controller=unreachable; argocd version >/dev/null 2>&1 && argocd_controller=reachable; }; note "Argo CD: $argocd_controller"; fi
 
 if [ "$TARGET" = kubernetes ] && [ "$K8S_DISTRIBUTION" = k3s ]; then
   note "K3s is evaluation-only; production requires an existing approved cluster."
@@ -329,7 +315,7 @@ bundle_path() {
 }
 
 [ -z "$NFS_PATH" ] || check_nfs42 "$NFS_PATH"
-note "Part 1 summary: os=$OS_ID version=$OS_VERSION arch=$ARCH target=$TARGET manager=$MANAGER missing=${MISSING:-none} auto-security-updates=$AUTO_SECURITY_UPDATES"
+note "Summary: $OS_ID $OS_VERSION target=$TARGET manager=$MANAGER missing=${MISSING:-none}"
 
 if [ "$DRY_RUN" = true ]; then
   note "DRY RUN: no package, EULA audit, firewall, DNS, service or cluster change was made."

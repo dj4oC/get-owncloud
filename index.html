@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-IQZAzsaFYMMie9R369mqIVVyx9QQURrNhDcAQi0HMPI='; style-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-IQZAzsaFYMMie9R369mqIVVyx9QQURrNhDcAQi0HMPI=' 'sha256-PrpMR89yjQOkrQItRjNGLso2tIgqmyYCxmPTouIfkZU='; style-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
     <meta name="referrer" content="strict-origin-when-cross-origin">
     <title>Deploy ownCloud by Kiteworks | Infinite Scale installer</title>
     <meta name="description" content="Size, configure, validate and download ownCloud Infinite Scale deployments for Docker, Podman, Kubernetes, Ansible and Argo CD from one policy-checked profile.">
@@ -67,7 +67,6 @@
         ]
       }
     </script>
-    <script type="module" src="site/app.js"></script>
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to configuration</a>
@@ -167,7 +166,9 @@
                 </select>
               </label>
             </div>
-            <p class="field-help" id="maturity-note">Docker evaluation uses the production-capable renderer without making a production capacity claim.</p>
+            <p class="field-help" id="maturity-note">Docker is the production-gated single-host path; production still depends on launch gates and load testing.</p>
+            <p class="field-help" id="image-digest-note">Loading...</p>
+            <p class="field-help" id="healthcheck-url-note">Loading...</p>
           </fieldset>
 
           <fieldset>
@@ -235,8 +236,8 @@
                   <option value="nfs">NFSv4.2</option>
                 </select>
               </label>
-              <label data-single-host>Data path<input name="dataPath" value="./data/data" required></label>
-              <label data-single-host>Configuration path<input name="configPath" value="./data/config" required></label>
+              <label data-single-host>Data path<input name="dataPath" id="dataPath" value="./data/data"></label>
+              <label data-single-host>Configuration path<input name="configPath" id="configPath" value="./data/config"></label>
               <label id="storage-class-field" hidden>Kubernetes StorageClass<input name="storageClassName" placeholder="nfs-4-2"></label>
             </div>
             <p class="field-help">Direct filesystem access beyond the standard drivers, extended-attribute modes, GPFS-specific modes, and experimental features are not emitted at any layer. NFS selection is blocked unless the effective mount reports version 4.2.</p>
@@ -281,28 +282,30 @@
             <legend>Networking and TLS</legend>
             <div class="form-grid">
               <label>ownCloud domain<input name="domain" id="domain" value="ocis.owncloud.test" required></label>
-              <label data-single-host>HTTP port<input name="httpPort" type="number" min="1" max="65535" value="8080"></label>
-              <label data-single-host>HTTPS port<input name="httpsPort" type="number" min="1" max="65535" value="8443"></label>
+              <label data-single-host>HTTP port<input name="httpPort" id="httpPort" type="number" min="1" max="65535" value="8080"></label>
+              <label data-single-host>HTTPS port<input name="httpsPort" id="httpsPort" type="number" min="1" max="65535" value="8443"></label>
               <label>TLS mode
                 <select name="tlsMode" id="tls-mode">
                   <option value="evaluation-self-signed">Evaluation self-signed</option>
                   <option value="acme">Trusted ACME</option>
                 </select>
               </label>
-              <label id="acme-email-field" hidden>ACME contact email<input name="acmeEmail" type="email" placeholder="hostmaster@example.net"></label>
-              <label data-kubernetes hidden>Ingress class<input name="ingressClassName" value="nginx"></label>
-              <label data-kubernetes hidden>Pre-created TLS Secret<input name="tlsSecretName" value="owncloud-tls"></label>
+              <div id="tls-fields" hidden>
+                <label id="acme-email-field">ACME contact email<input name="acmeEmail" type="email" placeholder="hostmaster@example.net"></label>
+                <label data-kubernetes hidden>Ingress class<input name="ingressClassName" value="nginx"></label>
+                <label data-kubernetes hidden>Pre-created TLS Secret<input name="tlsSecretName" value="owncloud-tls"></label>
+              </div>
             </div>
           </fieldset>
 
           <fieldset>
             <legend>Services and updates</legend>
             <div class="checks">
-              <label><input name="search" type="checkbox" checked> Search and content extraction</label>
+              <label><input name="search" id="search" type="checkbox" checked> Search and content extraction</label>
               <label><input name="clamav" id="clamav" type="checkbox"> ClamAV malware scanning</label>
               <label><input name="notifications" id="notifications" type="checkbox"> Email notifications</label>
               <label><input name="monitoring" id="monitoring" type="checkbox"> Monitoring and metrics</label>
-              <label><input name="autoUpdates" id="auto-updates" type="checkbox"> Automatic eligible same-minor security patches</label>
+              <label id="auto-updates-field"><input name="autoUpdates" id="auto-updates" type="checkbox"> Automatic eligible same-minor security patches</label>
             </div>
             <label id="backup-recipient-field">Backup encryption recipient
               <input name="backupRecipient" placeholder="age1… or ssh-ed25519 …">
@@ -328,11 +331,17 @@
           <div class="actions">
             <button type="submit">Validate and calculate</button>
             <button type="button" class="secondary" id="download-profile">Download profile JSON</button>
+            <button type="button" class="secondary" id="load-profile" hidden>Load profile JSON</button>
+            <input type="file" id="load-profile-input" accept=".json" hidden>
           </div>
         </form>
 
         <section class="result" aria-labelledby="sizing-title">
           <h3 id="sizing-title">System recommendation</h3>
+          <p id="sizing-progress" hidden></p>
+          <p id="sizing-calculation" hidden></p>
+          <p id="sizing-minimal" hidden></p>
+          <p id="sizing-recommended" hidden></p>
           <output id="sizing-output" aria-live="polite">Complete the form to calculate minimum and recommended resources.</output>
           <div id="sizing-breakdown"></div>
         </section>
@@ -379,5 +388,6 @@
       <p><strong>Deploy ownCloud by Kiteworks</strong> · source-locked deployment tooling for ownCloud Infinite Scale.</p>
       <p><a href="site/docs.md">Markdown documentation</a> · <a href="llms.txt">LLM index</a> · <a href="docs/LAUNCH_GATES.md">Production launch gates</a> · <a href="SECURITY.md">Security policy</a> · <a href="THIRD_PARTY_NOTICES.md">Third-party notices</a></p>
     </footer>
+  <script type="module" src="site/app.js"></script>
   </body>
 </html>

@@ -15,6 +15,9 @@ const COVERAGE_CATALOGUE_PATH = join(__dirname, "coverage-catalogue.json");
 test.describe("Completeness Guard", () => {
   test("testCompletenessGuard - Coverage catalogue is complete and matches UI controls", async ({ page }) => {
     await page.goto("/");
+    // Wait for catalogs to be loaded by checking for an element that's updated after loading
+    await page.waitForSelector("#image-digest-note", { state: "visible" });
+    await page.waitForTimeout(500);
     
     // Load the coverage catalogue
     const catalogueContent = readFileSync(COVERAGE_CATALOGUE_PATH, "utf8");
@@ -179,6 +182,9 @@ test.describe("Completeness Guard", () => {
 
   test("testAllCataloguedControlsExistInUI - All controls defined in catalogue exist in the UI", async ({ page }) => {
     await page.goto("/");
+    // Wait for catalogs to be loaded by checking for an element that's updated after loading
+    await page.waitForSelector("#image-digest-note", { state: "visible" });
+    await page.waitForTimeout(500);
     
     // Load the coverage catalogue
     const catalogueContent = readFileSync(COVERAGE_CATALOGUE_PATH, "utf8");

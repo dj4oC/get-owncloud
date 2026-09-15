@@ -9,6 +9,9 @@ import AxeBuilder from "@axe-core/playwright";
 test.describe("Services Controls", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
+    // Wait for catalogs to be loaded by checking for an element that's updated after loading
+    await page.waitForSelector("#image-digest-note", { state: "visible" });
+    await page.waitForTimeout(500);
   });
 
   // Search feature tests

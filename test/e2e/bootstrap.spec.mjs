@@ -9,6 +9,9 @@ import AxeBuilder from "@axe-core/playwright";
 test.describe("Bootstrap Command Picker", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
+    // Wait for catalogs to be loaded by checking for an element that's updated after loading
+    await page.waitForSelector("#image-digest-note", { state: "visible" });
+    await page.waitForTimeout(500);
   });
 
   // Direct coverage tests for each runtime option
@@ -35,11 +38,11 @@ test.describe("Bootstrap Command Picker", () => {
     await expect(page.locator("#runtime")).toHaveValue("podman");
     
     // Podman should show maturity note
-    await expect(page.locator("#maturity-note")).toContainText("runnable Community Preview");
+    await expect(page.locator("#maturity-note")).toContainText("Podman is runnable Community Preview");
     
     // Podman should allow direct and ansible managers
     const managerOptions = await page.locator("#manager option").allTextContents();
-    expect(managerOptions).toContain("Direct Compose");
+    expect(managerOptions).toContain("Direct");
     expect(managerOptions).toContain("Ansible");
     
     // Should not show Kubernetes-specific managers
@@ -63,7 +66,7 @@ test.describe("Bootstrap Command Picker", () => {
     expect(managerOptions).toContain("Argo CD");
     
     // Should not show Docker/Podman managers
-    expect(managerOptions).not.toContain("Direct Compose");
+    expect(managerOptions).not.toContain("Direct");
     expect(managerOptions).not.toContain("Ansible");
     
     // Production should be disabled for Kubernetes
@@ -143,11 +146,13 @@ test.describe("Bootstrap Command Picker", () => {
 
     for (const { runtime, manager } of invalidCombinations) {
       await page.locator("#runtime").selectOption(runtime);
+      // Wait for manager options to update after runtime change
+      await page.waitForTimeout(100);
       const managerOptions = await page.locator("#manager option").allTextContents();
       
       // Check that the invalid manager is not available
       const managerDisplayNames = {
-        "direct": "Direct Compose",
+        "direct": "Direct",
         "ansible": "Ansible", 
         "helm": "Helm",
         "argocd": "Argo CD"

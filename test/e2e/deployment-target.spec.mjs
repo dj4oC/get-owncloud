@@ -9,6 +9,9 @@ import AxeBuilder from "@axe-core/playwright";
 test.describe("Deployment Target Controls", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
+    // Wait for catalogs to be loaded by checking for an element that's updated after loading
+    await page.waitForSelector("#image-digest-note", { state: "visible" });
+    await page.waitForTimeout(500);
   });
 
   // Purpose tests
@@ -65,7 +68,7 @@ test.describe("Deployment Target Controls", () => {
     await expect(page.locator("#runtime")).toHaveValue("podman");
     
     // Podman should show maturity note
-    await expect(page.locator("#maturity-note")).toContainText("runnable Community Preview");
+    await expect(page.locator("#maturity-note")).toContainText("Podman is runnable Community Preview");
     
     // Podman should allow both direct and ansible managers
     const managerOptions = await page.locator("#manager option").allTextContents();
@@ -171,6 +174,7 @@ test.describe("Deployment Target Controls", () => {
   test("testRuntimeManagerConstraints - Manager options are constrained by runtime", async ({ page }) => {
     // Docker should offer direct and ansible
     await page.locator("#runtime").selectOption("docker");
+    await page.waitForTimeout(100);
     let managerOptions = await page.locator("#manager option").allTextContents();
     expect(managerOptions).toContain("Direct");
     expect(managerOptions).toContain("Ansible");
@@ -179,6 +183,7 @@ test.describe("Deployment Target Controls", () => {
 
     // Podman should offer direct and ansible
     await page.locator("#runtime").selectOption("podman");
+    await page.waitForTimeout(100);
     managerOptions = await page.locator("#manager option").allTextContents();
     expect(managerOptions).toContain("Direct");
     expect(managerOptions).toContain("Ansible");
@@ -187,6 +192,7 @@ test.describe("Deployment Target Controls", () => {
 
     // Kubernetes should offer helm and argocd
     await page.locator("#runtime").selectOption("kubernetes");
+    await page.waitForTimeout(100);
     managerOptions = await page.locator("#manager option").allTextContents();
     expect(managerOptions).toContain("Helm");
     expect(managerOptions).toContain("Argo CD");
