@@ -11,6 +11,7 @@ import { createZip } from "./zip.mjs";
 let sizingRules, policies, compatibility, legal, sources;
 let autoUpdatesTouched = false;
 let validationTimer;
+let catalogsLoaded = false;
 
 // DOM element references
 const form = document.querySelector("#deployment-form");
@@ -590,6 +591,8 @@ async function loadCatalogs() {
     console.error("Error loading catalogs:", e);
     // Initialize UI with default/empty values
   } finally {
+    // Mark catalogs as loaded (even if some failed)
+    catalogsLoaded = true;
     // Always initialize UI after attempting to load catalogs
     syncUi();
     validateCurrent();
