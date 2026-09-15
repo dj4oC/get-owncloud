@@ -41,6 +41,18 @@ if (runtime) {
     subtree: true,
     attributes: true
   });
+  
+  // Additional fallback: poll for value changes
+  // This catches cases where events don't fire properly
+  let lastRuntimeValue = runtime.value;
+  setInterval(() => {
+    const currentValue = runtime.value;
+    if (currentValue !== lastRuntimeValue) {
+      lastRuntimeValue = currentValue;
+      syncUi();
+      validateCurrent();
+    }
+  }, 100);
 }
 
 // Utility functions
@@ -503,16 +515,16 @@ async function loadProfile(event) {
 }
 
 // Set up event listeners BEFORE loading catalogs
-runtime.addEventListener("change", () => {
-  console.log("Change event fired on runtime, value:", runtime.value);
-  syncUi();
-  validateCurrent();
-});
-runtime.addEventListener("input", () => {
-  console.log("Input event fired on runtime, value:", runtime.value);
-  syncUi();
-  validateCurrent();
-});
+if (runtime) {
+  runtime.addEventListener("change", () => {
+    syncUi();
+    validateCurrent();
+  });
+  runtime.addEventListener("input", () => {
+    syncUi();
+    validateCurrent();
+  });
+}
 autoUpdates.addEventListener("change", () => { autoUpdatesTouched = true; });
 usersInput.addEventListener("input", () => {
   const users = Number(usersInput.value);
