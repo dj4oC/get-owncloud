@@ -248,7 +248,8 @@ export function buildHelmValues(profile, sizing) {
     );
   }
   values.push("    persistence:", "      enabled: true", "      accessModes:", "        - ReadWriteOnce");
-  values.push(`      size: ${q(String(Math.max(10, Math.ceil(sizing.recommended.diskGiB))) + "Gi"}`);
+  const sizeGiB = String(Math.max(10, Math.ceil(sizing.recommended.diskGiB)));
+  values.push(`      size: ${q(sizeGiB + "Gi")}`);
   if (profile.storage.storageClassName) values.push(`      storageClassName: ${q(profile.storage.storageClassName)}`);
   for (const name of ["nats", "search", "storagesystem", "thumbnails", "web", "ocm"]) {
     values.push(...persistence(name, 1, profile.storage.storageClassName));

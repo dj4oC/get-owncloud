@@ -29,6 +29,21 @@ const autoUpdates = document.querySelector("#auto-updates");
 const commandTarget = document.querySelector("#command-target");
 const bootstrapCommand = document.querySelector("#bootstrap-command");
 
+// Use MutationObserver as fallback for change detection
+// This ensures syncUi() is called even if change event doesn't fire in some environments
+if (runtime) {
+  const observer = new MutationObserver(() => {
+    syncUi();
+    validateCurrent();
+  });
+  observer.observe(runtime, { 
+    childList: true,
+    subtree: true,
+    attributes: true,
+    attributeFilter: ["selected"] 
+  });
+}
+
 // Utility functions
 const catalogUrl = (name) => new URL(`../catalog/${name}.json`, import.meta.url);
 
