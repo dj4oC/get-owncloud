@@ -33,14 +33,33 @@ const bootstrapCommand = document.querySelector("#bootstrap-command");
 // This ensures syncUi() is called even if change event doesn't fire in some environments
 if (runtime) {
   const observer = new MutationObserver(() => {
-    syncUi();
-    validateCurrent();
+    try {
+      syncUi();
+      validateCurrent();
+    } catch (e) {
+      console.error("Error in runtime MutationObserver:", e);
+    }
   });
   observer.observe(runtime, { 
     childList: true,
-    subtree: true,
-    attributes: true,
-    attributeFilter: ["selected"] 
+    subtree: true 
+  });
+  
+  // Also observe all option elements for selected attribute changes
+  const options = runtime.querySelectorAll("option");
+  options.forEach(option => {
+    const optionObserver = new MutationObserver(() => {
+      try {
+        syncUi();
+        validateCurrent();
+      } catch (e) {
+        console.error("Error in option MutationObserver:", e);
+      }
+    });
+    optionObserver.observe(option, {
+      attributes: true,
+      attributeFilter: ["selected"]
+    });
   });
 }
 
@@ -504,7 +523,15 @@ async function loadProfile(event) {
 }
 
 // Set up event listeners BEFORE loading catalogs
-runtime.addEventListener("change", () => { syncUi(); validateCurrent(); });
+runtime.addEventListener("change", () => {
+  try {
+    syncUi();
+    validateCurrent();
+  } catch (e) {
+    console.error("Error in change handler:", e);
+    throw e;
+  }
+});
 autoUpdates.addEventListener("change", () => { autoUpdatesTouched = true; });
 usersInput.addEventListener("input", () => {
   const users = Number(usersInput.value);
