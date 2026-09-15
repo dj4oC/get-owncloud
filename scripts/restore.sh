@@ -67,10 +67,10 @@ esac
 # Validate tar contents before extraction (prevent TOCTOU)
 # List all entries and validate paths and symlink targets
 tar -tvf "$RAW" | while IFS= read -r line; do
-  # Extract the path (last field) and check if it's a symlink
+  # Extract the path (last field)
   path=$(echo "$line" | awk '{print $NF}')
   
-  # Check for unsafe path patterns
+  # Check for unsafe path patterns in all entries
   case "$path" in /*|../*|*/../*|*/..) die "Unsafe path in backup: $path" ;; esac
   
   # If this is a symlink entry (contains ->), validate the target
@@ -82,7 +82,9 @@ tar -tvf "$RAW" | while IFS= read -r line; do
   fi
 done
 
+# Extract after validation - symlinks will be validated below
 tar -C "$STAGE" -xzf "$RAW"
+# Validate all symlinks in extracted content before use (defense in depth)
 find "$STAGE" -type l -print | while IFS= read -r link; do
   case "$link" in
     "$STAGE/bundle"/*) allowed_root=$STAGE/bundle ;;
