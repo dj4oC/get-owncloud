@@ -120,8 +120,26 @@ function syncUi() {
     tlsFields.hidden = !isProduction || value("tlsMode") !== "acme";
   }
   const autoUpdatesField = document.querySelector("#auto-updates-field");
+  const autoUpdatesInput = document.querySelector("#auto-updates");
   if (autoUpdatesField) {
     autoUpdatesField.hidden = purpose.value === "production" || runtime.value === "kubernetes";
+  }
+  if (autoUpdatesInput) {
+    autoUpdatesInput.disabled = purpose.value === "production" || runtime.value === "kubernetes" || runtime.value === "podman";
+  }
+  
+  // For production, only ACME TLS mode is allowed
+  const tlsModeSelect = document.querySelector("#tls-mode");
+  if (tlsModeSelect && isProduction) {
+    const options = [...tlsModeSelect.options];
+    const evalOption = options.find(opt => opt.value === "evaluation-self-signed");
+    if (evalOption) {
+      evalOption.disabled = true;
+    }
+    // Force ACME if Evaluation Self-signed was selected
+    if (tlsModeSelect.value === "evaluation-self-signed") {
+      tlsModeSelect.value = "acme";
+    }
   }
 
   if (isKubernetes) {
