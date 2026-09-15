@@ -66,14 +66,14 @@ function syncUi() {
   const isProduction = purpose.value === "production";
   const previousManager = manager.value;
   manager.replaceChildren(
-    option("direct", isKubernetes ? "Helm" : "Direct"),
+    option(isKubernetes ? "helm" : "direct", isKubernetes ? "Helm" : "Direct"),
     option(isKubernetes ? "argocd" : "ansible", isKubernetes ? "Argo CD" : "Ansible")
   );
   if ([...manager.options].some((item) => item.value === previousManager)) {
     manager.value = previousManager;
   } else {
     // Set default manager value if previous value is not valid
-    manager.value = isKubernetes ? "direct" : "direct";
+    manager.value = isKubernetes ? "helm" : "direct";
   }
   document.querySelectorAll("[data-kubernetes]").forEach((item) => { item.hidden = !isKubernetes; });
   document.querySelectorAll("[data-single-host]").forEach((item) => { item.hidden = isKubernetes; });
@@ -531,7 +531,7 @@ document.querySelector("#load-profile-input").addEventListener("change", loadPro
 const commands = {
   docker: "sh scripts/install.sh --dry-run --target single-host --engine docker",
   podman: "sh scripts/install.sh --dry-run --target single-host --engine podman",
-  kubernetes: "sh scripts/install.sh --dry-run --target kubernetes --manager direct",
+  kubernetes: "sh scripts/install.sh --dry-run --target kubernetes --manager helm",
   ansible: "sh scripts/install.sh --dry-run --target single-host --engine docker --manager ansible",
   argocd: "sh scripts/install.sh --dry-run --target kubernetes --manager argocd"
 };
