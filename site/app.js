@@ -551,6 +551,11 @@ if (runtime) {
     validateCurrent();
   });
 }
+
+// Initialize UI with default values immediately (synchronously)
+// This ensures the UI is in a valid state before async catalog loading starts
+syncUi();
+validateCurrent();
 autoUpdates.addEventListener("change", () => { autoUpdatesTouched = true; });
 usersInput.addEventListener("input", () => {
   const users = Number(usersInput.value);
@@ -618,7 +623,7 @@ async function loadCatalogs() {
   } finally {
     // Mark catalogs as loaded (even if some failed)
     catalogsLoaded = true;
-    // Always initialize UI after attempting to load catalogs
+    // Update UI with loaded catalog data
     syncUi();
     validateCurrent();
     // Mark initialization as complete for tests to wait on
