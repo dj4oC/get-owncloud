@@ -82,9 +82,17 @@ if (runtime) {
 const catalogUrl = (name) => new URL(`../catalog/${name}.json`, import.meta.url);
 
 async function fetchJson(name) {
-  const response = await fetch(catalogUrl(name));
-  if (!response.ok) throw new Error(`Unable to load ${name} policy catalogue`);
-  return response.json();
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+  try {
+    const response = await fetch(catalogUrl(name), { signal: controller.signal });
+    clearTimeout(timeoutId);
+    if (!response.ok) throw new Error(`Unable to load ${name} policy catalogue`);
+    return response.json();
+  } catch (e) {
+    clearTimeout(timeoutId);
+    throw e;
+  }
 }
 
 const field = (name) => form.elements.namedItem(name);
@@ -360,7 +368,7 @@ function validateCurrent({ reveal } = {}) {
   }
   result.profile = profile;
 
-  if (reveal.report) {
+  if (reveal) {
     if (result.errors?.length > 0) {
       errorsBox.textContent = result.errors.join("\n");
       errorsBox.hidden = false;
