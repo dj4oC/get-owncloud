@@ -96,7 +96,9 @@ function syncUi() {
     option(isKubernetes ? "helm" : "direct", isKubernetes ? "Helm" : "Direct"),
     option(isKubernetes ? "argocd" : "ansible", isKubernetes ? "Argo CD" : "Ansible")
   );
-  if ([...manager.options].some((item) => item.value === previousManager)) {
+  // Restore previous manager if still valid, otherwise set default
+  const currentOptions = [...manager.options].map(opt => opt.value);
+  if (previousManager && currentOptions.includes(previousManager)) {
     manager.value = previousManager;
   } else {
     // Set default manager value if previous value is not valid
