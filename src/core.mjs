@@ -979,7 +979,7 @@ export function calculateSizingWithRules(profile, rules) {
     contributions,
     vocabulary: rules.vocabulary,
     productionLoadTestRequired: true,
-    disclaimer: "Recommended includes transparent planning headroom but is not a capacity guarantee. Production requires representative load testing."
+    disclaimer: "Recommended with headroom but is not a capacity guarantee. Production requires representative load testing."
   };
 }
 
