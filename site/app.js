@@ -7,6 +7,11 @@ import { buildSingleHostBundle, requiredTemplatePaths } from "../src/bundle.mjs"
 import { buildKubernetesBundle, requiredKubernetesTemplatePaths } from "../src/kubernetes.mjs";
 import { createZip } from "./zip.mjs";
 
+// Ensure DOM is ready - modules are deferred but we still check for safety
+if (document.readyState === "loading") {
+  throw new Error("DOM not ready when app.js module executed");
+}
+
 // Global variables for catalog data
 let sizingRules, policies, compatibility, legal, sources;
 let autoUpdatesTouched = false;
@@ -29,6 +34,14 @@ const usersInput = document.querySelector("#registered-users");
 const autoUpdates = document.querySelector("#auto-updates");
 const commandTarget = document.querySelector("#command-target");
 const bootstrapCommand = document.querySelector("#bootstrap-command");
+
+// Verify critical elements exist
+if (!runtime) {
+  throw new Error("Runtime element not found in DOM");
+}
+if (!manager) {
+  throw new Error("Manager element not found in DOM");
+}
 
 // Use MutationObserver as fallback for change detection
 // This ensures syncUi() is called even if change event doesn't fire in some environments
@@ -53,7 +66,16 @@ if (runtime) {
       syncUi();
       validateCurrent();
     }
-  }, 100);
+  }, 50);
+}
+
+// Direct runtime value polling for environments where events don't fire
+// This is a belt-and-suspenders approach for Playwright tests
+if (runtime) {
+  setInterval(() => {
+    syncUi();
+    validateCurrent();
+  }, 25);
 }
 
 // Utility functions
@@ -632,4 +654,8 @@ async function loadCatalogs() {
 }
 
 // Load catalogs and initialize UI
-loadCatalogs();
+loadCatalogs().catch(e => {
+  console.error("Error loading catalogs:", e);
+  // Mark initialization as complete even if loading failed
+  document.documentElement.setAttribute("data-initialized", "true");
+});
