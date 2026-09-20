@@ -197,7 +197,7 @@ export function buildHelmValues(profile, sizing) {
       `          product: ${q("Collabora")}`,
       "          enabled: true",
       `          uri: ${q(collaboraUrl)}`,
-      `          iconURI: ${q(collaboraUrl.replace(/\/$/, "") + "/favicon.ico")}`,
+      `          iconURI: ${q(collaboraUrl.replace(/\/$/, ""))}/favicon.ico`,
       `          description: ${q("Open office documents with Collabora")}`,
       "          insecure: false",
       "          disableProof: false",
