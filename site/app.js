@@ -79,7 +79,7 @@ if (runtime) {
 }
 
 // Utility functions
-const catalogUrl = (name) => new URL(`../catalog/${name}.json`, import.meta.url);
+const catalogUrl = (name) => `/catalog/${name}.json`;
 
 async function fetchJson(name) {
   const controller = new AbortController();
@@ -640,13 +640,30 @@ document.querySelector("#copy-command").addEventListener("click", async () => {
 // Load catalogs asynchronously and initialize UI
 async function loadCatalogs() {
   try {
-    [sizingRules, policies, compatibility, legal, sources] = await Promise.all([
+    const results = await Promise.allSettled([
       fetchJson("sizing"),
       fetchJson("policies"),
       fetchJson("compatibility"),
       fetchJson("legal"),
       fetchJson("sources.lock")
     ]);
+    
+    // Process results
+    results.forEach((result, index) => {
+      if (result.status === "fulfilled") {
+        const value = result.value;
+        switch (index) {
+          case 0: sizingRules = value; break;
+          case 1: policies = value; break;
+          case 2: compatibility = value; break;
+          case 3: legal = value; break;
+          case 4: sources = value; break;
+        }
+      } else {
+        console.error(`Failed to load catalog ${index}:`, result.reason);
+      }
+    });
+    console.log("Catalogs loaded successfully");
   } catch (e) {
     console.error("Error loading catalogs:", e);
     // Initialize UI with default/empty values
@@ -658,6 +675,7 @@ async function loadCatalogs() {
     validateCurrent();
     // Mark initialization as complete for tests to wait on
     document.documentElement.setAttribute("data-initialized", "true");
+    console.log("Initialization complete, data-initialized set");
   }
 }
 

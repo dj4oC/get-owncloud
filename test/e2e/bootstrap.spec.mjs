@@ -52,8 +52,7 @@ test.describe("Bootstrap Command Picker", () => {
     await page.goto("/");
     // Wait for catalogs to be loaded by checking for an element that's updated after loading
     await page.waitForSelector("#image-digest-note", { state: "visible" });
-    // Wait longer for catalogs to load
-    await page.waitForTimeout(10000);
+    await page.waitForTimeout(500);
   });
 
   // Direct coverage tests for each runtime option
