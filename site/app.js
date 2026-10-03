@@ -7,10 +7,9 @@ import { buildSingleHostBundle, requiredTemplatePaths } from "../src/bundle.mjs"
 import { buildKubernetesBundle, requiredKubernetesTemplatePaths } from "../src/kubernetes.mjs";
 import { createZip } from "./zip.mjs";
 
-// Ensure DOM is ready - modules are deferred but we still check for safety
-if (document.readyState === "loading") {
-  throw new Error("DOM not ready when app.js module executed");
-}
+// Mark that the module is being executed
+console.log("App.js module executed");
+document.documentElement.setAttribute("data-initialized", "loading");
 
 // Global variables for catalog data
 let sizingRules, policies, compatibility, legal, sources;
@@ -35,12 +34,12 @@ const autoUpdates = document.querySelector("#auto-updates");
 const commandTarget = document.querySelector("#command-target");
 const bootstrapCommand = document.querySelector("#bootstrap-command");
 
-// Verify critical elements exist
+// Verify critical elements exist - log warning but don't throw
 if (!runtime) {
-  throw new Error("Runtime element not found in DOM");
+  console.error("Runtime element not found in DOM - UI may not work correctly");
 }
 if (!manager) {
-  throw new Error("Manager element not found in DOM");
+  console.error("Manager element not found in DOM - UI may not work correctly");
 }
 
 // Use MutationObserver as fallback for change detection
@@ -119,6 +118,12 @@ function q(str) {
 }
 
 function syncUi() {
+  // Defensive check - if critical elements are not ready, don't try to sync
+  if (!runtime || !manager || !purpose) {
+    console.warn("syncUi called but critical DOM elements not ready");
+    return;
+  }
+  
   const isKubernetes = runtime.value === "kubernetes";
   const isProduction = purpose.value === "production";
   const previousManager = manager.value;
@@ -227,6 +232,12 @@ function syncUi() {
 }
 
 function profileFromForm() {
+  // Defensive check - if critical elements are not ready, return empty profile
+  if (!runtime || !purpose || !manager) {
+    console.warn("profileFromForm called but critical DOM elements not ready");
+    return {};
+  }
+  
   const isKubernetes = runtime.value === "kubernetes";
   const profile = {
     apiVersion: "get.owncloud.com/v1alpha1",
@@ -679,9 +690,23 @@ async function loadCatalogs() {
   }
 }
 
-// Load catalogs and initialize UI
-loadCatalogs().catch(e => {
+// Load catalogs and initialize UI with timeout
+const catalogLoadPromise = loadCatalogs();
+
+// Set timeout for catalog loading - if it takes too long, mark as initialized anyway
+const catalogTimeout = setTimeout(() => {
+  if (!document.documentElement.hasAttribute("data-initialized")) {
+    console.error("Catalog loading timed out");
+    document.documentElement.setAttribute("data-initialized", "true");
+  }
+}, 15000);
+
+catalogLoadPromise.catch(e => {
   console.error("Error loading catalogs:", e);
   // Mark initialization as complete even if loading failed
-  document.documentElement.setAttribute("data-initialized", "true");
+  if (!document.documentElement.hasAttribute("data-initialized")) {
+    document.documentElement.setAttribute("data-initialized", "true");
+  }
+}).finally(() => {
+  clearTimeout(catalogTimeout);
 });

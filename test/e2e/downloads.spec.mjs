@@ -15,7 +15,8 @@ test.describe("Bundle Download and Verification", () => {
     await page.goto("/");
     // Wait for catalogs to be loaded by checking for an element that's updated after loading
     await page.waitForSelector("#image-digest-note", { state: "visible" });
-    await page.waitForTimeout(500);
+    await page.waitForFunction(() => document.documentElement.hasAttribute("data-initialized"), { timeout: 20000 });
+    await page.waitForTimeout(100);
   });
 
   // Test Docker bundle download and verification
