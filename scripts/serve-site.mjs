@@ -22,7 +22,7 @@ createServer(async (request, response) => {
       "Cache-Control": "no-store",
       "X-Content-Type-Options": "nosniff",
       "Referrer-Policy": "strict-origin-when-cross-origin",
-      "Content-Security-Policy": "default-src 'self'; script-src 'self' 'sha256-IQZAzsaFYMMie9R369mqIVVyx9QQURrNhDcAQi0HMPI=' 'sha256-wwzBcyW3AW1LMI40nCslCBRkRSEYESlUFCk9rO4/7hE=' 'sha256-GR+Z1LyL6nS8ipAJioFLPJIjMriR83CIJXs9l9NnvIo=' 'sha256-Iy10dZGLAtUtXbxJVazu/NNlKD1/tHvDQyQtRiF/6BU=' 'sha256-V5cvZw+reBTOn+gsqWIj5MdcXGwJqrSf9m2YgLv+eSw=' 'sha256-l+zKKYFA0cr3mIqmc9gWDjz8XYRzYtDFry60aAoW+No='; style-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
+      "Content-Security-Policy": "default-src 'self'; script-src 'self' 'sha256-IQZAzsaFYMMie9R369mqIVVyx9QQURrNhDcAQi0HMPI=' 'sha256-wwzBcyW3AW1LMI40nCslCBRkRSEYESlUFCk9rO4/7hE=' 'sha256-GR+Z1LyL6nS8ipAJioFLPJIjMriR83CIJXs9l9NnvIo=' 'sha256-Iy10dZGLAtUtXbxJVazu/NNlKD1/tHvDQyQtRiF/6BU=' 'sha256-V5cvZw+reBTOn+gsqWIj5MdcXGwJqrSf9m2YgLv+eSw=' 'sha256-l+zKKYFA0cr3mIqmc9gWDjz8XYRzYtDFry60aAoW+No='; style-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'",
     });
     response.end(data);
   } catch {
