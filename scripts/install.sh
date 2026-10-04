@@ -247,10 +247,10 @@ install_downloaded_tool() {
 
 install_tool() {
   tool=$1
+  [ "$DRY_RUN" = true ] && return 0
   case "$tool" in kubectl|helm|argocd|age) install_downloaded_tool "$tool"; return ;; esac
   packages=$(package_names "$tool") || die "No approved $tool adapter for $OS_ID $OS_VERSION ($ARCH)"
   note "INSTALL: $packages via $PKG_MANAGER"
-  [ "$DRY_RUN" = false ] || return 0
   [ "$INSTALL_MISSING" = true ] || die "$tool is missing. Approve with --install-missing."
   confirm "Install $tool using $PKG_MANAGER packages: $packages?" || die "Installation declined"
   if [ "$tool" = docker ] && [ "$PKG_MANAGER" = apt-get ]; then
