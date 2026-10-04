@@ -20,7 +20,7 @@ permissions:
 jobs:
   e2e-announcement:
     name: Publish Full E2E run link
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     if: github.event_name == 'push'
     steps:
       - name: Publish pending aggregate status
@@ -41,7 +41,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-22.04, ubuntu-24.04]
+        os: [ubuntu-26.04]
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
@@ -60,7 +60,7 @@ jobs:
 
   podman-rootless-runtime:
     name: Rootless Podman WebDAV persistence lifecycle
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 40
     steps:
       - name: Checkout
@@ -117,7 +117,7 @@ jobs:
 
   part1-platform-contract:
     name: Part 1 ${{ matrix.platform }} deterministic adapter
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -159,7 +159,7 @@ jobs:
 
   helm-contract:
     name: Helm 0.7.0 / oCIS 7.1.4 held boundary
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 15
     steps:
       - name: Checkout generator
@@ -193,7 +193,7 @@ jobs:
 
   ansible-idempotence:
     name: Ansible double-apply against live oCIS
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 40
     steps:
       - name: Checkout
@@ -243,7 +243,7 @@ jobs:
 
   browser-configurator:
     name: Browser generation and WCAG 2.1 AA journeys
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 20
     steps:
       - name: Checkout
@@ -274,7 +274,7 @@ jobs:
 
   full-e2e-gate:
     name: Full E2E code gate
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     if: always()
     needs:
       - compose-runtime

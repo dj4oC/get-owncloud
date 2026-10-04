@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 set -eu
 
 ROOT_DIR=${1:-$(pwd)}
@@ -39,7 +39,9 @@ cleanup() {
   if [ -f "$BUNDLE_DIR/.env" ] && [ -n "${GET_OWNCLOUD_COMPOSE_ENGINE:-}" ]; then (cd "$BUNDLE_DIR" && get_owncloud_compose down -v --remove-orphans) >/dev/null 2>&1 || true; fi
   if [ "$MANAGED_WORK_DIR" = true ] && [ "$ENGINE" = docker ]; then sudo chown -R "$(id -u):$(id -g)" "$WORK_DIR" || true; fi
   # Securely clean up .netrc file if it exists
-  [ -f "$WORK_DIR/.netrc" ] && shred -u "$WORK_DIR/.netrc" 2>/dev/null || rm -f "$WORK_DIR/.netrc"
+  if [ -f "$WORK_DIR/.netrc" ]; then
+    shred -u "$WORK_DIR/.netrc" 2>/dev/null || rm -f "$WORK_DIR/.netrc"
+  fi
   [ -n "${GET_OWNCLOUD_E2E_KEEP:-}" ] || rm -rf "$WORK_DIR"
   exit "$status"
 }

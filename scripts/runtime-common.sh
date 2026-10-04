@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # Shared Docker/Podman runtime setup. Callers define die() and set BUNDLE_DIR first.
 get_owncloud_compose() {

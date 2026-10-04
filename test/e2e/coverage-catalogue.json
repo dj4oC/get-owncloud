@@ -70,7 +70,7 @@
         "podman": {
           "supportedManager": ["direct", "ansible"],
           "ocisVersion": "8.2.0",
-          "maturityNote": "runnable Community Preview"
+          "maturityNote": "Podman is runnable Community Preview until its full parity matrix passes."
         }
       }
     },

@@ -48,6 +48,11 @@
   "groupManagement": { "cpu": 0.25, "ramMiB": 256, "diskGiB": 0 },
   "ocisAppTokens": { "cpu": 0.25, "ramMiB": 256, "diskGiB": 0 },
   "vimNav": { "cpu": 0.1, "ramMiB": 128, "diskGiB": 0 },
+  "drawio": { "cpu": 0.5, "ramMiB": 512, "diskGiB": 0 },
+  "jsonViewer": { "cpu": 0.25, "ramMiB": 256, "diskGiB": 0 },
+  "photoAddon": { "cpu": 0.25, "ramMiB": 256, "diskGiB": 0 },
+  "unzip": { "cpu": 0.25, "ramMiB": 256, "diskGiB": 0 },
+  "externalSites": { "cpu": 0.5, "ramMiB": 512, "diskGiB": 0 },
   "monitoring": {
     "metrics": { "cpu": 0.5, "ramMiB": 512, "diskGiB": 0 },
     "tracing": { "cpu": 1, "ramMiB": 1024, "diskGiB": 1 }

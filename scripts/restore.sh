@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 set -eu
 
 BUNDLE_DIR=.
@@ -64,10 +64,27 @@ case "$ARCHIVE" in
     age -d -i "$IDENTITY" -o "$RAW" "$ARCHIVE"
     ;;
 esac
-tar -tzf "$RAW" | while IFS= read -r path; do
+# Validate tar contents before extraction (prevent TOCTOU)
+# List all entries and validate paths and symlink targets
+tar -tvf "$RAW" | while IFS= read -r line; do
+  # Extract the path (last field)
+  path=$(echo "$line" | awk '{print $NF}')
+  
+  # Check for unsafe path patterns in all entries
   case "$path" in /*|../*|*/../*|*/..) die "Unsafe path in backup: $path" ;; esac
+  
+  # If this is a symlink entry (contains ->), validate the target
+  if echo "$line" | grep -q '->'; then
+    # Extract target using parameter expansion instead of sed
+    target="${line##*-> }"
+    # Validate symlink target path
+    case "$target" in /*|../*|*/../*|*/..) die "Unsafe symlink target in backup: $path -> $target" ;; esac
+  fi
 done
+
+# Extract after validation - symlinks will be validated below
 tar -C "$STAGE" -xzf "$RAW"
+# Validate all symlinks in extracted content before use (defense in depth)
 find "$STAGE" -type l -print | while IFS= read -r link; do
   case "$link" in
     "$STAGE/bundle"/*) allowed_root=$STAGE/bundle ;;

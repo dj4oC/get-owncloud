@@ -19,8 +19,8 @@
   "storage": {
     "mode": "ocis",
     "filesystem": "xfs",
-    "dataPath": "/srv/owncloud/data",
-    "configPath": "/srv/owncloud/config"
+    "dataPath": "./data",
+    "configPath": "./config"
   },
   "office": { "mode": "collabora", "deployment": "bundled" },
   "networking": {

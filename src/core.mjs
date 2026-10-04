@@ -30,6 +30,9 @@ features: new Set([
     "aiQuickDraftCreator", "aiSensitiveDataScanner", "aiSmartCollectionsNav", "aiSmartFileTaggerQa",
     "chatWithFile", "versionChangelog", "fileComments", "groupManagement", "ocisAppTokens", "vimNav"
   ]),
+  clamav: new Set(["enabled", "imageDigest", "storageClassName", "sizeGiB", "cpu", "memoryMiB"]),
+  tika: new Set(["mode", "imageDigest", "storageClassName", "sizeGiB", "cpu", "memoryMiB"]),
+  externalSites: new Set(["id", "name", "url"]),
   aiProxy: new Set([
     "enabled", "endpoint", "apiKeySecretRef", "defaultTextModel", "visionModel", "forcedModel",
     "requestTimeout", "tls", "outboundProxy", "networkPolicy", "maxInputSize", "maxOutputSize", "maxConcurrency"
@@ -395,8 +398,21 @@ export function validateNormalizedProfile(profile, policies, compatibility) {
     knownKeys(errors, profile.features.tika, OBJECT_KEYS.tika, "features.tika");
   }
   if (profile.features?.externalSites && Array.isArray(profile.features.externalSites)) {
+    const siteIds = new Set();
     for (const site of profile.features.externalSites) {
       knownKeys(errors, site, OBJECT_KEYS.externalSites, "features.externalSites[]");
+      if (!site.id || typeof site.id !== 'string' || site.id.trim() === '') {
+        errors.push("External site must have a non-empty id");
+      } else {
+        if (siteIds.has(site.id)) {
+          errors.push("Duplicate external site id: " + site.id);
+        } else {
+          siteIds.add(site.id);
+        }
+      }
+      if (site.url && !site.url.startsWith('https://')) {
+        errors.push("External site URL must be HTTPS");
+      }
     }
   }
   if (profile.storage?.s3) knownKeys(errors, profile.storage.s3, OBJECT_KEYS.s3, "storage.s3");
@@ -607,9 +623,6 @@ export function validateNormalizedProfile(profile, policies, compatibility) {
     if (profile.storage.filesystem === "nfs" && !profile.storage.storageClassName) {
       errors.push("Kubernetes NFS requires an explicitly reviewed NFSv4.2 StorageClass");
     }
-if (office === "collabora" && profile.office.deployment === "bundled") {
-      errors.push("Kubernetes 7.1.4 preview supports external Collabora only; the oCIS chart does not bundle the Collabora server");
-    }
     // Note: ClamAV validation updated - now supported across all deployment outputs
     if (profile.features.clamav) {
       const clamav = profile.features.clamav;
@@ -619,32 +632,21 @@ if (office === "collabora" && profile.office.deployment === "bundled") {
         }
       }
     }
-// AI Proxy validation
-    if (profile.aiProxy) {
-      const aiProxy = profile.aiProxy;
-      if (typeof aiProxy === 'object') {
-        if (aiProxy.enabled && !aiProxy.endpoint) {
-          errors.push("AI Proxy requires endpoint when enabled");
-        }
-        if (aiProxy.endpoint && !aiProxy.endpoint.startsWith('https://')) {
-          errors.push("AI Proxy endpoint must use HTTPS");
-        }
-        if (aiProxy.enabled && runtime === "kubernetes" && !aiProxy.apiKeySecretRef) {
-          errors.push("Kubernetes AI Proxy requires apiKeySecretRef when enabled");
-        }
-        if (aiProxy.tls?.customCA && !aiProxy.tls?.caSecretRef) {
-          errors.push("Custom CA requires caSecretRef");
+    // Tika validation for Kubernetes
+    if (profile.features.tika) {
+      const tika = profile.features.tika;
+      if (typeof tika === 'object' && runtime === "kubernetes") {
+        if (!tika.storageClassName) {
+          errors.push("Kubernetes Tika requires storageClassName");
         }
       }
     }
+
     
-    // Demo Content validation
+    // Demo Content validation - runtime-specific check
     if (profile.demoContent?.enabled) {
       if (profile.demoContent.optInRequired !== false && runtime === "production") {
         errors.push("Demo content opt-in is required for evaluation, prohibited for production");
-      }
-      if (profile.demoContent.destructiveWarning !== true) {
-        errors.push("Demo content must have destructive warning enabled");
       }
       if (profile.demoContent.sampleFiles) {
         for (const file of profile.demoContent.sampleFiles) {
@@ -655,8 +657,40 @@ if (office === "collabora" && profile.office.deployment === "bundled") {
         }
       }
     }
+    // Kubernetes-specific AI Proxy validation
+    if (profile.aiProxy) {
+      const aiProxy = profile.aiProxy;
+      if (typeof aiProxy === 'object' && aiProxy.enabled && !aiProxy.apiKeySecretRef) {
+        errors.push("Kubernetes AI Proxy requires apiKeySecretRef when enabled");
+      }
+    }
     
-    // AI Application dependency validation
+
+  }
+  
+  // AI Proxy validation - runtime-agnostic checks
+  if (profile.aiProxy) {
+    const aiProxy = profile.aiProxy;
+    if (typeof aiProxy === 'object') {
+      if (aiProxy.enabled && aiProxy.endpoint === '') {
+        errors.push("AI Proxy requires endpoint when enabled");
+      }
+      if (aiProxy.endpoint && !aiProxy.endpoint.startsWith('https://')) {
+        errors.push("AI Proxy endpoint must use HTTPS");
+      }
+      if (aiProxy.tls?.customCA && !aiProxy.tls?.caSecretRef) {
+        errors.push("Custom CA requires caSecretRef");
+      }
+    }
+  }
+  
+  // Demo Content validation - runtime-agnostic check
+  if (profile.demoContent?.enabled && profile.demoContent.destructiveWarning !== true) {
+    errors.push("Demo content must have destructive warning enabled");
+  }
+  
+  // AI Application dependency validation - runtime-agnostic
+  if (profile.features) {
     const aiApps = [
       'aiDataInsightsSidebar', 'aiDocSummary', 'aiFolderBriefSidebar', 'aiFolderReadmeGenerator',
       'aiImageAltTextSidebar', 'aiLlmProxy', 'aiMultiDocSynthesizer', 'aiQuickDraftCreator',
@@ -976,7 +1010,7 @@ export function calculateSizingWithRules(profile, rules) {
     contributions,
     vocabulary: rules.vocabulary,
     productionLoadTestRequired: true,
-    disclaimer: "Recommended includes transparent planning headroom but is not a capacity guarantee. Production requires representative load testing."
+    disclaimer: "Recommended with headroom but is not a capacity guarantee. Production requires representative load testing."
   };
 }
 

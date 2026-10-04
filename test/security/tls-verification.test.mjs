@@ -92,12 +92,12 @@ test.describe("TLS Certificate Verification Security Tests (Issue #32)", () => {
 });
 
 test.describe("TLS Configuration Code Analysis", () => {
-  test("healthcheck.sh has curl_tls_opts variable for TLS configuration", () => {
+  test("healthcheck.sh has curl_cmd array for TLS configuration", () => {
     const healthcheckPath = join(ROOT, "scripts", "healthcheck.sh");
     const content = readFileSync(healthcheckPath, "utf8");
     
-    assert.ok(content.includes("curl_tls_opts"), "Should have curl_tls_opts variable");
-    assert.ok(content.includes("$curl_tls_opts"), "Should use curl_tls_opts variable in curl calls");
+    assert.ok(content.includes("curl_cmd"), "Should have curl_cmd array");
+    assert.ok(content.includes("${curl_cmd[@]}"), "Should use curl_cmd array in curl calls");
   });
 
   test("healthcheck.sh builds TLS options based on input flags", () => {
@@ -107,6 +107,6 @@ test.describe("TLS Configuration Code Analysis", () => {
     // Should build TLS options based on flags
     assert.ok(content.includes("if [ \"$EVALUATION_INSECURE\" = true ]"), "Should check EVALUATION_INSECURE flag");
     assert.ok(content.includes("elif [ -n \"$EVALUATION_CA_BUNDLE\" ]"), "Should check EVALUATION_CA_BUNDLE flag");
-    assert.ok(content.includes("curl_tls_opts=\"\""), "Should initialize curl_tls_opts as empty");
+    assert.ok(content.includes("curl_cmd=(curl"), "Should initialize curl_cmd as array");
   });
 });

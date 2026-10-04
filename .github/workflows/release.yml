@@ -21,7 +21,7 @@ jobs:
     uses: ./.github/workflows/deployment-e2e.yml
 
   release-evidence:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     needs: [full-e2e]
     environment: production-release
     steps:

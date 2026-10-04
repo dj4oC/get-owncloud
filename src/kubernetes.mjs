@@ -14,7 +14,7 @@ function persistence(name, size, storageClassName) {
     "      accessModes:",
     "        - ReadWriteOnce"
   ];
-  if (name === "storageusers") lines.push(`      size: ${q(`${size}Gi`)}`);
+  if (name === "storageusers") lines.push(`      size: ${q(size)}Gi`);
   if (storageClassName) lines.push(`      storageClassName: ${q(storageClassName)}`);
   return lines;
 }
@@ -49,11 +49,11 @@ export function buildHelmValues(profile, sizing) {
     ...(profile.features.clamav ? [
       "    clamav:",
       `      enabled: true`,
-      `      image: clamav/clamav@sha256:${profile.features.clamav.imageDigest}`,
+      `      image: clamav/clamav@sha256:${q(profile.features.clamav.imageDigest)}`,
       `      storageClassName: ${q(profile.features.clamav.storageClassName)}`,
-      `      size: ${profile.features.clamav.sizeGiB}Gi`,
+      `      size: ${q(profile.features.clamav.sizeGiB)}Gi`,
       `      cpu: ${q(profile.features.clamav.cpu)}`,
-      `      memory: ${q(profile.features.clamav.memoryMiB + "Mi")}`
+      `      memory: ${q(profile.features.clamav.memoryMiB)}Mi`
     ] : []),
     "  emailNotifications:",
     `    enabled: ${Boolean(profile.features.notifications && profile.mail?.host)}`,
@@ -197,7 +197,7 @@ export function buildHelmValues(profile, sizing) {
       `          product: ${q("Collabora")}`,
       "          enabled: true",
       `          uri: ${q(collaboraUrl)}`,
-      `          iconURI: ${q(collaboraUrl.replace(/\/$/, "") + "/favicon.ico")}`,
+      `          iconURI: ${q(collaboraUrl.replace(/\/$/, ""))}/favicon.ico`,
       `          description: ${q("Open office documents with Collabora")}`,
       "          insecure: false",
       "          disableProof: false",
@@ -248,7 +248,8 @@ export function buildHelmValues(profile, sizing) {
     );
   }
   values.push("    persistence:", "      enabled: true", "      accessModes:", "        - ReadWriteOnce");
-  values.push(`      size: ${q(`${Math.max(10, Math.ceil(sizing.recommended.diskGiB))}Gi`)}`);
+  const sizeGiB = String(Math.max(10, Math.ceil(sizing.recommended.diskGiB)));
+  values.push(`      size: ${q(sizeGiB)}Gi`);
   if (profile.storage.storageClassName) values.push(`      storageClassName: ${q(profile.storage.storageClassName)}`);
   for (const name of ["nats", "search", "storagesystem", "thumbnails", "web", "ocm"]) {
     values.push(...persistence(name, 1, profile.storage.storageClassName));
