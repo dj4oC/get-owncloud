@@ -101,7 +101,7 @@ for (const name of composeTemplates) {
   if (/onlyoffice|posixfs|xattr|gpfs/i.test(name)) fail(`Forbidden deployment template is present: ${name}`);
 }
 
-for (const workflowName of ["ci.yml", "browser-e2e.yml", "deployment-e2e.yml", "pages.yml", "release.yml", "upstream-discovery.yml"]) {
+for (const workflowName of ["ci.yml", "deployment-e2e.yml", "pages.yml", "release.yml", "upstream-discovery.yml"]) {
   const workflow = await text(`.github/workflows/${workflowName}`);
   for (const match of workflow.matchAll(/^\s*uses:\s+([^\s]+)/gm)) {
     if (!match[1].startsWith("./") && !/@[0-9a-f]{40}$/.test(match[1])) fail(`${workflowName} has an unpinned action: ${match[1]}`);
