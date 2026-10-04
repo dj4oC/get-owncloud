@@ -375,9 +375,10 @@ test("storage paths reject root, traversal and identical targets", async () => {
 });
 
 // AI Proxy Configuration Tests
-test("AI Proxy can be enabled as boolean", async () => {
+test("AI Proxy can be enabled as boolean but requires endpoint", async () => {
   const result = await validateProfile(profile({ aiProxy: true }));
-  assert.equal(result.valid, true, result.errors.join(" "));
+  assert.equal(result.valid, false);
+  assert.match(result.errors.join(" "), /endpoint/);
 });
 
 test("AI Proxy can be enabled as object with custom configuration", async () => {

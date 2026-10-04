@@ -641,32 +641,12 @@ export function validateNormalizedProfile(profile, policies, compatibility) {
         }
       }
     }
-    // AI Proxy validation
-    if (profile.aiProxy) {
-      const aiProxy = profile.aiProxy;
-      if (typeof aiProxy === 'object') {
-        if (aiProxy.enabled && !aiProxy.endpoint) {
-          errors.push("AI Proxy requires endpoint when enabled");
-        }
-        if (aiProxy.endpoint && !aiProxy.endpoint.startsWith('https://')) {
-          errors.push("AI Proxy endpoint must use HTTPS");
-        }
-        if (aiProxy.enabled && runtime === "kubernetes" && !aiProxy.apiKeySecretRef) {
-          errors.push("Kubernetes AI Proxy requires apiKeySecretRef when enabled");
-        }
-        if (aiProxy.tls?.customCA && !aiProxy.tls?.caSecretRef) {
-          errors.push("Custom CA requires caSecretRef");
-        }
-      }
-    }
+
     
-    // Demo Content validation
+    // Demo Content validation - runtime-specific check
     if (profile.demoContent?.enabled) {
       if (profile.demoContent.optInRequired !== false && runtime === "production") {
         errors.push("Demo content opt-in is required for evaluation, prohibited for production");
-      }
-      if (profile.demoContent.destructiveWarning !== true) {
-        errors.push("Demo content must have destructive warning enabled");
       }
       if (profile.demoContent.sampleFiles) {
         for (const file of profile.demoContent.sampleFiles) {
@@ -677,8 +657,40 @@ export function validateNormalizedProfile(profile, policies, compatibility) {
         }
       }
     }
+    // Kubernetes-specific AI Proxy validation
+    if (profile.aiProxy) {
+      const aiProxy = profile.aiProxy;
+      if (typeof aiProxy === 'object' && aiProxy.enabled && !aiProxy.apiKeySecretRef) {
+        errors.push("Kubernetes AI Proxy requires apiKeySecretRef when enabled");
+      }
+    }
     
-    // AI Application dependency validation
+
+  }
+  
+  // AI Proxy validation - runtime-agnostic checks
+  if (profile.aiProxy) {
+    const aiProxy = profile.aiProxy;
+    if (typeof aiProxy === 'object') {
+      if (aiProxy.enabled && aiProxy.endpoint === '') {
+        errors.push("AI Proxy requires endpoint when enabled");
+      }
+      if (aiProxy.endpoint && !aiProxy.endpoint.startsWith('https://')) {
+        errors.push("AI Proxy endpoint must use HTTPS");
+      }
+      if (aiProxy.tls?.customCA && !aiProxy.tls?.caSecretRef) {
+        errors.push("Custom CA requires caSecretRef");
+      }
+    }
+  }
+  
+  // Demo Content validation - runtime-agnostic check
+  if (profile.demoContent?.enabled && profile.demoContent.destructiveWarning !== true) {
+    errors.push("Demo content must have destructive warning enabled");
+  }
+  
+  // AI Application dependency validation - runtime-agnostic
+  if (profile.features) {
     const aiApps = [
       'aiDataInsightsSidebar', 'aiDocSummary', 'aiFolderBriefSidebar', 'aiFolderReadmeGenerator',
       'aiImageAltTextSidebar', 'aiLlmProxy', 'aiMultiDocSynthesizer', 'aiQuickDraftCreator',
