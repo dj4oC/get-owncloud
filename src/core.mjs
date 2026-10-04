@@ -398,8 +398,21 @@ export function validateNormalizedProfile(profile, policies, compatibility) {
     knownKeys(errors, profile.features.tika, OBJECT_KEYS.tika, "features.tika");
   }
   if (profile.features?.externalSites && Array.isArray(profile.features.externalSites)) {
+    const siteIds = new Set();
     for (const site of profile.features.externalSites) {
       knownKeys(errors, site, OBJECT_KEYS.externalSites, "features.externalSites[]");
+      if (!site.id || typeof site.id !== 'string' || site.id.trim() === '') {
+        errors.push("External site must have a non-empty id");
+      } else {
+        if (siteIds.has(site.id)) {
+          errors.push("Duplicate external site id: " + site.id);
+        } else {
+          siteIds.add(site.id);
+        }
+      }
+      if (site.url && !site.url.startsWith('https://')) {
+        errors.push("External site URL must be HTTPS");
+      }
     }
   }
   if (profile.storage?.s3) knownKeys(errors, profile.storage.s3, OBJECT_KEYS.s3, "storage.s3");
@@ -619,7 +632,16 @@ export function validateNormalizedProfile(profile, policies, compatibility) {
         }
       }
     }
-// AI Proxy validation
+    // Tika validation for Kubernetes
+    if (profile.features.tika) {
+      const tika = profile.features.tika;
+      if (typeof tika === 'object' && runtime === "kubernetes") {
+        if (!tika.storageClassName) {
+          errors.push("Kubernetes Tika requires storageClassName");
+        }
+      }
+    }
+    // AI Proxy validation
     if (profile.aiProxy) {
       const aiProxy = profile.aiProxy;
       if (typeof aiProxy === 'object') {
